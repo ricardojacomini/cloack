@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARCH Portal — Architecture (dev v0.3)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #0a0e17; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-nav { background: #0f1a2e; border-bottom: 1px solid #2d4a6f; padding: 10px 20px;
+            display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.site-nav a { color: #4a9eff; text-decoration: none; font-size: 0.95rem; padding: 4px 10px;
+              border-radius: 4px; transition: background 0.15s; }
+.site-nav a:hover, .site-nav a.active { background: #1a2d4a; color: #fff; }
+.site-nav .brand { font-weight: bold; font-size: 1.1rem; color: #4a9eff; letter-spacing: 1px; }
+.page-content { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+</style>
+  
+</head>
+<body>
+  <nav class="site-nav"><span class="brand">ARCH Portal</span><a href="index.html">Home</a> <a href="readme.html">README</a> <a href="cloack.html">CLOACK</a> <a href="architecture.html" class="active">Architecture</a></nav>
+  <div class="page-content">
+    <style>
+.ca { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.ca-header { text-align: center; background: linear-gradient(135deg, #0a1628 0%, #1a2d4a 100%); border-radius: 10px; padding: 22px; margin-bottom: 16px; border: 1px solid #2d4a6f; }
+.ca-header h3 { color: #4a9eff; margin: 0; font-size: 1.6rem; letter-spacing: 2px; }
+.ca-header p { color: #5a6d7f; margin: 6px 0 0; font-size: 1rem; }
+.ca-tech { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
+.ca-tech span { background: #1a2d4a; border: 1px solid #2d4a6f; border-radius: 4px; padding: 4px 12px; font-size: 0.85rem; color: #c8d6e5; }
+.ca-layer { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 8px; padding: 18px; margin-bottom: 12px; }
+.ca-layer-title { font-size: 0.9rem; color: #5a6d7f; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.ca-grid { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.ca-block { border-radius: 6px; padding: 14px 18px; cursor: pointer; text-align: center; min-width: 140px; flex: 1; transition: transform 0.15s, box-shadow 0.15s; position: relative; }
+.ca-block:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+.ca-block h6 { margin: 0; font-size: 1.05rem; }
+.ca-block small { display: block; font-size: 0.85rem; color: #5a6d7f; margin-top: 4px; }
+.ca-block .ca-badge { position: absolute; top: -6px; right: -4px; font-size: 0.7rem; padding: 2px 8px; border-radius: 8px; font-weight: bold; }
+.ca-flow { text-align: center; color: #2d4a6f; font-size: 1.2rem; margin: 6px 0; }
+.b-cyan { background: rgba(0,206,201,0.12); border: 1.5px solid #00cec9; }
+.b-cyan h6 { color: #00cec9; }
+.b-blue { background: rgba(74,158,255,0.12); border: 1.5px solid #4a9eff; }
+.b-blue h6 { color: #4a9eff; }
+.b-green { background: rgba(39,174,96,0.12); border: 1.5px solid #27ae60; }
+.b-green h6 { color: #27ae60; }
+.b-orange { background: rgba(243,156,18,0.12); border: 1.5px solid #f39c12; }
+.b-orange h6 { color: #f39c12; }
+.b-purple { background: rgba(155,89,182,0.12); border: 1.5px solid #9b59b6; }
+.b-purple h6 { color: #9b59b6; }
+.b-red { background: rgba(231,76,60,0.12); border: 1.5px solid #e74c3c; }
+.b-red h6 { color: #e74c3c; }
+.b-teal { background: rgba(26,188,156,0.12); border: 1.5px solid #1abc9c; }
+.b-teal h6 { color: #1abc9c; }
+.b-muted { background: rgba(90,109,127,0.12); border: 1.5px solid #5a6d7f; }
+.b-muted h6 { color: #8a9bb0; }
+.bg-green { background: #27ae60; color: #fff; }
+.bg-orange { background: #f39c12; color: #fff; }
+.bg-blue { background: #4a9eff; color: #fff; }
+.bg-red { background: #e74c3c; color: #fff; }
+.bg-purple { background: #9b59b6; color: #fff; }
+.bg-cyan { background: #00cec9; color: #fff; }
+
+/* Modal dark theme override */
+.ca .modal-content { background: #0f1a2e; border: 1px solid #2d4a6f; color: #c8d6e5; }
+.ca .modal-header { border-bottom: 1px solid #1a2d4a; }
+.ca .modal-header .close { color: #c8d6e5; text-shadow: none; opacity: 0.8; }
+.ca .modal-body { font-size: 1rem; }
+.ca .modal-body code { color: #00cec9; font-size: 0.9rem; }
+.ca .modal-body ul { padding-left: 18px; }
+.ca .modal-body ul li { margin-bottom: 6px; color: #8a9bb0; font-size: 0.95rem; }
+.ca .modal-body h6 { color: #4a9eff; margin-top: 14px; font-size: 1rem; }
+.ca .modal-body .detail-table { width: 100%; font-size: 0.95rem; }
+.ca .modal-body .detail-table td { padding: 6px 10px; border-bottom: 1px solid #1a2d4a; }
+.ca .modal-body .detail-table td:first-child { color: #5a6d7f; width: 35%; }
+.ca-version { display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; margin-left: 10px; }
+.ca-version-prod { background: #27ae60; color: #fff; }
+.ca-version-dev { background: #f39c12; color: #fff; }
+/* Version summary */
+.ca #version-summary .table { color: #c8d6e5; }
+.ca #version-summary .table th { background: #1a2d4a; color: #c8d6e5; border-color: #2d4a6f; }
+.ca #version-summary .table td { color: #c8d6e5; border-color: #1a2d4a; }
+.ca #version-summary ul li { color: #c8d6e5; }
+.ca #version-summary h6 { color: #c8d6e5; }
+.ca-expand-btn { cursor: pointer; color: #4a9eff; font-size: 0.9rem; }
+.ca-expand-btn:hover { text-decoration: underline; }
+</style>
+
+<div class="ca">
+
+<!-- ══════ HEADER ══════ -->
+<div class="ca-header">
+  <h3>CLOACK STACK <span class="ca-version ca-version-dev">DEV v0.3</span></h3>
+  <p>ColdFront &middot; LDAP &middot; OIDC &middot; Accounts &middot; Clusters &middot; Keycloak</p>
+  <div class="ca-tech">
+    <span>Django 4.1</span><span>PostgreSQL 16</span><span>OpenLDAP</span><span>Keycloak 24</span>
+    <span>Slurm 25.11</span><span>Docker Compose</span><span>Rocky Linux 9</span><span>SSSD</span>
+    <span>Munge</span><span>REST API</span><span>Django-Q</span><span>OIDC</span>
+  </div>
+</div>
+
+<!-- ══════ VERSION SUMMARY ══════ -->
+<div class="ca-layer">
+  <div class="ca-layer-title">
+    Version Summary &mdash; DEV v0.3
+    <span class="ca-expand-btn float-right" data-toggle="collapse" data-target="#version-collapse-dev">
+      &#9660; Click to expand
+    </span>
+  </div>
+  <div class="collapse" id="version-collapse-dev">
+    <div id="version-summary" style="padding-top: 10px;"><div class="row">
+      <div class="col-md-6">
+        <h6 style="color:#27ae60;">New in dev (259 commits over prod)</h6>
+        <ul style="font-size:0.9rem; color:#8a9bb0;">
+          <li>Full billing: BillingRate, AllocationBilling, HardwareCreditPool, invoices</li>
+          <li>Weekly spend cap ($) with GrpTRESMins + gauge</li>
+          <li>Storage &amp; backup per project</li>
+          <li>Core hours reset (6 configurable periods)</li>
+          <li>Job metrics dashboard + job submit UI</li>
+          <li>Terms of Service (versioned, enforced on Slurm sync)</li>
+          <li>SlurmCluster / SlurmNode / SlurmPartition / SlurmQOS models</li>
+          <li>Dynamic slurm.conf generation from UI</li>
+          <li>Docker-based Slurm cluster management</li>
+          <li>School model + department hierarchy + orphan cleanup</li>
+          <li>CLI: cli_filter.lua, job_submit.lua, sbalance, slurmtree, slurmqos</li>
+          <li>SPANK plugins (C) for cost telemetry</li>
+          <li>CSV import (users, departments, ToS)</li>
+          <li>Unit tests (86 tests): billing, models, slurm_sync, signals, ldap</li>
+          <li>Staff Help (21 DB-driven sections)</li>
+          <li>Multi-cluster Federation architecture (roadmap)</li>
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <h6 style="color:#f39c12;">Scheduled Tasks (6)</h6>
+        <table class="table table-sm table-bordered" style="font-size:0.85rem;">
+          <thead><tr><th>Task</th><th>Schedule</th></tr></thead>
+          <tbody>
+            <tr><td>sync_ldap_all</td><td>Daily 2 AM</td></tr>
+            <tr><td>sync_slurm_all</td><td>Daily 3 AM</td></tr>
+            <tr><td>collect_sacct</td><td>Every 15 min</td></tr>
+            <tr><td>sync_weekly_cap_usage</td><td>Every 5 min</td></tr>
+            <tr><td>check_and_run_core_hours_reset</td><td>Configurable</td></tr>
+            <tr><td>cleanup_task_queue</td><td>Hourly :30</td></tr>
+          </tbody>
+        </table>
+        <p class="text-muted" style="font-size:0.85rem;">All tasks use TASK_HOOK for Django Admin LogEntry audit trail.</p>
+      </div>
+    </div>
+    <p class="text-muted" style="font-size:0.85rem;">See CLOACK.md for full feature comparison table (main vs prod vs dev).</p></div>
+  </div>
+</div>
+
+<!-- ══════ USERS ══════ -->
+<div class="ca-layer">
+  <div class="ca-layer-title">Users</div>
+  <div class="ca-grid">
+    <div class="ca-block b-purple" data-toggle="modal" data-target="#modal-dev-admin">
+      <h6>&#128736; Admin / Staff</h6>
+      <small>Manage &middot; Approve &middot; Deploy</small>
+    </div>
+    <div class="ca-block b-blue" data-toggle="modal" data-target="#modal-dev-pi">
+      <h6>&#128218; PI</h6>
+      <small>Projects &middot; Allocations &middot; Billing</small>
+    </div>
+    <div class="ca-block b-green" data-toggle="modal" data-target="#modal-dev-user">
+      <h6>&#128100; User</h6>
+      <small>Login &middot; Submit Jobs &middot; View Metrics</small>
+    </div>
+  </div>
+</div>
+
+<div class="ca-flow">&darr;</div>
+
+<!-- ══════ CORE SERVICES ══════ -->
+<div class="ca-layer">
+  <div class="ca-layer-title">Core Services (Docker Compose)</div>
+  <div class="ca-grid">
+    <div class="ca-block b-cyan" data-toggle="modal" data-target="#modal-dev-coldfront">
+      <span class="ca-badge bg-cyan">Portal</span>
+      <h6>ColdFront</h6>
+      <small>Django + arch_sync<br>:8443</small>
+    </div>
+    <div class="ca-block b-orange" data-toggle="modal" data-target="#modal-dev-keycloak">
+      <span class="ca-badge bg-orange">OIDC</span>
+      <h6>Keycloak</h6>
+      <small>JHU + Schmidt realms<br>:8080</small>
+    </div>
+    <div class="ca-block b-blue" data-toggle="modal" data-target="#modal-dev-ldap">
+      <span class="ca-badge bg-blue">Directory</span>
+      <h6>OpenLDAP</h6>
+      <small>ou=jhu &middot; ou=schmidt<br>:636</small>
+    </div>
+    <div class="ca-block b-green" data-toggle="modal" data-target="#modal-dev-postgres">
+      <span class="ca-badge bg-green">Database</span>
+      <h6>PostgreSQL</h6>
+      <small>3 databases<br>:5432</small>
+    </div>
+  </div>
+</div>
+
+<div class="ca-flow">&darr;</div>
+
+<!-- ══════ SLURM LAYER ══════ -->
+<div class="ca-layer">
+  <div class="ca-layer-title">Slurm Cluster</div>
+  <div class="ca-grid">
+    <div class="ca-block b-teal" data-toggle="modal" data-target="#modal-dev-slurmctld">
+      <h6>slurmctld</h6>
+      <small>Controller<br>:6817</small>
+    </div>
+    <div class="ca-block b-purple" data-toggle="modal" data-target="#modal-dev-slurmdbd">
+      <h6>slurmdbd</h6>
+      <small>Accounting<br>:6819</small>
+    </div>
+    <div class="ca-block b-orange" data-toggle="modal" data-target="#modal-dev-slurmrestd">
+      <h6>slurmrestd</h6>
+      <small>REST API<br>:6820</small>
+    </div>
+    <div class="ca-block b-green" data-toggle="modal" data-target="#modal-dev-compute">
+      <h6>Compute Nodes</h6>
+      <small>cn-01..N &middot; SSSD<br>Munge + SPANK</small>
+    </div>
+    <div class="ca-block b-blue" data-toggle="modal" data-target="#modal-dev-login">
+      <h6>Login Node</h6>
+      <small>SSH &middot; sbatch<br>cli_filter.lua</small>
+    </div>
+  </div>
+</div>
+
+<div class="ca-flow">&darr;</div>
+
+<!-- ══════ PARTITIONS ══════ -->
+<div class="ca-layer">
+  <div class="ca-layer-title">Partitions &amp; Allocation Tiers</div>
+  <div class="ca-grid">
+    <div class="ca-block b-green" data-toggle="modal" data-target="#modal-dev-scavenger">
+      <span class="ca-badge bg-green">FREE</span>
+      <h6>scavenger</h6>
+      <small>Default &middot; Preemptible</small>
+    </div>
+    <div class="ca-block b-orange" data-toggle="modal" data-target="#modal-dev-premium">
+      <span class="ca-badge bg-orange">PAID</span>
+      <h6>premium</h6>
+      <small>High-priority</small>
+    </div>
+    <div class="ca-block b-purple" data-toggle="modal" data-target="#modal-dev-gpu">
+      <span class="ca-badge bg-purple">GPU</span>
+      <h6>gpu-a100</h6>
+      <small>TRESBillingWeights</small>
+    </div>
+    <div class="ca-block b-muted" data-toggle="modal" data-target="#modal-dev-dev">
+      <h6>dev</h6>
+      <small>Testing</small>
+    </div>
+  </div>
+</div>
+
+<div class="ca-flow">&darr;</div>
+
+<!-- ══════ HIERARCHY ══════ -->
+<div class="ca-layer">
+  <div class="ca-layer-title">Slurm Account Hierarchy</div>
+  <div style="font-family: monospace; font-size: 0.85rem; color: #c8d6e5; line-height: 1.7; padding: 8px;">
+    <span style="color:#4a9eff;">root</span><br>
+    &ensp;&#9500;&#9472; <span style="color:#f39c12;">jhu</span> [20] <span style="color:#5a6d7f;">(organization)</span><br>
+    &ensp;&#9474;&ensp;&ensp;&#9500;&#9472; <span style="color:#9b59b6;">it</span> <span style="color:#5a6d7f;">(school)</span><br>
+    &ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9500;&#9472; <span style="color:#00cec9;">arch</span> <span style="color:#5a6d7f;">(department)</span><br>
+    &ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9500;&#9472; <span style="color:#27ae60;">rdesouz4</span> <span style="color:#5a6d7f;">&larr; default (scavenger)</span><br>
+    &ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9492;&#9472; <span style="color:#f39c12;">rdesouz4_proj1</span> <span style="color:#5a6d7f;">&larr; paid (premium)</span><br>
+    &ensp;&#9492;&#9472; <span style="color:#f39c12;">schmidt</span> [80] <span style="color:#5a6d7f;">(organization)</span><br>
+    &ensp;&ensp;&ensp;&ensp;&#9492;&#9472; <span style="color:#9b59b6;">ssci</span> <span style="color:#5a6d7f;">(school)</span><br>
+    &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&#9492;&#9472; <span style="color:#00cec9;">ss</span> <span style="color:#5a6d7f;">(department)</span><br>
+    &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&#9492;&#9472; <span style="color:#27ae60;">ssci-gomes</span> <span style="color:#5a6d7f;">&larr; always free (ssci-*)</span>
+  </div>
+</div>
+
+<div class="ca-flow">&darr;</div>
+
+<!-- ══════ BILLING & FEATURES ══════ -->
+<div class="ca-layer">
+  <div class="ca-layer-title">Billing, Storage &amp; Features</div>
+  <div class="ca-grid">
+    <div class="ca-block b-orange" data-toggle="modal" data-target="#modal-dev-billing">
+      <span class="ca-badge bg-orange">$</span>
+      <h6>Billing</h6>
+      <small>Rates &middot; Invoices &middot; Credits</small>
+    </div>
+    <div class="ca-block b-teal" data-toggle="modal" data-target="#modal-dev-storage">
+      <h6>Storage &amp; Backup</h6>
+      <small>Per-project TB allocation</small>
+    </div>
+    <div class="ca-block b-blue" data-toggle="modal" data-target="#modal-dev-jobmetrics">
+      <h6>Job Metrics</h6>
+      <small>XDMoD-style dashboard</small>
+    </div>
+    <div class="ca-block b-red" data-toggle="modal" data-target="#modal-dev-tos">
+      <h6>Terms of Service</h6>
+      <small>Required for Slurm access</small>
+    </div>
+    <div class="ca-block b-purple" data-toggle="modal" data-target="#modal-dev-weeklycap">
+      <h6>Weekly Spend Cap</h6>
+      <small>GrpTRESMins enforcement</small>
+    </div>
+  </div>
+</div>
+
+<div class="ca-flow">&darr;</div>
+
+<!-- ══════ SCHEDULED TASKS ══════ -->
+<div class="ca-layer">
+  <div class="ca-layer-title">Scheduled Tasks (Django-Q)</div>
+  <div class="ca-grid">
+    <div class="ca-block b-muted" data-toggle="modal" data-target="#modal-dev-task-ldap"><h6>sync_ldap</h6><small>Daily 2 AM</small></div>
+    <div class="ca-block b-muted" data-toggle="modal" data-target="#modal-dev-task-slurm"><h6>sync_slurm</h6><small>Daily 3 AM</small></div>
+    <div class="ca-block b-muted" data-toggle="modal" data-target="#modal-dev-task-sacct"><h6>collect_sacct</h6><small>Every 15 min</small></div>
+    <div class="ca-block b-muted" data-toggle="modal" data-target="#modal-dev-task-cap"><h6>weekly_cap</h6><small>Every 5 min</small></div>
+    <div class="ca-block b-muted" data-toggle="modal" data-target="#modal-dev-task-reset"><h6>core_reset</h6><small>Configurable</small></div>
+    <div class="ca-block b-muted" data-toggle="modal" data-target="#modal-dev-task-cleanup"><h6>cleanup</h6><small>Hourly :30</small></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- MODALS -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- Admin -->
+<div class="modal fade" id="modal-dev-admin" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#9b59b6;">&#128736; Admin / Staff</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Manage users &mdash; toggle PI status, set cluster scope, impersonate</li>
+      <li>Approve/deny allocation requests</li>
+      <li>Set billing rates, weekly spend caps</li>
+      <li>Import departments, users, Terms of Service (CSV)</li>
+      <li>Deploy and manage Slurm clusters from UI</li>
+      <li>View billing reports, generate invoices</li>
+      <li>Configure QOS, partitions, TRES via Django Admin</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- PI -->
+<div class="modal fade" id="modal-dev-pi" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#4a9eff;">&#128218; Principal Investigator</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Create projects (default free + paid with abbreviation)</li>
+      <li>Request allocations on cluster resources</li>
+      <li>Add/remove users to projects and allocations</li>
+      <li>Accept Terms of Service (required for Slurm account)</li>
+      <li>Set weekly spend caps on paid allocations</li>
+      <li>View usage reports and billing on My Usage page</li>
+      <li>Download PDF billing invoices</li>
+    </ul>
+    <h6>Default vs Paid</h6>
+    <table class="detail-table">
+      <tr><td>Default project</td><td>PI username, scavenger QOS, not billed</td></tr>
+      <tr><td>Paid project</td><td>Custom abbreviation, normal/premium QOS, IO number required</td></tr>
+    </table>
+  </div>
+</div></div></div>
+
+<!-- User -->
+<div class="modal fade" id="modal-dev-user" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#27ae60;">&#128100; User</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Login via Keycloak (OIDC) &mdash; JHU Entra ID or Schmidt LDAP</li>
+      <li>Submit jobs via CLI (<code>sbatch</code>) or ColdFront UI</li>
+      <li>View job metrics and usage dashboard</li>
+      <li>Scoped to PI&rsquo;s allocation and Slurm account</li>
+      <li>SSH access enabled when PI adds user to allocation</li>
+      <li>Shell changes from <code>/bin/false</code> to <code>/bin/bash</code> on activation</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- ColdFront -->
+<div class="modal fade" id="modal-dev-coldfront" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#00cec9;">ColdFront &mdash; HPC Portal</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <table class="detail-table">
+      <tr><td>Framework</td><td>Django 4.1 + Gunicorn</td></tr>
+      <tr><td>Port</td><td><code>8443</code> (HTTPS)</td></tr>
+      <tr><td>Async tasks</td><td>Django-Q (qcluster worker)</td></tr>
+      <tr><td>Custom plugins</td><td><code>arch_sync</code> (billing, Slurm, hierarchy), <code>arch_oidc</code> (multi-realm OIDC)</td></tr>
+    </table>
+    <h6>Key Models (arch_sync)</h6>
+    <ul>
+      <li>SlurmCluster, SlurmNode, SlurmPartition, SlurmQOS</li>
+      <li>SlurmJob, SlurmAccountUsagePeriod, SlurmUserUsageSnapshot</li>
+      <li>School, Department, BillingRate, AllocationBilling</li>
+      <li>HardwareCreditPool, InvoiceSettings, PaymentStatus</li>
+      <li>TermsOfService, TOSAcceptance, CoreHoursResetSettings</li>
+    </ul>
+    <h6>Key Views</h6>
+    <ul>
+      <li>Job Metrics Dashboard &mdash; <code>/jobs/dashboard/</code></li>
+      <li>Submit Job &mdash; <code>/jobs/submit/</code></li>
+      <li>My Usage &amp; Billing &mdash; <code>/billing/my-usage/</code></li>
+      <li>Staff Help &mdash; <code>/staff/help/</code></li>
+      <li>Cluster Management &mdash; <code>/clusters/</code></li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Keycloak -->
+<div class="modal fade" id="modal-dev-keycloak" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#f39c12;">Keycloak &mdash; Identity Provider</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <table class="detail-table">
+      <tr><td>Version</td><td>Keycloak 24</td></tr>
+      <tr><td>Port</td><td><code>8080</code></td></tr>
+      <tr><td>Protocol</td><td>OpenID Connect (OIDC)</td></tr>
+    </table>
+    <h6>JHU Realm</h6>
+    <ul>
+      <li>Entra ID (Azure AD) identity federation</li>
+      <li>LDAP user federation (ou=jhu)</li>
+      <li>Backend: <code>JhuOIDCBackend</code></li>
+    </ul>
+    <h6>Schmidt Realm</h6>
+    <ul>
+      <li>LDAP user federation only (ou=schmidt)</li>
+      <li>Backend: <code>SchmidtOIDCBackend</code></li>
+      <li>Accounts: <code>ssci-*</code> prefix (always free)</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- OpenLDAP -->
+<div class="modal fade" id="modal-dev-ldap" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#4a9eff;">OpenLDAP &mdash; Directory Service</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <table class="detail-table">
+      <tr><td>Port</td><td><code>636</code> (LDAPS)</td></tr>
+      <tr><td>Base DN</td><td><code>dc=arch,dc=cluster</code></td></tr>
+    </table>
+    <h6>Organization Units</h6>
+    <ul>
+      <li><code>ou=jhu</code> &mdash; JHU users (UID 10000+, GID 10000+)</li>
+      <li><code>ou=schmidt</code> &mdash; Schmidt users (UID 30000+, GID 30000+)</li>
+      <li>Each OU has <code>ou=People</code> + <code>ou=Groups</code></li>
+    </ul>
+    <h6>Integration</h6>
+    <ul>
+      <li>SSSD on all Slurm nodes for NSS/PAM resolution</li>
+      <li>Home directories auto-created by <code>ldap_sync</code></li>
+      <li>PI groups = Slurm accounts (posixGroup cn = username)</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- PostgreSQL -->
+<div class="modal fade" id="modal-dev-postgres" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#27ae60;">PostgreSQL &mdash; Database Server</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <table class="detail-table">
+      <tr><td>Version</td><td>PostgreSQL 16</td></tr>
+      <tr><td>Port</td><td><code>5432</code></td></tr>
+    </table>
+    <h6>Databases</h6>
+    <ul>
+      <li><code>coldfront</code> &mdash; Django models, allocations, billing, projects</li>
+      <li><code>keycloak</code> &mdash; Keycloak realm config, users, sessions</li>
+      <li><code>slurm_jobs</code> &mdash; SlurmJob records (separate DB via database router)</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- slurmctld -->
+<div class="modal fade" id="modal-dev-slurmctld" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#1abc9c;">slurmctld &mdash; Controller</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <table class="detail-table">
+      <tr><td>Port</td><td><code>6817</code></td></tr>
+      <tr><td>Image</td><td><code>arch/slurmctld</code></td></tr>
+      <tr><td>Config</td><td><code>slurm.conf</code> (generated by cluster_manager.py)</td></tr>
+    </table>
+    <h6>Enforcement</h6>
+    <ul>
+      <li><code>job_submit.lua</code> &mdash; validates accounts, QOS, weekly caps</li>
+      <li><code>AccountingStorageEnforce=associations,limits,qos</code></li>
+      <li>Users without Slurm account association cannot submit jobs</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- slurmdbd -->
+<div class="modal fade" id="modal-dev-slurmdbd" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#9b59b6;">slurmdbd &mdash; Accounting</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <table class="detail-table">
+      <tr><td>Port</td><td><code>6819</code></td></tr>
+      <tr><td>Image</td><td><code>arch/slurmdbd</code></td></tr>
+      <tr><td>Storage</td><td>MariaDB (<code>slurm-db:3307</code>)</td></tr>
+    </table>
+    <h6>Functions</h6>
+    <ul>
+      <li>Stores all job accounting records</li>
+      <li><code>sacctmgr</code> &mdash; manage accounts, associations, QOS</li>
+      <li><code>sreport</code> &mdash; usage reports (billing TRES)</li>
+      <li>Supports Federation (multiple slurmctld, shared DB)</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- slurmrestd -->
+<div class="modal fade" id="modal-dev-slurmrestd" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#f39c12;">slurmrestd &mdash; REST API</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <table class="detail-table">
+      <tr><td>Port</td><td><code>6820</code></td></tr>
+      <tr><td>Auth</td><td>JWT + local (unix socket)</td></tr>
+      <tr><td>API</td><td><code>/slurm/v0.0.41/*</code></td></tr>
+    </table>
+    <h6>Endpoints Used</h6>
+    <ul>
+      <li><code>/slurm/v0.0.41/jobs</code> &mdash; active jobs (squeue)</li>
+      <li><code>/slurm/v0.0.41/nodes</code> &mdash; node status</li>
+      <li><code>/slurm/v0.0.41/partitions</code> &mdash; partition info</li>
+      <li><code>/slurm/v0.0.41/job/submit</code> &mdash; submit batch job</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Compute Nodes -->
+<div class="modal fade" id="modal-dev-compute" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#27ae60;">Compute Nodes</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <table class="detail-table">
+      <tr><td>Image</td><td><code>arch/slurmd</code> (from <code>arch/cn-rockylinux</code>)</td></tr>
+      <tr><td>OS</td><td>Rocky Linux 9</td></tr>
+      <tr><td>Auth</td><td>Munge (shared key)</td></tr>
+    </table>
+    <h6>Components</h6>
+    <ul>
+      <li>SSSD &mdash; resolves LDAP users for NSS/PAM</li>
+      <li>SPANK plugins &mdash; cost telemetry (compiled C)</li>
+      <li>slurmd daemon &mdash; executes jobs</li>
+      <li>Auto-resume on reconnect (entrypoint script)</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Login Node -->
+<div class="modal fade" id="modal-dev-login" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#4a9eff;">Login Node</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <table class="detail-table">
+      <tr><td>Image</td><td><code>arch/slurmd</code> (NODE_TYPE=login)</td></tr>
+      <tr><td>SSH</td><td>Port 22 (mapped to host)</td></tr>
+    </table>
+    <h6>CLI Tools</h6>
+    <ul>
+      <li><code>sbatch</code> / <code>srun</code> &mdash; submit jobs</li>
+      <li><code>squeue</code> / <code>sinfo</code> &mdash; queue and node status</li>
+      <li><code>sbalance</code> &mdash; usage report per account</li>
+      <li><code>slurmtree</code> &mdash; account hierarchy visualization</li>
+      <li><code>slurmqos</code> &mdash; QOS overview</li>
+    </ul>
+    <h6>Cost Enforcement</h6>
+    <ul>
+      <li><code>cli_filter.lua</code> &mdash; shows estimated cost at job submit</li>
+      <li>Injected at runtime by entrypoint (not in slurm.conf)</li>
+      <li>Prompts user to accept cost with <code>--comment=accept_cost</code></li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Scavenger -->
+<div class="modal fade" id="modal-dev-scavenger" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#27ae60;">scavenger Partition</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Default partition for all PIs</li>
+      <li>Preemptible &mdash; jobs can be interrupted by premium</li>
+      <li><strong>Never billed</strong> (QOS: scavenger, is_free=True)</li>
+      <li>Default allocation uses this partition</li>
+      <li>ssci-* accounts also always free</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Premium -->
+<div class="modal fade" id="modal-dev-premium" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#f39c12;">premium Partition &mdash; PAID</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>High-priority, non-preemptible</li>
+      <li>Full billing rate ($0.35/SU CPU, $1.20/GPU-hour)</li>
+      <li>Requires paid allocation (project with abbreviation + IO number)</li>
+      <li>Weekly spend cap support via <code>GrpTRESMins=billing=</code></li>
+      <li>QOS: premium (priority=20) or normal (priority=0)</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- GPU -->
+<div class="modal fade" id="modal-dev-gpu" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#9b59b6;">gpu-a100 Partition &mdash; PAID</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>GPU workloads (A100, H100)</li>
+      <li>TRESBillingWeights: <code>CPU=1.0,GRES/gpu=2.0</code></li>
+      <li>Billing rate per GPU-hour</li>
+      <li>Requires TRES types: <code>cpu,gres/gpu,billing</code></li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Dev -->
+<div class="modal fade" id="modal-dev-dev" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#8a9bb0;">dev Partition</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Development and testing</li>
+      <li>Short time limits</li>
+      <li>Free (scavenger QOS)</li>
+      <li>Isolated from production workloads</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Task: sync_ldap -->
+<div class="modal fade" id="modal-dev-task-ldap" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#8a9bb0;">sync_ldap_all &mdash; Daily 2:00 AM</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Syncs all LDAP users (ou=jhu + ou=schmidt) into Django User table</li>
+      <li>Updates first/last name, email from LDAP attributes</li>
+      <li>Creates home directories for new users</li>
+      <li>Creates PI groups in LDAP for new PIs</li>
+    </ul>
+    <p><code>coldfront sync_ldap</code></p>
+  </div>
+</div></div></div>
+
+<!-- Task: sync_slurm -->
+<div class="modal fade" id="modal-dev-task-slurm" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#8a9bb0;">sync_slurm_all &mdash; Daily 3:00 AM</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Bidirectional sync: ColdFront allocations &harr; Slurm accounts</li>
+      <li>Creates/updates account hierarchy (root &rarr; school &rarr; dept &rarr; PI)</li>
+      <li>Sets QOS, fairshare, GrpTRESMins per account</li>
+      <li>Skips users who haven&rsquo;t accepted Terms of Service</li>
+      <li>Removes system accounts from associations</li>
+      <li>Updates Core Usage gauge from SlurmJob table</li>
+    </ul>
+    <p><code>coldfront sync_slurm</code></p>
+  </div>
+</div></div></div>
+
+<!-- Task: collect_sacct -->
+<div class="modal fade" id="modal-dev-task-sacct" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#8a9bb0;">collect_sacct &mdash; Every 15 min</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Imports completed jobs from <code>sacct</code> into SlurmJob table</li>
+      <li>Maps jobs to allocations via slurm_account_name</li>
+      <li>Computes CPU/GPU/node time hours per job</li>
+      <li>Uses <code>-M cluster_name</code> for Federation support</li>
+      <li>Upsert (update_or_create) &mdash; safe to re-run</li>
+    </ul>
+    <p><code>coldfront collect_sacct --current-week</code></p>
+  </div>
+</div></div></div>
+
+<!-- Task: weekly_cap -->
+<div class="modal fade" id="modal-dev-task-cap" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#8a9bb0;">sync_weekly_cap_usage &mdash; Every 5 min</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Polls Slurm <code>sreport</code> for billing-TRES usage per account</li>
+      <li>Converts minutes to dollars and stores in AllocationAttribute</li>
+      <li>Feeds the Weekly Cap Usage ($) gauge on allocation detail page</li>
+      <li>Only runs for allocations with Weekly Cap ($) or Weekly Cap (Hours) set</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Task: core_reset -->
+<div class="modal fade" id="modal-dev-task-reset" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#8a9bb0;">check_and_run_core_hours_reset &mdash; Configurable</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Checks if reset is due based on CoreHoursResetSettings period</li>
+      <li>Supports 6 periods: weekly, monthly, quarterly, semester, 4-month, annual</li>
+      <li>Per-allocation override via Next Reset attribute</li>
+      <li>Zeroes Core Usage (Hours) and per-user snapshots</li>
+      <li>Creates audit log entry</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Task: cleanup -->
+<div class="modal fade" id="modal-dev-task-cleanup" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#8a9bb0;">cleanup_task_queue &mdash; Hourly :30</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Purges stuck and old Django-Q tasks</li>
+      <li>Removes completed tasks older than 24 hours</li>
+      <li>Removes failed tasks older than 7 days</li>
+      <li>Keeps the task queue lean for performance</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Billing -->
+<div class="modal fade" id="modal-dev-billing" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#f39c12;">Billing System</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <h6>Two-Track Model</h6>
+    <ul>
+      <li><strong>Pay Per Use</strong> &mdash; full rate (compute + O&amp;M bundled)</li>
+      <li><strong>Hardware Credit Holder</strong> &mdash; O&amp;M only (credits offset compute)</li>
+    </ul>
+    <h6>Rate Catalog (BillingRate)</h6>
+    <ul>
+      <li><code>cpu_full</code> / <code>cpu_om</code> &mdash; per SU</li>
+      <li><code>gpu_full</code> / <code>gpu_om</code> &mdash; per GPU-hour</li>
+      <li><code>storage</code> / <code>backup</code> &mdash; per TB/month</li>
+      <li>Versioned by <code>effective_from</code> / <code>effective_to</code></li>
+    </ul>
+    <h6>Invoices</h6>
+    <ul>
+      <li>Per-PI monthly usage reports (Staff &rarr; Billing Report)</li>
+      <li>PDF download with fpdf2</li>
+      <li>PI self-service: My Usage &amp; Billing page</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Storage -->
+<div class="modal fade" id="modal-dev-storage" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#1abc9c;">Storage &amp; Backup</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li><code>storage_enabled</code> / <code>storage_tb</code> &mdash; per-project storage allocation</li>
+      <li><code>backup_enabled</code> / <code>backup_tb</code> &mdash; per-project backup allocation</li>
+      <li>Set at project creation/update by PI</li>
+      <li>Propagated to AllocationBilling on approval</li>
+      <li>Disabled for default projects</li>
+      <li>Shown on Project Detail with badges</li>
+      <li>Billed via <code>storage</code> and <code>backup</code> rate types</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Job Metrics -->
+<div class="modal fade" id="modal-dev-jobmetrics" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#4a9eff;">Job Metrics Dashboard (XDMoD-style)</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>URL: <code>/jobs/dashboard/</code></li>
+      <li>Tabs: User, Account, Partition, QOS, State, Department, School</li>
+      <li>Date range picker + rows filter</li>
+      <li>Summary cards: CPU Hours, Wall Hours, Jobs, Users, Avg Wait</li>
+      <li>Expandable per-user job tables with details</li>
+      <li>CSV export</li>
+      <li>Data source: SlurmJob table (populated by <code>collect_sacct</code>)</li>
+    </ul>
+    <h6>Job Submit UI</h6>
+    <ul>
+      <li>URL: <code>/jobs/submit/</code></li>
+      <li>Script editor + partition/account/time selectors</li>
+      <li>Live cost estimation from BillingRate catalog</li>
+      <li>Weekly cap budget display</li>
+      <li>ToS enforcement per account (PI must accept)</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- ToS -->
+<div class="modal fade" id="modal-dev-tos" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#e74c3c;">Terms of Service</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Versioned ToS documents with required sections</li>
+      <li>Only one active version at a time</li>
+      <li>PI must accept before creating projects</li>
+      <li>Users without ToS acceptance are <strong>skipped by slurm_sync</strong> &mdash; no Slurm account created</li>
+      <li>Enforced on: project creation, allocation request, job submission UI</li>
+      <li>Acceptance tracked: user, timestamp, IP, context (project_create / allocation_request / reaccept)</li>
+      <li>Import via CSV: Admin Tools &rarr; Import ToS</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<!-- Weekly Cap -->
+<div class="modal fade" id="modal-dev-weeklycap" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#9b59b6;">Weekly Spend Cap</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+  <div class="modal-body">
+    <ul>
+      <li>Set via <code>Weekly Cap ($)</code> or <code>Weekly Cap (Hours)</code> attribute</li>
+      <li>Dollar cap takes precedence</li>
+      <li>Conversion: <code>$X &times; 1,000 &times; 60 = GrpTRESMins</code></li>
+      <li>Applied on <strong>account association</strong> (not per-QOS)</li>
+      <li>Detection: <code>billing != cpu</code> in GrpTRESMins</li>
+      <li>Spend gauge on allocation detail page (5-min sync)</li>
+      <li><code>sbalance --week</code> CLI report</li>
+      <li><code>cli_filter.lua</code> shows cap at job submit</li>
+    </ul>
+  </div>
+</div></div></div>
+
+<p class="text-center mt-3"><small class="text-muted">Click any block to see details</small></p>
+
+</div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+</body>
+</html>

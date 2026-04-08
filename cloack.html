@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARCH Portal — CLOACK Stack</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #0a0e17; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-nav { background: #0f1a2e; border-bottom: 1px solid #2d4a6f; padding: 10px 20px;
+            display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.site-nav a { color: #4a9eff; text-decoration: none; font-size: 0.95rem; padding: 4px 10px;
+              border-radius: 4px; transition: background 0.15s; }
+.site-nav a:hover, .site-nav a.active { background: #1a2d4a; color: #fff; }
+.site-nav .brand { font-weight: bold; font-size: 1.1rem; color: #4a9eff; letter-spacing: 1px; }
+.page-content { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+</style>
+  
+</head>
+<body>
+  <nav class="site-nav"><span class="brand">ARCH Portal</span><a href="index.html">Home</a> <a href="readme.html">README</a> <a href="cloack.html" class="active">CLOACK</a> <a href="architecture.html">Architecture</a></nav>
+  <div class="page-content">
+    <div class="md-content"><h1>CLOACK Stack — Feature Comparison</h1>
+<p><strong>CLOACK</strong> = <strong>C</strong>oldFront + <strong>L</strong>DAP + <strong>O</strong>IDC + <strong>A</strong>RCH + <strong>C</strong>luster/<strong>C</strong>ontainers + <strong>K</strong>eycloak</p>
+<p>Containerized identity and resource management for HPC clusters at Johns Hopkins University.</p>
+<hr />
+<h2>Branch Overview</h2>
+<table>
+<thead>
+<tr>
+<th>Branch</th>
+<th>Version</th>
+<th>Purpose</th>
+<th style="text-align: center;">Commits ahead of main</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>main</code></td>
+<td>v0.1</td>
+<td>Baseline — upstream ColdFront + OIDC + LDAP scaffolding</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td><code>prod</code></td>
+<td>v0.2</td>
+<td>Current production — LDAP/Slurm sync, staff views, basic signals</td>
+<td style="text-align: center;">69</td>
+</tr>
+<tr>
+<td><code>dev</code></td>
+<td>v0.3</td>
+<td>Development — full billing, weekly cap, cluster management, tests</td>
+<td style="text-align: center;">322</td>
+</tr>
+</tbody>
+</table>
+<p>Repository: https://github.com/jhu-arch/arch_jhu_schmidt</p>
+<h2>Documentation Index</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>README.md</td>
+<td>ARCH Portal — stack overview, components, architecture</td>
+</tr>
+<tr>
+<td>CLOACK.md</td>
+<td>Feature comparison across branches (main vs prod vs dev)</td>
+</tr>
+<tr>
+<td><strong>ColdFront</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>coldfront/README.md</td>
+<td>ColdFront — HPC resource management portal</td>
+</tr>
+<tr>
+<td>coldfront/custom/README.md</td>
+<td>Custom configurations (ARCH JHU DSAI Schmidt)</td>
+</tr>
+<tr>
+<td>coldfront/BILLING_SETUP_GUIDE.md</td>
+<td>Billing system setup guide</td>
+</tr>
+<tr>
+<td>coldfront/BILLING_DATA_IMPORT.md</td>
+<td>Billing system data import guide</td>
+</tr>
+<tr>
+<td>coldfront/BILLING_AND_STORAGE_CHANGES.md</td>
+<td>Billing info &amp; storage/backup implementation summary</td>
+</tr>
+<tr>
+<td>coldfront/INVOICE_SETTINGS.md</td>
+<td>Invoice customization settings</td>
+</tr>
+<tr>
+<td>coldfront/SCHOOL_DEPARTMENT_TRACKING.md</td>
+<td>School &amp; department tracking for job usage</td>
+</tr>
+<tr>
+<td>coldfront/RECOLLECT_HISTORICAL_JOBS.md</td>
+<td>Re-collect historical jobs with school &amp; department</td>
+</tr>
+<tr>
+<td>coldfront/init/README.md</td>
+<td>Initialization scripts (seed data, LDAP import)</td>
+</tr>
+<tr>
+<td><strong>Slurm</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>slurm/README.md</td>
+<td>Slurm — job scheduler stack, cost enforcement, CLI utilities</td>
+</tr>
+<tr>
+<td>slurm/SLURM_RESTART_GUIDE.md</td>
+<td>Slurm service restart guide (correct order)</td>
+</tr>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>openldap/README.md</td>
+<td>OpenLDAP — user &amp; group directory</td>
+</tr>
+<tr>
+<td>keycloak/README.md</td>
+<td>Keycloak — identity &amp; access management (OIDC)</td>
+</tr>
+<tr>
+<td>keycloak/ldap-providers/README.md</td>
+<td>Keycloak LDAP provider snippets and import instructions</td>
+</tr>
+<tr>
+<td>postgres/README.md</td>
+<td>PostgreSQL — database server</td>
+</tr>
+<tr>
+<td>base/README.md</td>
+<td>Base — shared configuration (UID/GID ranges, paths)</td>
+</tr>
+<tr>
+<td>phpldapadmin/README.md</td>
+<td>phpLDAPadmin — LDAP web UI</td>
+</tr>
+<tr>
+<td>ondemand/README.md</td>
+<td>Open OnDemand — web portal for HPC</td>
+</tr>
+<tr>
+<td>scripts/README.md</td>
+<td>Utility scripts (wait-for.sh, etc.)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Feature Comparison: main vs prod vs dev deployment</h2>
+<h3>Billing &amp; Cost Management</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BillingRate catalog (6 rate types)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>cpu_full, cpu_om, gpu_full, gpu_om, storage, backup</td>
+</tr>
+<tr>
+<td>AllocationBilling per allocation</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>IO number, department, billing_type (Pay Per Use / Credit Holder / No Charge)</td>
+</tr>
+<tr>
+<td>HardwareCreditPool</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Track hardware purchases converted to compute credits; credits offset compute, not O&amp;M</td>
+</tr>
+<tr>
+<td>SlurmAccountUsagePeriod</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Per-account per-period usage — billing source of truth</td>
+</tr>
+<tr>
+<td>PaymentStatus (configurable)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Admin-managed status codes (pending, paid, overdue, no_charge) without code changes</td>
+</tr>
+<tr>
+<td>InvoiceSettings (singleton)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Customizable invoice branding, credit/O&amp;M explanation text</td>
+</tr>
+<tr>
+<td>Billing Report (staff view)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Filterable by PI, project, department, school, month, billing type</td>
+</tr>
+<tr>
+<td>PI Billing Summary</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>PI-facing "My Usage &amp; Billing" dashboard</td>
+</tr>
+<tr>
+<td>Rate Management UI</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>CRUD for BillingRate with effective date versioning</td>
+</tr>
+<tr>
+<td>Hardware Credits UI</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>CRUD for HardwareCreditPool with credit tracking</td>
+</tr>
+<tr>
+<td>Unit conversion helpers</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>dollars_to_grptres_mins()</code>, <code>grptres_mins_to_dollars()</code>, <code>hours_to_dollars()</code></td>
+</tr>
+<tr>
+<td>collect_billing command</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Populate SlurmAccountUsagePeriod from sreport + sacct</td>
+</tr>
+</tbody>
+</table>
+<h3>Weekly Spend Cap</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dollar-based weekly cap</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>AllocationAttribute <code>Weekly Cap ($)</code></td>
+</tr>
+<tr>
+<td>Account-level GrpTRESMins</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Cap applied directly on Slurm account (not per-QOS)</td>
+</tr>
+<tr>
+<td>Weekly cap usage sync</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Every 5 min: poll Slurm sreport, store in <code>Weekly Cap Usage ($)</code></td>
+</tr>
+<tr>
+<td>Cap-to-TRES conversion</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>$30/week</code> -&gt; <code>GrpTRESMins=billing=1800000</code> (formula: <code>$ * 1000 * 60</code>)</td>
+</tr>
+<tr>
+<td>Weekly reset via cron</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>check_and_run_core_hours_reset</code> resets GrpTRESMins periodically</td>
+</tr>
+</tbody>
+</table>
+<p><strong>How it works:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Cap</th>
+<th>Slurm GrpTRESMins</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>arochab1_f01_a</code></td>
+<td>$30/week</td>
+<td><code>billing=1800000</code></td>
+</tr>
+<tr>
+<td><code>arochab1_f01_b</code></td>
+<td>$20/week</td>
+<td><code>billing=1200000</code></td>
+</tr>
+<tr>
+<td><code>bgermro1</code></td>
+<td>No cap</td>
+<td>(not set = unlimited)</td>
+</tr>
+</tbody>
+</table>
+<p>Instead of creating per-allocation QOS (<code>wk_{id}</code>), the cap is enforced at the <strong>account association level</strong>:</p>
+<pre><code class="language-bash">sacctmgr modify account where name=arochab1_f01_a set GrpTRESMins=billing=1800000
+</code></pre>
+<h3>Storage &amp; Backup</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Project storage/backup fields</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>storage_enabled</code>, <code>storage_tb</code>, <code>backup_enabled</code>, <code>backup_tb</code> on Project model</td>
+</tr>
+<tr>
+<td>Storage/backup on project forms</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Create + Update forms with validation</td>
+</tr>
+<tr>
+<td>AllocationBilling storage/backup</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>storage_tb</code>, <code>backup_tb</code> fields for billing</td>
+</tr>
+<tr>
+<td>Storage/backup billing rates</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>BillingRate types: <code>storage</code> (TB/month), <code>backup</code> (TB/month)</td>
+</tr>
+</tbody>
+</table>
+<h3>Core Hours Reset</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CoreHoursResetSettings</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Singleton model with 6 period options</td>
+</tr>
+<tr>
+<td>Period options</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>weekly, monthly, quarterly, 4-month, semester, annual</td>
+</tr>
+<tr>
+<td><code>compute_next_reset()</code></td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Auto-calculates next reset date based on period</td>
+</tr>
+<tr>
+<td>Per-allocation override</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>AllocationAttribute <code>Next Reset</code> overrides global schedule</td>
+</tr>
+<tr>
+<td>Reset management UI</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Staff page to configure schedule and trigger manual resets</td>
+</tr>
+<tr>
+<td>Next Reset on allocation gauge</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Shows next reset date below Core Usage gauge</td>
+</tr>
+</tbody>
+</table>
+<h3>Slurm Integration</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Basic slurm_sync (account + users)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td>Create Slurm accounts, add users to accounts</td>
+</tr>
+<tr>
+<td>SlurmUserUsageSnapshot</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td>Per-user usage snapshots from sacct</td>
+</tr>
+<tr>
+<td>SlurmCluster / SlurmNode / SlurmPartition models</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Full cluster topology in Django</td>
+</tr>
+<tr>
+<td>Dynamic slurm.conf generation</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>NodeName/PartitionName generated from UI models</td>
+</tr>
+<tr>
+<td>TRES billing weights per partition</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>TRESBillingWeights</code> field on SlurmPartition</td>
+</tr>
+<tr>
+<td>AllowQos per partition</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>allow_qos</code> field generates <code>AllowQos=...</code> in slurm.conf</td>
+</tr>
+<tr>
+<td>SlurmQOS model (DB-driven)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>QOS definitions per cluster; replaces hardcoded bootstrap</td>
+</tr>
+<tr>
+<td>QOS per allocation</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>AllocationBilling.qos FK overrides default QOS assignment</td>
+</tr>
+<tr>
+<td>export_qos_config command</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Generates <code>qos_config.lua</code> for cli_filter.lua from DB</td>
+</tr>
+<tr>
+<td>Slurm account hierarchy</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Flat</td>
+<td style="text-align: center;">Yes</td>
+<td><code>root -&gt; school -&gt; dept -&gt; PI -&gt; project</code> (auto-managed)</td>
+</tr>
+<tr>
+<td>Orphan account cleanup</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>sync_slurm</code> removes empty intermediate school/dept accounts</td>
+</tr>
+<tr>
+<td>Slurm REST API client</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>slurm_client.py</code> for slurmrestd integration</td>
+</tr>
+<tr>
+<td>Docker-based cluster management</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>cluster_manager.py</code> — build/deploy/restart/stop via UI</td>
+</tr>
+<tr>
+<td>sacct collection (every 15 min)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>SlurmJob model + <code>collect_sacct</code> command</td>
+</tr>
+<tr>
+<td>scontrol reconfigure via UI</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>"Sync Accounts" button triggers <code>scontrol reconfigure</code></td>
+</tr>
+<tr>
+<td>TRES types configuration</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>SlurmCluster.tres_types</code> — configurable per cluster</td>
+</tr>
+</tbody>
+</table>
+<h3>Department &amp; School Hierarchy</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>School model</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Extracted from Department; FK relationship</td>
+</tr>
+<tr>
+<td>Department with school linkage</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Department -&gt; School -&gt; Slurm hierarchy</td>
+</tr>
+<tr>
+<td>AllocationBilling as hierarchy source</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Billing dept drives Slurm account placement, not Project.department</td>
+</tr>
+<tr>
+<td>Department propagation signals</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Billing dept auto-propagates to Project + PI UserProfile</td>
+</tr>
+<tr>
+<td>CSV department import</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Staff UI for bulk department import</td>
+</tr>
+<tr>
+<td>Department user membership</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>FilteredSelectMultiple on Department admin + auto-propagation</td>
+</tr>
+<tr>
+<td>Shares on School admin</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>FairShare weights configurable per school</td>
+</tr>
+</tbody>
+</table>
+<h3>User Management</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Staff scoped views</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">Yes</td>
+<td>prod: basic scoping; dev: full resource-based scoping</td>
+</tr>
+<tr>
+<td>AssignStaffResourcesView</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Superuser assigns cluster resources to staff</td>
+</tr>
+<tr>
+<td>CSV user import</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Bulk user creation with LDAP provisioning</td>
+</tr>
+<tr>
+<td>PI SubProject scheme</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Numeric (A, B, C) or alpha sequence per PI</td>
+</tr>
+<tr>
+<td>Activate project (staff)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Staff can activate New-status projects</td>
+</tr>
+<tr>
+<td>Manage Users view</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Staff user management across projects</td>
+</tr>
+<tr>
+<td>Extra Core Hours attribute</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Additive core hours on top of base allocation</td>
+</tr>
+<tr>
+<td>System account exclusions</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>admin, coldfront, root excluded from all views/sync/billing</td>
+</tr>
+</tbody>
+</table>
+<h3>Authentication &amp; Identity</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Multi-realm Keycloak OIDC</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td>JhuOIDCBackend + SchmidtOIDCBackend with separate realms</td>
+</tr>
+<tr>
+<td>LDAP sync (daily + on-demand)</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td>prod: basic sync; dev: full bidirectional with home dirs</td>
+</tr>
+<tr>
+<td>Auto-user creation on OIDC login</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td>Signal-based user provisioning</td>
+</tr>
+<tr>
+<td>PI promotion workflow</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">Yes</td>
+<td>dev: enhanced with department propagation</td>
+</tr>
+<tr>
+<td>Entra ID integration (JHU)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>JHU_ENTRA_ENABLED</code> flag for Azure AD federation</td>
+</tr>
+</tbody>
+</table>
+<h3>Scheduled Tasks (django-q)</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Schedule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sync_ldap_all</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td>Daily 2 AM</td>
+</tr>
+<tr>
+<td><code>sync_slurm_all</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td>Daily 3 AM</td>
+</tr>
+<tr>
+<td><code>collect_sacct_task</code></td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Every 15 min</td>
+</tr>
+<tr>
+<td><code>check_and_run_core_hours_reset</code></td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Daily 1 AM</td>
+</tr>
+<tr>
+<td><code>cleanup_task_queue</code></td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Hourly :30</td>
+</tr>
+<tr>
+<td><code>sync_weekly_cap_usage</code></td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Every 5 min</td>
+</tr>
+</tbody>
+</table>
+<p>All tasks in dev use <code>hook=TASK_HOOK</code> for Django Admin LogEntry audit trail.</p>
+<h3>UI &amp; Admin Improvements</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sidebar navigation (light theme)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Admin Tools, Staff Tools, Clusters, Billing Management</td>
+</tr>
+<tr>
+<td>Staff Help page</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>/staff/help/</code> — 21 DB-driven accordion sections editable via Django Admin</td>
+</tr>
+<tr>
+<td>Allocation detail enhancements</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Weekly cap gauge, next reset date, billing context</td>
+</tr>
+<tr>
+<td>Job metrics dashboard</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>/jobs/dashboard/</code> with per-cluster/partition/user filtering</td>
+</tr>
+<tr>
+<td>Cluster list + detail views</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Full cluster management UI</td>
+</tr>
+<tr>
+<td>Inline attribute editing</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Edit Core Usage, Next Reset, Weekly Cap directly on allocation page</td>
+</tr>
+<tr>
+<td>Allocation sync trigger</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>"Sync Now" button on allocation detail</td>
+</tr>
+<tr>
+<td>Project creation with storage/backup</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Storage + backup fields on create/update forms</td>
+</tr>
+</tbody>
+</table>
+<h3>Infrastructure &amp; DevOps</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>start.sh</code> orchestration</td>
+<td style="text-align: center;">Basic</td>
+<td style="text-align: center;">Basic</td>
+<td style="text-align: center;">Enhanced</td>
+<td>dev: init, start, restart, rebuild, populate, slurm, ldap-reinit, prune-*, test</td>
+</tr>
+<tr>
+<td><code>start.sh test</code> command</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Run Django unit tests inside container</td>
+</tr>
+<tr>
+<td>Docker Slurm cluster (dev)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Full containerized Slurm: slurmctld, slurmd, slurmdbd, slurmrestd</td>
+</tr>
+<tr>
+<td>Unit tests (arch_sync)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>test_billing, test_models, test_slurm_sync, test_signals</td>
+</tr>
+<tr>
+<td>SPANK plugins (C)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Cost telemetry compiled into base image</td>
+</tr>
+<tr>
+<td>cli_filter.lua (cost estimation)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Client-side cost prompt at job submit (login node only)</td>
+</tr>
+<tr>
+<td>job_submit.lua (enforcement)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Controller-side weekly cap + billing validation</td>
+</tr>
+<tr>
+<td>rates.lua (billing rates)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Per-partition CPU/GPU rate definitions for Lua scripts</td>
+</tr>
+<tr>
+<td>Django-Q audit trail</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Every async_task uses TASK_HOOK for LogEntry tracking</td>
+</tr>
+<tr>
+<td>File-based email (dev)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Emails logged to <code>coldfront/report/emails/</code> instead of SMTP</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>What prod has over main (69 commits)</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>What was added</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LDAP sync</td>
+<td>Enhanced <code>ldap_sync.py</code> — home directory creation, improved error handling</td>
+</tr>
+<tr>
+<td>Slurm sync</td>
+<td>Basic <code>slurm_sync.py</code> — account creation, user assignment, usage snapshots</td>
+</tr>
+<tr>
+<td>Signals</td>
+<td>Auto-user creation on OIDC login, basic allocation signals</td>
+</tr>
+<tr>
+<td>Staff views</td>
+<td>Initial scoped staff views for project/allocation management</td>
+</tr>
+<tr>
+<td>Tasks</td>
+<td>Basic django-q scheduled tasks (LDAP sync, Slurm sync)</td>
+</tr>
+<tr>
+<td>docker-compose-dev.yml</td>
+<td>Dev overlay for local development without host Slurm mounts</td>
+</tr>
+</tbody>
+</table>
+<h2>What dev has over prod (259 commits)</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>What was added</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Billing</td>
+<td>Full billing infrastructure: BillingRate, AllocationBilling, HardwareCreditPool, InvoiceSettings, PaymentStatus, SlurmAccountUsagePeriod</td>
+</tr>
+<tr>
+<td>Weekly Spend Cap</td>
+<td>Dollar-based caps via account-level GrpTRESMins, 5-min usage sync, spend gauge</td>
+</tr>
+<tr>
+<td>Storage/Backup</td>
+<td>Project-level fields, form validation, AllocationBilling integration</td>
+</tr>
+<tr>
+<td>Core Hours Reset</td>
+<td>6-period configurable reset with per-allocation overrides</td>
+</tr>
+<tr>
+<td>Slurm Cluster</td>
+<td>Full Django models (SlurmCluster/Node/Partition), dynamic slurm.conf, Docker cluster management</td>
+</tr>
+<tr>
+<td>QOS</td>
+<td>SlurmQOS model (DB-driven), per-allocation override, export_qos_config, AllowQos per partition</td>
+</tr>
+<tr>
+<td>Hierarchy</td>
+<td>School model, department propagation signals, orphan cleanup</td>
+</tr>
+<tr>
+<td>TRES</td>
+<td>Configurable tres_types, TRESBillingWeights per partition</td>
+</tr>
+<tr>
+<td>CLI</td>
+<td>cli_filter.lua, job_submit.lua, rates.lua, SPANK plugins, sbalance</td>
+</tr>
+<tr>
+<td>User Management</td>
+<td>CSV import, staff resource assignment, SubProject scheme, system account exclusions</td>
+</tr>
+<tr>
+<td>UI</td>
+<td>Sidebar nav, staff help page, job dashboard, inline editing, billing report, PI billing summary</td>
+</tr>
+<tr>
+<td>Testing</td>
+<td>Unit tests (billing, models, slurm_sync, signals) + start.sh test command</td>
+</tr>
+<tr>
+<td>DevOps</td>
+<td>Enhanced start.sh, Docker Slurm cluster, django-q audit trail, file-based email</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Billing-Free Resources</h2>
+<p>These resources are <strong>never billed</strong> — enforced in both UI and Slurm CLI:</p>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scavenger</code> partition</td>
+<td>Always free — preemptable jobs</td>
+</tr>
+<tr>
+<td><code>ssci-*</code> accounts</td>
+<td>Schmidt Sciences PIs — always free</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Slurm Account Naming Convention</h2>
+<table>
+<thead>
+<tr>
+<th>Project Type</th>
+<th>Slurm Account</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Default PI project</td>
+<td><code>&lt;pi_username&gt;</code></td>
+<td><code>rdesouz4</code></td>
+</tr>
+<tr>
+<td>Custom project</td>
+<td><code>&lt;pi_username&gt;_&lt;abbreviation&gt;</code></td>
+<td><code>rdesouz4_proj1</code></td>
+</tr>
+<tr>
+<td>SubProject</td>
+<td><code>&lt;pi_username&gt;_&lt;abbreviation&gt;_&lt;seq&gt;</code></td>
+<td><code>rdesouz4_proj1_A</code></td>
+</tr>
+</tbody>
+</table>
+<p>Full hierarchy: <code>root</code> -&gt; <code>school</code> -&gt; <code>department</code> -&gt; <code>pi</code> -&gt; <code>project</code> -&gt; <code>users</code></p>
+<hr />
+<h2>UID/GID Ranges</h2>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>JHU users</td>
+<td>10000+</td>
+</tr>
+<tr>
+<td>Schmidt users</td>
+<td>30000+</td>
+</tr>
+<tr>
+<td>Slurm system</td>
+<td>450</td>
+</tr>
+<tr>
+<td>Munge system</td>
+<td>449</td>
+</tr>
+</tbody>
+</table></div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+</body>
+</html>

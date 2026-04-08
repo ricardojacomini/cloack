@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARCH Portal — README</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #0a0e17; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-nav { background: #0f1a2e; border-bottom: 1px solid #2d4a6f; padding: 10px 20px;
+            display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.site-nav a { color: #4a9eff; text-decoration: none; font-size: 0.95rem; padding: 4px 10px;
+              border-radius: 4px; transition: background 0.15s; }
+.site-nav a:hover, .site-nav a.active { background: #1a2d4a; color: #fff; }
+.site-nav .brand { font-weight: bold; font-size: 1.1rem; color: #4a9eff; letter-spacing: 1px; }
+.page-content { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+</style>
+  
+</head>
+<body>
+  <nav class="site-nav"><span class="brand">ARCH Portal</span><a href="index.html">Home</a> <a href="readme.html" class="active">README</a> <a href="cloack.html">CLOACK</a> <a href="architecture.html">Architecture</a></nav>
+  <div class="page-content">
+    <div class="md-content"><h1>ARCH Portal</h1>
+<p>The ARCH Portal is built on the CLOACK Stack, a containerized identity and resource management framework for HPC clusters at Johns Hopkins University. It integrates ColdFront, OpenLDAP, Keycloak, and Slurm into a container-based platform for user provisioning, job scheduling, and billing.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>C</strong>oldfront</td>
+<td>HPC resource allocation portal — orchestrates LDAP/Slurm sync, home dirs, PI scratch links</td>
+</tr>
+<tr>
+<td><strong>L</strong>DAP / Open<strong>L</strong>DAP</td>
+<td>Central directory — users, groups, PIs across JHU and Schmidt (SSCI) domains</td>
+</tr>
+<tr>
+<td><strong>O</strong>penLDAP</td>
+<td>Single OpenLDAP instance with three naming contexts (<code>dc=arch</code>, <code>ou=jhu</code>, <code>ou=schmidt</code>)</td>
+</tr>
+<tr>
+<td><strong>A</strong>uth (OIDC/SSSD)</td>
+<td>OIDC via Keycloak + SSSD for PAM/NSS resolution inside containers</td>
+</tr>
+<tr>
+<td><strong>C</strong>luster/<strong>C</strong>ontainers</td>
+<td>Slurm HPC cluster + Docker Compose orchestration — builds, networks, and manages all services as a unified stack</td>
+</tr>
+<tr>
+<td><strong>K</strong>eycloak</td>
+<td>Identity broker — per-realm LDAP federation, Entra ID integration, token issuance</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Deployed on the ARCH cluster at Johns Hopkins University, supporting both JHU and Schmidt Sciences (SSCI) research groups.</p>
+</blockquote>
+<hr />
+<h2>High-level design (draft) - Authentication + Scheduler stack</h2>
+<p>We are using Coldfront as Orchestrator. It making LDAP and Slurm synchronization, as well user's home directory and softlink point to PI scratch folder where they are members.</p>
+<p>Use three separate LDAP naming contexts (suffixes) and disjoint uid/gid ranges; create cross-domain admin/group entries (DN-based) that include members from any suffix; configure Open Source Identity and Access Management "Keycloak" realms so each realm points to the correct subtree(s) or adds multiple LDAP providers.</p>
+<p>Three suffixes on one OpenLDAP instance:
+- Domain A (arch.cluster): ARCH Admins suffix <code>dc=arch,dc=cluster</code> — UID/GID range starting 1000
+- Domain B (jhu.arch.cluster): suffix <code>ou=jhu,dc=arch,dc=cluster</code> — UID/GID range starting 10000
+- Domain C (schmidt.arch.cluster): suffix <code>ou=schmidt,dc=arch,dc=cluster</code> — UID/GID range starting 30000</p>
+<p>Keep UID/GID ranges non-overlapping.</p>
+<p>Put the cross-domain admin group (e.g., <code>PI_XX</code>) as a DN-based group (for example <code>groupOfNames</code> or <code>groupOfUniqueNames</code>) and include member DNs from any suffix so membership is unambiguous.</p>
+<p>Why this is safe / best-practice
+- Disjoint numeric ranges prevent collisions for NSS/PAM and NFS.
+- DN-based group membership is unambiguous across suffixes and works well with Keycloak group mappers.</p>
+<pre><code class="language-markdown">Minimal LDIF example:
+dn: cn=PI_XX,ou=Groups,dc=arch,dc=cluster
+objectClass: top
+objectClass: groupOfNames
+cn: PI_XX
+member: uid=alice,ou=People,ou=jhu,dc=arch,dc=cluster
+member: uid=bob,ou=People,dc=schmidt,dc=arch,dc=cluster
+
+Recommendation: place that group in a shared container (e.g., ou=Groups,ou=jhu,dc=arch,dc=cluster) and configure Keycloak group search to include it or add the group provider to each realm.
+````
+
+Additional recommendations:
+
+- Do NOT use `memberUid`/`posixGroup` for cross-suffix admin groups — `memberUid` is just a username and can collide across suffixes.
+- Ensure the referenced user entries actually exist (add users before groups, or import groups after users when bootstrapping) so DNs resolve correctly.
+- Keycloak: configure the LDAP group mapper to search the shared group container and to honor DN-based membership (works well with `groupOfNames` / `groupOfUniqueNames`).
+- Configure Keycloak per-realm to point at the appropriate suffix (or add multiple LDAP providers per realm) so each realm sees the right subtree(s).
+
+## start.sh — Stack Lifecycle Management
+
+Use `start.sh` to manage the full CLOACK stack. It wraps `docker compose` with idempotency checks, host bootstrapping, and service scoping.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `./start.sh init [dev]` | Create host user/group, prepare dirs, write `.env` (only if missing) |
+| `./start.sh start [dev]` | Pull/build and start all managed services (auto-builds missing images) |
+| `./start.sh restart [dev]` | Stop, rebuild all images (`--no-cache`), then start (preserves data) |
+| `./start.sh stop [dev]` | Stop managed services |
+| `./start.sh destroy [dev]` | Stop and remove managed containers (keeps volumes/data) |
+| `./start.sh rebuild [dev]` | Stop, rebuild all images from scratch (`--no-cache`), then start |
+| `./start.sh populate dev [--partitions p1,p2,...]` | Import departments, setup billing, generate `SlurmJob` (dev only). Flags: `--skip-billing`, `--with-usage` |
+| `./start.sh ldap-reinit [dev]` | If `migration/ldap-*.cat` exists: restore LDAP from backup (passwords patched from `.env`). Otherwise: reinitialize via `install.sh`. Both sync passwords and re-seed ColdFront |
+| `./start.sh cleanup [dev]` | Remove unused `arch/*` images not referenced by any container |
+| `./start.sh prune-volumes [dev]` | Stop services and delete OpenLDAP named volumes (data loss — use with care) |
+| `./start.sh prune-slurm [dev]` | Stop Slurm containers and delete all Slurm volumes (munge key reset) |
+| `./start.sh prune-images` | Remove all Slurm Docker images (`arch/cn-rockylinux`, `arch/slurmd`, etc.) |
+| `./start.sh clean-all` | Full cleanup: stop, destroy, remove all volumes/images, prune Docker. In dev mode also removes home/scratch data. Fresh start |
+| `./start.sh log [SERVICE]` | Tail logs for a service (default: `coldfront`) |
+| `./start.sh reconf` | Push updated `slurm.conf` to all nodes (`scontrol reconfigure`) |
+| `./start.sh test [dev] [MODULE]` | Run Django unit tests (default: all arch_sync tests). Example: `./start.sh test coldfront.plugins.arch_sync.tests.test_billing` |
+| `./start.sh help` | Show usage |
+
+### Quick start
+
+```bash
+# First-time bootstrap: prepare host dirs and generate .env
+./start.sh init dev          # dev
+./start.sh init              # prod
+
+# Start the stack
+./start.sh start dev         # dev (docker-compose-dev.yml, no /opt/mprov mounts)
+./start.sh start             # prod (docker-compose.yml + docker-compose-prod.yml)
+
+# Dry-run: preview what would happen (no changes)
+./start.sh start dev --dry-run
+
+# Force a full rebuild + redeploy
+FORCE_BUILD=1 FORCE_REDEPLOY=1 ./start.sh start dev
+
+# Restart: stop + rebuild + start (preserves data)
+./start.sh restart dev
+
+# Rebuild all images from scratch (--no-cache) and restart
+./start.sh rebuild dev
+
+# Reinitialize OpenLDAP and re-sync users into ColdFront
+./start.sh ldap-reinit dev   # dev
+./start.sh ldap-reinit       # prod
+
+# Default: departments + billing rates/configs + SlurmJob
+./start.sh populate dev --partitions premium,scavenger,gpu
+
+# Skip billing rates/AllocationBilling; keep SlurmJob
+./start.sh populate dev --partitions premium,scavenger,gpu --skip-billing
+
+# Include SlurmAccountUsagePeriod (billing/usage pages)
+./start.sh populate dev --partitions premium,scavenger,gpu --with-usage
+
+# Stop / remove containers (keeps volumes)
+./start.sh stop dev
+./start.sh destroy dev
+</code></pre>
+<h3><code>./start.sh start</code> — internal flow</h3>
+<p>Each <code>start</code> runs these steps in order:</p>
+<ol>
+<li>Start <code>postgres</code> and <code>openldap</code> first (before all other services)</li>
+<li>Wait for <code>postgres</code> to become healthy + <code>init-databases.sh</code> to complete</li>
+<li><strong>Sync DB role passwords</strong> (<code>ALTER USER admin/coldfront/keycloak</code>) — ensures <code>.env</code> passwords match postgres, even after <code>init</code> regenerated secrets</li>
+<li>Start all remaining services (<code>compose_up_scoped</code>)</li>
+<li><strong>Post-compose sync</strong> — re-sync postgres + LDAP passwords (handles container recreation), restart unhealthy app containers if needed</li>
+<li>Wait for all services to become healthy</li>
+</ol>
+<p><strong>Note:</strong> LDAP migration from <code>migration/ldap-*.cat</code> is <strong>not</strong> done during <code>start</code>. Use <code>./start.sh ldap-reinit [dev]</code> after the stack is healthy (see Deploy flows below).</p>
+<h3>Native docker compose diagnostics</h3>
+<p>The script intentionally omits status/log/stats commands — use <code>docker compose</code> directly:</p>
+<pre><code class="language-bash">docker compose ps                   # service status + health
+docker compose logs -f SERVICE      # tail logs for a service
+docker compose stats                # live resource usage
+</code></pre>
+<h3>dev vs production</h3>
+<p>The optional <code>dev</code> argument switches the compose file. All commands accept <code>[dev]</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Production</th>
+<th>Dev</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Compose files</td>
+<td><code>docker-compose.yml</code> + <code>docker-compose-prod.yml</code></td>
+<td><code>docker-compose-dev.yml</code></td>
+</tr>
+<tr>
+<td>Slurm host mounts</td>
+<td>Yes (<code>docker-compose-prod.yml</code>)</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>PLUGIN_SLURM</code></td>
+<td><code>1</code></td>
+<td><code>0</code> (default)</td>
+</tr>
+<tr>
+<td><code>SLURM_NOOP</code></td>
+<td><code>0</code></td>
+<td><code>1</code> (default)</td>
+</tr>
+<tr>
+<td><code>SEED_ON_RESTART</code></td>
+<td><code>true</code> (default)</td>
+<td><code>true</code> (default)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Compose file overlay</strong> — <code>docker-compose-prod.yml</code> is automatically appended by <code>start.sh</code> when running in production mode. It adds bare-metal Slurm bind mounts to <code>coldfront</code> and <code>qcluster</code>. Docker Compose merges the files: list fields (<code>volumes</code>, <code>ports</code>) are appended; scalar fields (<code>image</code>, <code>restart</code>) are overridden by the overlay. <code>docker-compose-dev.yml</code> completely redefines those services so it never inherits the prod mounts.</p>
+<p><strong><code>SEED_ON_RESTART</code></strong> — controls whether <code>seed_initial_data.py</code> syncs LDAP users into ColdFront on every container start. Set <code>SEED_ON_RESTART=false</code> in <code>.env</code> to skip on routine restarts. <code>./start.sh ldap-reinit [dev]</code> always forces a full sync regardless of this setting.</p>
+<h3>Environment variables</h3>
+<p><code>./start.sh init</code> writes a <code>.env</code> file (skipped if already present). Key variables:</p>
+<pre><code class="language-bash"># Compose file override (alternative to `start dev`)
+COMPOSE_FILE_PATH=docker-compose-dev.yml
+
+# Force a full image rebuild
+FORCE_BUILD=1
+
+# Force redeployment even if services are already healthy
+FORCE_REDEPLOY=1
+
+# Slurm (leave empty on dev; set real paths on production)
+SLURM_CONF=/opt/mprov/slurm/current/etc/slurm.conf
+SLURM_MPROV=/opt/mprov/slurm/current/bin
+PLUGIN_SLURM=1
+SLURM_NOOP=0
+</code></pre>
+<p>Other auto-detected variables written by <code>init</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+<th>Auto-detected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DOCKER_SOCK</code></td>
+<td>Docker socket path for container management</td>
+<td>macOS: <code>~/.docker/run/docker.sock</code>, Linux: <code>/var/run/docker.sock</code></td>
+</tr>
+<tr>
+<td><code>ARCH_HOST_PROJECT_ROOT</code></td>
+<td>Host project root for bind mounts</td>
+<td><code>$(pwd)</code></td>
+</tr>
+</tbody>
+</table>
+<h3>JWT token for slurmrestd</h3>
+<p><code>start.sh slurm start</code> generates a 30-day JWT token and writes it to <code>${BASE_ETC}/slurm/slurm_jwt.token</code>. This file is bind-mounted into coldfront and qcluster containers. The <code>SlurmClient</code> reads the token for REST API authentication. A crontab entry (installed by <code>init</code>) renews it daily at 3am.</p>
+<p><strong>Note:</strong> JWT auth requires Slurm 23.x+. Docker dev currently uses Slurm 22.05 which has a known JWT bug — upgrade to 25.11 is planned.</p>
+<h3>Compose project isolation</h3>
+<table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Compose file</th>
+<th>Services</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>arch</code></td>
+<td><code>docker-compose-dev.yml</code> (or <code>docker-compose.yml</code> + <code>prod.yml</code>)</td>
+<td>postgres, openldap, coldfront, keycloak, qcluster, phpldapadmin</td>
+</tr>
+<tr>
+<td><code>arch-slurm</code></td>
+<td><code>docker-compose-slurm-arch-dev.yml</code></td>
+<td>slurmctld, slurmdbd, slurmrestd, slurm-db, cn-<em>, login</em></td>
+</tr>
+</tbody>
+</table>
+<p>Slurm containers are isolated in their own project so <code>stop</code>/<code>restart</code> from CLI or UI doesn't affect main services.</p>
+<h3>Security: password separation</h3>
+<p>The <code>.env</code> file contains several password variables. Two are especially important to keep <strong>separate</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LDAP_ADMIN_PASS</code></td>
+<td>Bind DN password (<code>cn=admin,dc=arch,dc=cluster</code>) — full LDAP admin access</td>
+<td>ColdFront LDAP bind, Keycloak LDAP federation, <code>ldapmodify</code> operations</td>
+</tr>
+<tr>
+<td><code>JHU_ADMIN_PASSWORD</code></td>
+<td>User login password (<code>uid=admin</code>) — ColdFront web login</td>
+<td>Staff browser login to ColdFront admin</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why they must stay separate:</strong> if both use the same password, anyone who knows the ColdFront admin login also has full LDAP admin access (create/delete users, modify ACLs, read all attributes). In production this is a security risk.</p>
+<p>Other password variables: <code>LDAP_ROOT_PASS</code> (LDAP <code>cn=root</code> — used internally by <code>replace_ldif.sh</code> for LDIF imports), <code>POSTGRESQL_PASSWORD</code>, <code>COLDFRONT_DB_PASSWORD</code>, <code>KEYCLOAK_DB_PASSWORD</code>.</p>
+<h3>Deploy flows</h3>
+<h4>A. Fresh deploy (no migration)</h4>
+<pre><code class="language-bash">./start.sh clean-all dev &amp;&amp; rm .env
+./start.sh init dev
+./start.sh start dev
+./start.sh populate dev --partitions premium,scavenger,gpu
+</code></pre>
+<h4>B. Deploy + migrate from production</h4>
+<pre><code class="language-bash"># 1. Generate backup on prod:
+base/bin/cloack_ldap_coldfront_migration.sh
+
+# 2. Copy backups to dev:
+cp /coldfront_backups/ldap-*.cat migration/
+cp /coldfront_backups/coldfront-*.sql.gz migration/   # optional
+
+# 3. Fresh deploy (clean stack, all healthy):
+./start.sh clean-all dev &amp;&amp; rm .env
+./start.sh init dev
+./start.sh start dev
+
+# 4. Restore LDAP from backup (patches passwords from .env automatically):
+./start.sh ldap-reinit dev
+
+# 5. (Optional) Restore PostgreSQL (projects, allocations, billing history):
+source .env
+docker stop coldfront qcluster
+gunzip -c migration/coldfront-*.sql.gz | \
+  docker exec -i -e PGPASSWORD=&quot;${COLDFRONT_DB_PASSWORD}&quot; postgres \
+  psql -U coldfront coldfront
+docker start coldfront qcluster
+</code></pre>
+<h4>C. Reinitialize LDAP (no migration backup)</h4>
+<pre><code class="language-bash"># Runs install.sh to create base LDAP structure, then re-seeds ColdFront
+./start.sh ldap-reinit dev
+</code></pre>
+<p><strong>How <code>ldap-reinit</code> works:</strong>
+- If <code>migration/ldap-*.cat</code> exists → restores from backup via <code>slapadd</code>, patches all passwords (<code>cn=root</code>, <code>cn=readonlyroot</code>, <code>uid=admin</code>) with SSHA hashes from <code>.env</code>, syncs <code>olcRootPW</code> (config DB), seeds ColdFront
+- If no cat file → removes init marker, restarts openldap (re-runs <code>install.sh</code>), syncs passwords, seeds ColdFront</p>
+<h4>D. LDAP cleanup (after migration restore)</h4>
+<p>Migration dumps may contain test accounts not in <code>install.sh</code>. Use <code>ldap-cleanup.sh</code> to find and remove them:</p>
+<pre><code class="language-bash"># Dry-run — compare migration dump against install.sh, save extras to scripts/ldap-extras.txt
+./scripts/ldap-cleanup.sh --dump migration/ldap-2026.04.03.10.cat
+
+# Apply on live LDAP (deletes extra entries)
+./scripts/ldap-cleanup.sh --apply
+</code></pre>
+<p><strong>OpenLDAP diagnostics (manual):</strong></p>
+<pre><code class="language-bash"># Verify LDAP entries
+source .env
+docker exec openldap ldapsearch -H ldapi:/// -x \
+  -D &quot;cn=admin,dc=arch,dc=cluster&quot; -w &quot;${LDAP_ADMIN_PASS}&quot; \
+  -b &quot;dc=arch,dc=cluster&quot; &quot;(uid=*)&quot; uid | grep &quot;^uid:&quot;
+
+# Force LDAP → ColdFront re-sync
+./start.sh ldap-reinit dev
+</code></pre>
+<hr />
+<h2>Docker Images</h2>
+<p>All images use the <code>arch/</code> namespace. Build order matters for Slurm images (base first).</p>
+<h3>Component Versions</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ColdFront</td>
+<td>1.1.7</td>
+</tr>
+<tr>
+<td>Django</td>
+<td>4.2</td>
+</tr>
+<tr>
+<td>Python</td>
+<td>3.10</td>
+</tr>
+<tr>
+<td>Slurm</td>
+<td>22.05.9</td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td>16 (supported until Nov 2028; v17 available but no significant benefits for Django/ColdFront)</td>
+</tr>
+<tr>
+<td>Keycloak</td>
+<td>26.5</td>
+</tr>
+<tr>
+<td>MariaDB</td>
+<td>10.11</td>
+</tr>
+<tr>
+<td>OpenLDAP</td>
+<td>1.5.0 (osixia)</td>
+</tr>
+<tr>
+<td>Rocky Linux</td>
+<td>9 (Slurm base)</td>
+</tr>
+<tr>
+<td>Munge</td>
+<td>bundled with Slurm</td>
+</tr>
+</tbody>
+</table>
+<h3>Core Services</h3>
+<table>
+<thead>
+<tr>
+<th>Image</th>
+<th>Dockerfile</th>
+<th>Base</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>arch/coldfront</code></td>
+<td><code>coldfront/Dockerfile</code></td>
+<td><code>python:3.10-slim</code></td>
+<td>Django portal + django-q worker. Runs ColdFront with custom plugins</td>
+</tr>
+<tr>
+<td><code>arch/openldap</code></td>
+<td><code>openldap/Dockerfile</code></td>
+<td><code>osixia/openldap:1.5.0</code></td>
+<td>OpenLDAP server with multi-arch support (amd64/arm64)</td>
+</tr>
+<tr>
+<td><code>arch/keycloak</code></td>
+<td><code>keycloak/Dockerfile</code></td>
+<td><code>keycloak:latest</code></td>
+<td>Keycloak OIDC with custom themes and LDAP providers</td>
+</tr>
+<tr>
+<td><code>arch/keycloak-config</code></td>
+<td><code>keycloak/Dockerfile.config</code></td>
+<td><code>debian:bookworm-slim</code></td>
+<td>One-shot: configures Keycloak realms and LDAP federation</td>
+</tr>
+<tr>
+<td><code>arch/postgres</code></td>
+<td><code>postgres/Dockerfile</code></td>
+<td><code>postgres:16</code></td>
+<td>PostgreSQL with multi-database init (coldfront, keycloak, slurm_jobs)</td>
+</tr>
+<tr>
+<td><code>arch/phpldapadmin</code></td>
+<td><code>phpldapadmin/Dockerfile</code></td>
+<td><code>osixia/phpldapadmin:latest</code></td>
+<td>phpLDAPadmin web UI for LDAP browsing</td>
+</tr>
+</tbody>
+</table>
+<h3>Slurm Services (build order: base → munge → slurmdbd → slurmctld → slurmd → slurmrestd)</h3>
+<table>
+<thead>
+<tr>
+<th>Image</th>
+<th>Dockerfile</th>
+<th>Base</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>arch/cn-rockylinux</code></td>
+<td><code>slurm/base/Dockerfile</code></td>
+<td><code>rockylinux:9</code></td>
+<td>Base image: Rocky 9 + Slurm 22.05 + Munge + SSSD + SPANK plugins</td>
+</tr>
+<tr>
+<td><code>arch/slurm-munge</code></td>
+<td><code>slurm/munge/Dockerfile</code></td>
+<td><code>arch/cn-rockylinux</code></td>
+<td>One-shot: generates shared munge key in <code>munge-key</code> volume</td>
+</tr>
+<tr>
+<td><code>arch/slurmdbd</code></td>
+<td><code>slurm/slurmdbd/Dockerfile</code></td>
+<td><code>arch/cn-rockylinux</code></td>
+<td>Slurm accounting daemon (connects to MariaDB)</td>
+</tr>
+<tr>
+<td><code>arch/slurmctld</code></td>
+<td><code>slurm/slurmctld/Dockerfile</code></td>
+<td><code>arch/cn-rockylinux</code></td>
+<td>Slurm controller daemon</td>
+</tr>
+<tr>
+<td><code>arch/slurmd</code></td>
+<td><code>slurm/slurmd/Dockerfile</code></td>
+<td><code>arch/cn-rockylinux</code></td>
+<td>Slurm worker/login node daemon</td>
+</tr>
+<tr>
+<td><code>arch/slurmrestd</code></td>
+<td><code>slurm/slurmrestd/Dockerfile</code></td>
+<td><code>arch/cn-rockylinux</code></td>
+<td>Slurm REST API daemon</td>
+</tr>
+<tr>
+<td><code>arch/mariadb</code></td>
+<td><code>slurm/mariadb/Dockerfile</code></td>
+<td><code>mariadb:10.11</code></td>
+<td>MariaDB for Slurm accounting (port 3307)</td>
+</tr>
+</tbody>
+</table>
+<h3>Other</h3>
+<table>
+<thead>
+<tr>
+<th>Image</th>
+<th>Dockerfile</th>
+<th>Base</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>arch/ondemand</code></td>
+<td><code>ondemand/Dockerfile</code></td>
+<td><code>rockylinux:9</code></td>
+<td>Open OnDemand web portal</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Billing &amp; Invoicing System</h2>
+<p>ARCH includes a comprehensive billing system built into ColdFront to track resource usage (compute, GPU, storage, backup) and manage invoicing for JHU and Schmidt Sciences allocations.</p>
+<h3>Key Features</h3>
+<h4><strong>Two-Track Billing Model</strong></h4>
+<p>The system supports two billing approaches:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>For</th>
+<th>How It Works</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pay Per Use</strong></td>
+<td>PIs without hardware credit pool</td>
+<td>Full rate charged per hour (compute + O&amp;M bundled)</td>
+</tr>
+<tr>
+<td><strong>Credit Holder</strong></td>
+<td>PIs who purchased hardware</td>
+<td>Credits cover compute hours only; O&amp;M (power/cooling) charged separately in cash</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Important:</strong> Credits do NOT pay O&amp;M bills. The system UI clearly separates credit consumption from cash charges to prevent confusion.</p>
+<h4><strong>Staff Billing Report</strong></h4>
+<p>Superusers and billing staff can:
+- View filterable billing report with all usage and charges
+- Filter by: PI, project, user, school, department, affiliation, billing type, date range
+- See summary metrics: total jobs, CPU hours, GPU hours, average hours/job, total cost
+- Download CSV export for accounting integration
+- Access at: <code>/billing/report/</code></p>
+<h4><strong>PI Usage &amp; Billing Dashboard</strong></h4>
+<p>PIs can:
+- See credit balance and estimated runway (days until exhaustion)
+- View separate O&amp;M charges in current billing period (30-day rolling window)
+- Track recent usage by period
+- Download printable invoices with IOS/cost center number
+- Access at: <code>/billing/my-usage/</code></p>
+<h4><strong>Rate Management</strong></h4>
+<p>Superusers can:
+- Define rates for compute (CPU/GPU), storage, and backup services
+- Set different rates per cluster and partition
+- Create rate history with effective date ranges
+- Rates are stored separately for:
+  - <strong>cpu_full</strong> / <strong>gpu_full</strong> — full rates for pay-per-use allocations
+  - <strong>cpu_om</strong> / <strong>gpu_om</strong> — O&amp;M only rates for credit holders</p>
+<h4><strong>Hardware Credit Pools</strong></h4>
+<p>Superusers track hardware purchases:
+- Record hardware value in dollars
+- Convert to compute credit hours (e.g., "4x H200 GPU" → "87,600 GPU-hours")
+- Track credit consumption and remaining balance
+- Set expiry dates if credits sunset</p>
+<h4><strong>IOS Numbers &amp; Department Tracking</strong></h4>
+<p>Allocations can have:
+- <strong>IOS Number</strong> — cost center / account number for JHU service center
+- <strong>Department</strong> — organizational affiliation (e.g., "Computer Science", "Biology")
+- <strong>Billing Type</strong> — pay-per-use, credit holder, or no charge
+- <strong>Provisioned Storage/Backup</strong> — manual entry for non-compute charges</p>
+<h3>Usage Guide</h3>
+<h4><strong>Setting Up Billing</strong></h4>
+<ol>
+<li>
+<p><strong>Enable billing collection</strong> (environment variable):
+   <code>bash
+   export BILLING_COLLECT_ENABLED=1</code></p>
+</li>
+<li>
+<p><strong>Create billing rates</strong> (Django Admin or CLI):
+   <code>bash
+   # Via Admin: /admin/arch_sync/billingrate/add/
+   # Create rates for cpu_full, gpu_full, cpu_om, gpu_om, storage, backup</code></p>
+</li>
+<li>
+<p><strong>Import departments</strong> (optional, for organizational grouping):
+   <code>bash
+   python manage.py import_departments departments.csv
+   # CSV format: name,code,school,affiliation</code></p>
+</li>
+<li>
+<p><strong>Assign PIs to departments</strong> (optional):
+   <code>bash
+   python manage.py assign_pi_departments pi_departments.csv
+   # CSV format: username,department_name</code></p>
+</li>
+<li>
+<p><strong>Set allocations as billable</strong>:</p>
+</li>
+<li>Open Allocation Detail</li>
+<li>Scroll to "Billing Info" card</li>
+<li>Set IOS number and billing type (staff/superuser only — edit form is not shown to PIs or managers)</li>
+<li>Save</li>
+</ol>
+<blockquote>
+<p><strong>Automatic creation on approval:</strong> When an allocation transitions to <strong>Active</strong> (approved by admin), an <code>AllocationBilling</code> record is created automatically via Django signal. If the project has an IO number, <code>is_billable</code> is set to <code>True</code> and the IO/department are copied from the project. If no IO number exists, the record is created with <code>is_billable=False</code> and staff can update it here. Default/scavenger allocations are always created with <code>is_billable=False</code>. Allocations with <code>is_billable=False</code> do <strong>not</strong> appear in <code>/billing/report/</code>.</p>
+<p><strong>Visibility rules for Billing Info card</strong> (<code>allocation_detail.html</code>):</p>
+<p>The card is shown when any of these conditions is true:
+- <code>request.user.is_superuser</code> or <code>can_approve_deny</code> — superusers and billing staff
+- <code>request.user == allocation.project.pi</code> — the PI who owns the project
+- <code>is_allowed_to_update_project</code> — project managers (<code>ProjectPermission.UPDATE</code>)</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Can see IO number &amp; billing type?</th>
+<th>Can edit (IO / billing type)?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Superuser / Staff (<code>is_superuser</code> or <code>can_approve_deny</code>)</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>PI (<code>request.user == allocation.project.pi</code>)</td>
+<td>Yes (read-only)</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Project Manager (<code>ProjectPermission.UPDATE</code>)</td>
+<td>Yes (read-only)</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Regular allocation user</td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>The edit form (IO Number input + Update Billing button) is wrapped in its own
+<code>{% if request.user.is_superuser or can_approve_deny %}</code> guard and is never
+shown to PIs or managers.</p>
+</blockquote>
+<h4><strong>Collecting Billing Data</strong></h4>
+<p>Billing usage data is stored in two models:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Source</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SlurmJob</code></td>
+<td><code>collect_sacct</code> (from <code>sacct</code>)</td>
+<td>Per-job records — source of truth for Job Metrics dashboard</td>
+</tr>
+<tr>
+<td><code>SlurmAccountUsagePeriod</code></td>
+<td><code>slurm2coldfront()</code> (aggregates from <code>SlurmJob</code>)</td>
+<td>Per-period usage snapshots — source of truth for billing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Job data collection</strong> (<code>collect_sacct</code>):</p>
+<pre><code class="language-bash"># Collect last 7 days of per-job data from sacct
+python manage.py collect_sacct --current-week
+
+# Collect current month
+python manage.py collect_sacct --current-month
+
+# Import from a pipe-delimited sacct dump file (for dev/testing)
+python manage.py collect_sacct --from-file coldfront/templates/jobs_usage.csv
+
+# Dry-run (parse and log, no DB writes)
+python manage.py collect_sacct --dry-run
+</code></pre>
+<p><strong>Billing aggregation</strong> (<code>slurm2coldfront</code>):</p>
+<pre><code class="language-bash"># Aggregates SlurmJob data into SlurmAccountUsagePeriod per allocation
+# Called automatically by run_slurm_sync (--direction both)
+python manage.py sync_slurm --direction both
+</code></pre>
+<p><strong>Automatic scheduling</strong>: A cron job in the Slurm entrypoint runs <code>sync_slurm --direction both</code> daily at 3:30 AM (configurable via <code>SLURM_SYNC_CRON_EXPR</code>). This calls <code>collect_sacct --current-week</code> at the end, so job data stays fresh.</p>
+<p><strong>Legacy billing collection</strong> (still available):</p>
+<pre><code class="language-bash">python manage.py collect_billing --current-quarter
+python manage.py collect_billing --current-quarter --dry-run
+python manage.py collect_billing --current-quarter --pi rdesouz4
+</code></pre>
+<h4><strong>Printable Invoices</strong></h4>
+<p>PIs can view and print invoices from their dashboard:
+- Access: <code>/billing/my-invoice/&lt;allocation-id&gt;/</code>
+- Browser print (Ctrl+P or Cmd+P) → Save as PDF
+- Invoice shows two sections:
+  1. <strong>Compute Credits Used</strong> (hardware-backed hours, NOT a cash charge)
+  2. <strong>O&amp;M Charges Due</strong> (real dollars owed for power/cooling)
+- Includes IOS number for payment routing</p>
+<h4><strong>Example Data &amp; Quick Test</strong></h4>
+<p>We include example data to test the billing system (see <code>BILLING_SETUP_GUIDE.md</code> for full details):</p>
+<p><strong>Departments included (12 total):</strong>
+- Whiting School of Engineering: CS, ECE, Applied Physics, ME, BME
+- Krieger School of Arts &amp; Sciences: Biology, Chemistry, Physics
+- School of Medicine: Neuroscience, MBG
+- Schmidt Science: Structural Biology, Computational Biology</p>
+<p><strong>PIs included (10 total):</strong>
+- rdesouz4 (Computer Science)
+- jsmith5 (Biology), mchen2 (Applied Physics), agarcia7 (ECE)
+- bpatel9 (Chemistry), kwilson3 (Neuroscience)
+- dgonzalez1 (Structural Biology), hjones8 (Computational Biology)
+- lrodriguez4 (Physics), ekim6 (Mechanical Engineering)</p>
+<p><strong>Example rates created (6 total):</strong>
+- CPU Full Rate: $0.42/hr | CPU O&amp;M Only: $0.08/hr
+- GPU Full Rate: $3.50/hr | GPU O&amp;M Only: $0.65/hr
+- Storage: $0.012/TB/month | Backup: $0.006/TB/month</p>
+<p><strong>To populate example data:</strong></p>
+<pre><code class="language-bash"># Import departments (12)
+python manage.py import_departments examples_departments.csv
+
+# Assign PIs to departments (10)
+python manage.py assign_pi_departments examples_pi_departments.csv
+
+# Create billing rates (6)
+python manage.py shell &lt; populate_example_rates.py
+
+# Then in ColdFront UI:
+# 1. Go to each PI's allocation
+# 2. Scroll to &quot;Billing Info&quot; card
+# 3. Set IOS Number (e.g., 1010500000) and Billing Type
+# 4. Click Update Billing
+
+# Collect usage
+python manage.py collect_billing --current-quarter
+
+# View reports
+# Staff: /billing/report/
+# PI: /billing/my-usage/
+</code></pre>
+<p>See <code>BILLING_SETUP_GUIDE.md</code> for detailed instructions and troubleshooting.</p>
+<h4><strong>Staff Workflows</strong></h4>
+<p><strong>View all usage:</strong></p>
+<pre><code>Staff menu → Billing Report
+</code></pre>
+<p><strong>Manage rates:</strong></p>
+<pre><code>Staff menu → Rate Management → Add Rate
+</code></pre>
+<p><strong>Track hardware credits:</strong></p>
+<pre><code>Staff menu → Hardware Credits → Add Credit Pool
+</code></pre>
+<p><strong>Set allocation billing info:</strong></p>
+<pre><code>Allocation Detail → Billing Info card → Set Billing
+</code></pre>
+<h4><strong>Job Usage Metrics Dashboard</strong></h4>
+<p>An XDMoD-style analytics dashboard for job usage, available at <code>/billing/jobs/</code>:</p>
+<ul>
+<li><strong>Group by</strong>: User, Account, Partition, QOS, State, Department (staff only), School (staff only)</li>
+<li><strong>Sortable columns</strong>: CPU Hours, GPU Hours, Wall Hours, CPU Hrs/Job, Avg Wait, Jobs, Users, Avg CPUs, % of CPU Total</li>
+<li><strong>Summary cards</strong>: Total CPU/Wall hours, job count, active users, avg wait/wall per job; GPU Hours card only appears when <code>total_gpu &gt; 0</code></li>
+<li><strong>CSV export</strong> and <strong>Raw Jobs</strong> detail view with pagination</li>
+<li><strong>Access control</strong> — data is scoped by role:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Jobs visible</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Staff / Superuser</td>
+<td>All jobs across all accounts</td>
+</tr>
+<tr>
+<td>PI (<code>userprofile.is_pi</code>)</td>
+<td>Their own jobs + all jobs under accounts in their allocations</td>
+</tr>
+<tr>
+<td>Regular user</td>
+<td>Only their own jobs (<code>user=username</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3>Data Model</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BillingRate</code></td>
+<td>Rate catalog with effective dates (CPU/GPU/storage/backup)</td>
+</tr>
+<tr>
+<td><code>HardwareCreditPool</code></td>
+<td>Hardware purchases converted to credit hours</td>
+</tr>
+<tr>
+<td><code>AllocationBilling</code></td>
+<td>Billing config per allocation (IOS, type, storage, backup)</td>
+</tr>
+<tr>
+<td><code>SlurmJob</code></td>
+<td>Per-job record from sacct — source of truth for Job Metrics dashboard</td>
+</tr>
+<tr>
+<td><code>SlurmAccountUsagePeriod</code></td>
+<td>Per-period usage snapshot (CPU, GPU, job counts) — billing source of truth</td>
+</tr>
+<tr>
+<td><code>Department</code></td>
+<td>Organizational hierarchy for grouping PIs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Extended models:</strong>
+- <code>UserProfile</code> now has <code>department</code> FK for filtering by school/department</p>
+<h3>Configuration</h3>
+<p>Relevant environment variables:</p>
+<pre><code class="language-bash"># Enable billing data collection from Slurm
+BILLING_COLLECT_ENABLED=1
+
+# Invoice feature (upstream ColdFront)
+INVOICE_ENABLED=1
+INVOICE_DEFAULT_STATUS=Payment Pending
+
+# Slurm sync (required for billing data)
+SLURM_BIN=/opt/mprov/slurm/current/bin
+SLURM_NOOP=0
+</code></pre>
+<h3>URL Endpoints</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Access</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/billing/report/</code></td>
+<td>Staff/Superuser</td>
+<td>Filterable usage report</td>
+</tr>
+<tr>
+<td><code>/billing/report/csv/</code></td>
+<td>Staff/Superuser</td>
+<td>CSV export</td>
+</tr>
+<tr>
+<td><code>/billing/rates/</code></td>
+<td>Staff/Superuser</td>
+<td>Rate catalog</td>
+</tr>
+<tr>
+<td><code>/billing/rates/create/</code></td>
+<td>Superuser</td>
+<td>Add rate</td>
+</tr>
+<tr>
+<td><code>/billing/rates/&lt;id&gt;/edit/</code></td>
+<td>Superuser</td>
+<td>Edit rate</td>
+</tr>
+<tr>
+<td><code>/billing/credits/</code></td>
+<td>Staff/Superuser</td>
+<td>Hardware credit pools</td>
+</tr>
+<tr>
+<td><code>/billing/credits/create/</code></td>
+<td>Staff/Superuser</td>
+<td>Add credit pool</td>
+</tr>
+<tr>
+<td><code>/billing/my-usage/</code></td>
+<td>PI</td>
+<td>Usage dashboard</td>
+</tr>
+<tr>
+<td><code>/billing/my-invoice/&lt;allocation-id&gt;/</code></td>
+<td>PI</td>
+<td>Printable invoice</td>
+</tr>
+<tr>
+<td><code>/billing/jobs/</code></td>
+<td>PI/Staff</td>
+<td>Job Usage Metrics dashboard (group-by analytics)</td>
+</tr>
+<tr>
+<td><code>/billing/jobs/detail/</code></td>
+<td>PI/Staff</td>
+<td>Raw job list with filters and pagination</td>
+</tr>
+<tr>
+<td><code>/billing/jobs/csv/</code></td>
+<td>PI/Staff</td>
+<td>CSV export of job metrics</td>
+</tr>
+<tr>
+<td><code>/allocation/&lt;id&gt;/</code></td>
+<td>All users</td>
+<td>Allocation Detail — Billing Info card visible to superuser, staff, PI, and project managers (read-only for PI/manager; edit form for staff/superuser only)</td>
+</tr>
+</tbody>
+</table>
+<h3>Examples</h3>
+<h4>Example 1: Credit Holder Invoice</h4>
+<p>PI Ricardo purchased 4x H200 GPUs → granted 87,600 GPU-hours of credit.</p>
+<p><strong>In a billing period:</strong>
+- GPU usage: 5,000 hours
+- O&amp;M rate: $0.30/hour
+- O&amp;M charge: $1,500 (real dollars owed)
+- Credits consumed: 5,000 hours
+- Invoice shows:
+  - Section 1 (Credits): 5,000 GPU-hours consumed (no charge, from credit pool)
+  - Section 2 (O&amp;M): $1,500 due in cash</p>
+<h4>Example 2: Pay-Per-Use Allocation</h4>
+<p>PI Jsmith does not have a hardware purchase, uses pay-per-use rate.</p>
+<p><strong>In a billing period:</strong>
+- CPU usage: 10,000 hours
+- Full CPU rate: $0.05/hour
+- Total charge: $500 (compute + O&amp;M bundled)
+- Invoice shows:
+  - Single line: 10,000 CPU-hours @ $0.05/hour = $500</p>
+<h4>Example 3: Filter by Department</h4>
+<p>Staff runs billing report filtered by department "Computer Science":
+- See all allocations in that department
+- View usage and costs grouped by PI and project
+- Export to CSV for departmental billing</p>
+<h3>Migration &amp; First-Time Setup</h3>
+<ol>
+<li>
+<p><strong>Apply database migrations:</strong>
+   <code>bash
+   python manage.py migrate</code></p>
+</li>
+<li>
+<p><strong>Create initial rates</strong> via Django Admin:</p>
+</li>
+<li>Log in as superuser</li>
+<li>Go to <code>/admin/arch_sync/billingrate/add/</code></li>
+<li>
+<p>Add rates for each service type and effective period</p>
+</li>
+<li>
+<p><strong>Mark allocations as billable:</strong></p>
+</li>
+<li>Open each allocation in Allocation Detail</li>
+<li>Click "Set Billing" in the Billing Info card</li>
+<li>
+<p>Enter IOS number and select billing type</p>
+</li>
+<li>
+<p><strong>Collect baseline data:</strong>
+   <code>bash
+   python manage.py collect_billing --current-quarter</code></p>
+</li>
+<li>
+<p><strong>Monitor</strong> via:</p>
+</li>
+<li>Staff → Billing Report (usage overview)</li>
+<li>Staff → Hardware Credits (credit consumption)</li>
+<li>PI → My Usage &amp; Billing (personal dashboard)</li>
+</ol>
+<h3>Troubleshooting</h3>
+<p><strong>No usage data appearing?</strong>
+- Verify <code>BILLING_COLLECT_ENABLED=1</code> is set
+- Check Slurm <code>sreport</code> binary is accessible: <code>which sreport</code>
+- Run <code>collect_billing --dry-run</code> to debug Slurm queries
+- Check allocation is marked "Active" status</p>
+<p><strong>Allocation not in billing report?</strong>
+- Verify <code>AllocationBilling.is_billable=True</code> is set (via Allocation Detail → Billing Info)
+- Ensure allocation has usage data (run <code>collect_billing</code>)</p>
+<p><strong>Wrong rates showing?</strong>
+- Verify rate <code>effective_from</code> date is on or before the billing period
+- Check rate <code>effective_to</code> date is after the period (or NULL for ongoing rates)
+- Confirm cluster/partition match your allocation</p>
+<hr />
+<h2>Populating Synthetic Data for Testing</h2>
+<p>For development and testing, use <code>./start.sh populate dev</code> to seed departments, billing structure, and SLURM usage data in one command.</p>
+<h3>Models</h3>
+<table>
+<thead>
+<tr>
+<th>Modelo</th>
+<th>O que é</th>
+<th>Página</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BillingRate</code></td>
+<td>Tabela de preços: custo por CPU/GPU/storage/backup por partição (ex: <code>$0.35/hr CPU</code>, <code>$1.20/hr GPU</code>)</td>
+<td><code>/billing/rates/</code></td>
+</tr>
+<tr>
+<td><code>AllocationBilling</code></td>
+<td>Config por alocação: IO number, billing type, storage/backup TB, departamento</td>
+<td><code>/allocation/&lt;id&gt;/</code></td>
+</tr>
+<tr>
+<td><code>SlurmAccountUsagePeriod</code></td>
+<td>Uso agregado por mês: total CPU hours, GPU hours, job count por conta</td>
+<td><code>/billing/report/</code> <code>/billing/my-usage/</code></td>
+</tr>
+<tr>
+<td><code>SlurmJob</code></td>
+<td>Cada job individual: usuário, partição, CPU/GPU usados, duração, estado</td>
+<td><code>/jobs/metrics/</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Quick Start</h3>
+<pre><code class="language-bash"># Default: departments + BillingRate/AllocationBilling + SlurmJob
+./start.sh populate dev --partitions premium,scavenger,gpu
+
+# Só jobs, sem billing
+./start.sh populate dev --partitions premium,scavenger,gpu --skip-billing
+
+# Tudo incluindo SlurmAccountUsagePeriod
+./start.sh populate dev --partitions premium,scavenger,gpu --with-usage
+
+# Só departamentos + SlurmAccountUsagePeriod + SlurmJob (sem billing rates/configs)
+./start.sh populate dev --partitions premium,scavenger,gpu --skip-billing --with-usage
+</code></pre>
+<h3>What <code>populate</code> does (in order)</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+<th>Creates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Copy <code>examples_*.csv</code></td>
+<td><code>departments.csv</code>, <code>pi_departments.csv</code> (skip if already present)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>import_departments</code></td>
+<td><code>Department</code> records from <code>departments.csv</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>populate_fake_billing_data --no-usage</code></td>
+<td><code>BillingRate</code>, <code>AllocationBilling</code>, <code>HardwareCreditPool</code> (skipped with <code>--skip-billing</code>)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>generate_sacct_dump.py</code> + <code>collect_sacct --clear</code></td>
+<td><code>SlurmJob</code> records (always runs)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>generate_slurm_usage_data</code></td>
+<td><code>SlurmAccountUsagePeriod</code> (only with <code>--with-usage</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3>Flags</h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th><code>BillingRate</code>/<code>AllocationBilling</code></th>
+<th><code>SlurmAccountUsagePeriod</code></th>
+<th><code>SlurmJob</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>(default)</em></td>
+<td>✓</td>
+<td>✗</td>
+<td>✓</td>
+</tr>
+<tr>
+<td><code>--skip-billing</code></td>
+<td>✗</td>
+<td>✗</td>
+<td>✓</td>
+</tr>
+<tr>
+<td><code>--with-usage</code></td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td><code>--skip-billing --with-usage</code></td>
+<td>✗</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<h3>Individual commands (via docker exec)</h3>
+<p><strong>Import departments only:</strong></p>
+<pre><code class="language-bash"># From default CSV
+docker exec -it coldfront python -m django import_departments \
+  /opt/arch/coldfront/templates/departments.csv
+
+# From custom CSV (copy file first)
+docker cp /path/to/my_departments.csv coldfront:/tmp/departments.csv
+docker exec -it coldfront python -m django import_departments /tmp/departments.csv --dry-run
+docker exec -it coldfront python -m django import_departments /tmp/departments.csv
+</code></pre>
+<p><strong>Regenerate SlurmJob records only:</strong></p>
+<pre><code class="language-bash">docker exec -it -e SLURM_PARTITIONS=&quot;premium,scavenger,gpu&quot; coldfront bash -c &quot;
+  python -m django shell &lt; /opt/arch/coldfront/templates/generate_sacct_dump.py &amp;&amp; \
+  python -m django collect_sacct --clear --from-file /opt/arch/coldfront/templates/sacct_dump.txt
+&quot;
+</code></pre>
+<p><strong>Clear all SlurmJob records:</strong></p>
+<pre><code class="language-bash">docker exec -it coldfront python -m django collect_sacct --clear --from-file /dev/null
+</code></pre>
+<p><strong>Assign departments to PIs:</strong></p>
+<pre><code class="language-bash"># CSV format: username,department_names (semicolon-separated)
+docker exec -it coldfront python -m django assign_pi_departments \
+  /opt/arch/coldfront/templates/pi_departments.csv
+</code></pre>
+<h3>Expected Results</h3>
+<p>After populating, you should see:</p>
+<p><strong>In Billing Report</strong> (<code>/billing/report/</code>):
+- 4,200+ rows of usage data
+- 700+ allocations
+- Spanning 6 months of history
+- Total cost across all allocations: <strong>$100,000+</strong>
+- Filterable by: PI, department, school, affiliation, billing type</p>
+<p><strong>In PI Dashboard</strong> (<code>/billing/my-usage/</code>):
+- Credit balance for hardware credit holders
+- O&amp;M charges owed for all allocations
+- Usage trends over 6 months
+- Estimated runway (days until credits expire)</p>
+<p><strong>In Allocations</strong>:
+- Each allocation shows IOS number and billing type
+- Department assignment visible
+- Billing history available</p>
+<h3>CSV File Formats</h3>
+<h4><strong>slurm_usage.csv</strong></h4>
+<pre><code class="language-csv">allocation_id,account,start_date,end_date,cpu_hours,gpu_hours,job_count,partition_name
+1000,alloc_1000,2025-12-01,2025-12-31,45000.5,12000.75,1560,gpu
+1001,alloc_1001,2025-12-01,2025-12-31,21000.5,0.0,450,cpu
+</code></pre>
+<h4><strong>pi_departments.csv</strong></h4>
+<pre><code class="language-csv">username,department_names
+jbiondo2,Computer Science;Applied Physics
+rdesouz4,Computer Science;Biomedical Engineering
+ssci-huan,Data Science;Computational Biology
+</code></pre>
+<h4><strong>departments.csv</strong> (for import_departments command)</h4>
+<pre><code class="language-csv">name,code,school,school_code,affiliation
+&quot;Computer Science&quot;,&quot;CS&quot;,&quot;Whiting School of Engineering&quot;,&quot;wse&quot;,&quot;jhu&quot;
+&quot;Data Science&quot;,&quot;DS&quot;,&quot;Schmidt Sciences Institute&quot;,&quot;schmidt&quot;,&quot;schmidt&quot;
+</code></pre>
+<h4><strong>Billing Report CSV Files</strong> (Generated by <code>generate_billing_report</code> command)</h4>
+<p>The billing system generates three complementary CSV reports saved to <code>/opt/arch/coldfront/report/</code>:</p>
+<p><strong>1. billing_YYYY-MM_detail.csv</strong> — Full breakdown per allocation</p>
+<pre><code class="language-csv">PI,Project,Allocation ID,Department,IO Number,Month,Jobs,CPU Hours,GPU Hours,CPU Cost,GPU Cost,Storage (TB),Storage Cost,Backup (TB),Backup Cost,Total Cost
+arochab1,arochab1,1299,Computer Science,NO_IO,2026-03,10,3532.70,0.00,176.63,0.00,0.00,0.00,0.00,0.00,176.63
+bblanch6,bblanch6,1300,Computer Science,NO_IO,2026-03,28,5404.41,0.00,270.22,0.00,0.00,0.00,0.00,0.00,270.22
+</code></pre>
+<p><strong>Use case:</strong> Detailed allocation-level tracking for finance/compliance audits.</p>
+<p><strong>2. billing_YYYY-MM_summary.csv</strong> — Simplified format (PI, IO, Total ONLY)</p>
+<pre><code class="language-csv">PI,IO,Total
+arochab1,NO_IO,$176.63
+bblanch6,NO_IO,$270.22
+jperafa1,NO_IO,$874.96
+ssci-adityag,NO_IO,$1740.32
+</code></pre>
+<p><strong>Use case:</strong> Quick summary for executive reports, dashboard displays, or simplified invoicing.</p>
+<p><strong>3. billing_YYYY-MM_by_io.csv</strong> — Aggregated by IO number with all metrics</p>
+<pre><code class="language-csv">PI,IO Number,Jobs,CPU Hours,GPU Hours,Node Hours,CPU Cost,GPU Cost,Storage (TB),Storage Cost,Backup (TB),Backup Cost,Total Cost
+arochab1,NO_IO,10,3532.70,0.00,180.60,$176.63,$0.00,0.00,$0.00,0.00,$0.00,$176.63
+bblanch6,NO_IO,28,5404.41,0.00,289.80,$270.22,$0.00,0.00,$0.00,0.00,$0.00,$270.22
+</code></pre>
+<p><strong>Use case:</strong> IO-based billing analysis, cost allocation by infrastructure component.</p>
+<p><strong>Generation Commands:</strong></p>
+<pre><code class="language-bash"># Generate all three CSV reports for a specific month
+python manage.py generate_billing_report --month 2026-03 --exclude-admin-pi
+
+# With custom rates
+python manage.py generate_billing_report --month 2026-03 \
+  --cpu-rate 0.05 \
+  --gpu-rate 0.50 \
+  --storage-rate 10.0 \
+  --backup-rate 5.0
+
+# Generate text invoices (one TXT file per allocation)
+python manage.py generate_text_invoices --month 2026-03
+
+# Generate text invoices AND convert to PDF
+python manage.py generate_text_invoices --month 2026-03 --to-pdf
+</code></pre>
+<h3>Customization</h3>
+<p>To adjust data generation, edit <code>coldfront/templates/generate_large_usage.py</code>:</p>
+<pre><code class="language-python"># Change allocation type distribution
+allocation_types = [
+    {'name': 'gpu_intensive', 'cpu': (40000, 100000), 'gpu': (20000, 60000), ...},
+    {'name': 'cpu_only', 'cpu': (20000, 50000), 'gpu': (0, 0), ...},
+    # Add more types...
+]
+
+# Change date ranges
+for month_offset in range(6):  # 6 months → change to 12 for 1 year
+</code></pre>
+<p>Then regenerate:</p>
+<pre><code class="language-bash">python3 coldfront/templates/generate_large_usage.py
+</code></pre>
+<h3>Troubleshooting</h3>
+<p><strong>"No usage data appearing in report?"</strong>
+- Verify allocations are marked as billable (Allocation Detail → Billing Info → check box)
+- Run: <code>docker compose -f docker-compose-dev.yml exec coldfront python manage.py shell</code>
+  <code>python
+  from coldfront.plugins.arch_sync.models import SlurmAccountUsagePeriod
+  SlurmAccountUsagePeriod.objects.count()  # should be &gt; 1000</code></p>
+<p><strong>"Import says 'allocation not found'"</strong>
+- Verify allocations were created by populate_fake_billing_data
+- Check allocation IDs in CSV match database: <code>SELECT id FROM allocation LIMIT 5;</code></p>
+<p><strong>"Charts/totals look wrong?"</strong>
+- Verify rates exist and have correct effective dates
+- Check that allocations have <code>billing__is_billable=True</code></p>
+<hr />
+<h2>10. Slurm CLI Utilities</h2>
+<p>These utilities are installed in the base Slurm image (<code>arch/cn-rockylinux</code>) and available on all nodes (login, compute, slurmctld).</p>
+<h3>slurmtree — Account Hierarchy</h3>
+<pre><code class="language-bash"># Show full account tree with fairshare values
+slurmtree
+
+# Show tree with users under each account
+slurmtree --full
+
+# Show tree starting from a specific root
+slurmtree -r jhu
+slurmtree -r schmidt
+</code></pre>
+<p>Run <code>slurmtree</code> on a login node to see the live hierarchy. Example output:</p>
+<pre><code>root
+|-- jhu   [Fairshare=20]
+|   |-- wse   (school)
+|   |   +-- cs   (department)
+|   |       |-- rdesouz4   [100000]  &lt;- PI default (QOS: scavenger)
+|   |       |   +-- rdesouz4
+|   |       |   +-- rdesouz4_proj1   [100000]  &lt;- custom project (QOS: normal,premium)
+|   |       |       |-- rdesouz4_proj1_A   [100000]  &lt;- subproject
+|   |       |       |   +-- rdesouz4, arochab1
+|   |       |       +-- rdesouz4_proj1_B   [100000]
+|   |       |           +-- rdesouz4
+|   |       +-- arochab1   [100000]
+|   |           +-- arochab1
+|   +-- it   (school)
+|       +-- arch   (department)
+|           +-- bblanch6   [100000]
+|               +-- bblanch6
++-- schmidt   [Fairshare=80]
+    +-- ss   (Schmidt Sciences)
+        |-- ssci-jdoe   [100000]  &lt;- always free (ssci-* prefix)
+        |   +-- ssci-jdoe
+        +-- ssci-gomes   [100000]
+            +-- ssci-gomes
+
+[N] = Core Usage (Hours) / Fairshare weight
+Use slurmtree --full to include users
+</code></pre>
+<p><strong>Troubleshooting:</strong>
+- <strong>PIs flat under root (not under school/dept)?</strong> → PI project has no Department set. Fix: assign a department in ColdFront Project Detail, then run <code>sync_slurm</code>
+- <strong>Hierarchy not updating?</strong> → Run: <code>docker exec coldfront python -m django sync_slurm</code>
+- <strong>Need to reparent an account manually?</strong> → <code>sacctmgr modify account where name=ACCT set parent=NEWPARENT -i</code> (requires <code>where</code> keyword)</p>
+<h3>sbalance — Usage Report</h3>
+<pre><code class="language-bash"># Show usage for all accounts
+sbalance
+
+# Show usage for a specific user
+sbalance -u rdesouz4
+
+# Show usage for a PI's accounts
+sbalance -p rdesouz4
+
+# Hide accounts with zero usage
+sbalance --hide-zero
+
+# Show percentages
+sbalance --pct
+</code></pre>
+<p><strong>Troubleshooting:</strong>
+- <strong>All zeros?</strong> → No jobs have run yet, or <code>collect_sacct</code> hasn't imported them
+- <strong>Missing accounts?</strong> → Run <code>sync_slurm</code> to ensure ColdFront allocations are synced to Slurm</p>
+<h3>slurmqos — QOS Definitions</h3>
+<pre><code class="language-bash"># Show all QOS definitions
+slurmqos all
+
+# Show a specific QOS
+slurmqos name=normal
+
+# Show QOS for a specific account
+slurmqos account=rdesouz4
+
+# Show QOS for a specific user
+slurmqos user=rdesouz4
+slurmqos rdesouz4
+</code></pre>
+<p><strong>Troubleshooting:</strong>
+- <strong>Weekly cap QOS not created?</strong> → Set "Weekly Cap (Hours)" attribute on the allocation in ColdFront, then run <code>sync_slurm</code>
+- <strong>QOS shows wrong limits?</strong> → Check <code>GrpTRESMins</code> via: <code>sacctmgr show qos name=wk_&lt;alloc_id&gt; format=Name,GrpTRESMins</code></p>
+<h3>sacctmgr — Common Debugging Commands</h3>
+<pre><code class="language-bash"># List all associations for an account
+sacctmgr -n -P list assoc where account=ACCOUNT format=Cluster,Account,User,Partition,QOS
+
+# List all accounts with parents
+sacctmgr -n -P list associations where user= format=Account,ParentName,Share
+
+# List accounts under a specific parent
+sacctmgr -n list account where parent=schmidt format=Account,Description
+
+# Show account details
+sacctmgr show account name=rdesouz4 withassoc format=Account,User,QOS,GrpTRESMins
+
+# Reparent an account (requires 'where' keyword!)
+sacctmgr modify account where name=rdesouz4 set parent=nodep -i
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> <code>sacctmgr list account format=ParentName</code> returns empty. Use <code>list associations where user=</code> to get parent info.</p>
+</blockquote>
+<h3>start.sh slurm — Cluster Management</h3>
+<pre><code class="language-bash"># Check status (node state + job queue)
+./start.sh slurm status
+
+# Start the Slurm cluster
+./start.sh slurm start
+
+# Stop Slurm services
+./start.sh slurm stop
+
+# Restart in correct order (per SLURM_RESTART_GUIDE.md)
+./start.sh slurm restart
+</code></pre>
+<p><strong>Troubleshooting:</strong>
+- <strong>Nodes showing "down" after restart?</strong> → Wait 10 seconds (auto-resume runs in background). If still down: <code>scontrol update nodename=cn-01 state=resume</code>
+- <strong>"No docker-compose-slurm-*.yml found"?</strong> → Deploy the cluster from the ColdFront UI first (Clusters → Build Images → Deploy)
+- <strong>qcluster Exited(1)?</strong> → Check <code>docker logs qcluster</code>. If SQLite error: the compose overlay is missing DB env vars — redeploy from ColdFront UI
+- <strong>Init containers showing "Exited (0)" in red?</strong> → This is normal. <code>munge-init</code> and <code>slurm-bin-init</code> are one-shot containers that run at startup and exit. They cannot be removed from docker-compose.yml — Docker recreates them on the next <code>up</code>. They are needed because: <code>munge-init</code> generates the shared munge key in the <code>munge-key</code> volume, and <code>slurm-bin-init</code> copies <code>sacctmgr</code>/<code>scontrol</code> binaries to the volume that coldfront uses. They consume zero CPU/memory after exit.</p>
+<hr />
+<h2>Testing</h2>
+<h3>Commands</h3>
+<pre><code class="language-bash"># Run all tests (86 tests)
+./start.sh test
+
+# Full stack integration test (16 phases: containers, LDAP, Slurm, jobs, billing, QOS, sync)
+./start.sh test deploy
+
+# List available test modules with counts
+./start.sh test list
+
+# Show test help with examples
+./start.sh test --help
+
+# Run a specific test module
+./start.sh test coldfront.plugins.arch_sync.tests.test_billing
+
+# Run a specific test class
+./start.sh test coldfront.plugins.arch_sync.tests.test_models.CoreHoursResetSettingsTest
+
+# Run a specific test method
+./start.sh test coldfront.plugins.arch_sync.tests.test_signals.DepartmentSignalTest.test_billing_dept_propagates_to_project
+</code></pre>
+<h3>Available Test Modules</h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Type</th>
+<th>What It Tests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>arch_sync.tests.test_billing</code></td>
+<td>SimpleTestCase</td>
+<td><code>dollars_to_grptres_mins</code>, <code>grptres_mins_to_dollars</code>, <code>hours_to_dollars</code>, <code>SYSTEM_USERNAMES</code></td>
+</tr>
+<tr>
+<td><code>arch_sync.tests.test_models</code></td>
+<td>TestCase</td>
+<td><code>CoreHoursResetSettings.compute_next_reset()</code> (6 periods), <code>PaymentStatus</code> ordering</td>
+</tr>
+<tr>
+<td><code>arch_sync.tests.test_slurm_sync</code></td>
+<td>TestCase</td>
+<td><code>SlurmNode/SlurmPartition.slurm_conf_line</code> (AllowQos, TRESBillingWeights), weekly cap conversion</td>
+</tr>
+<tr>
+<td><code>arch_sync.tests.test_signals</code></td>
+<td>TestCase</td>
+<td>Department propagation signals, AllocationBilling auto-creation</td>
+</tr>
+<tr>
+<td><code>arch_sync.tests.test_ldap</code></td>
+<td>SimpleTestCase</td>
+<td>DN parsing, SSHA hash, tree config, UID/GID allocation, email comparison</td>
+</tr>
+<tr>
+<td><code>core.user.tests</code></td>
+<td>TestCase</td>
+<td>User registration, PI request flow</td>
+</tr>
+</tbody>
+</table>
+<p>Full module path prefix: <code>coldfront.plugins.</code> (for arch_sync) or <code>coldfront.</code> (for core).</p>
+<h3>Example Output</h3>
+<pre><code>$ ./start.sh test
+[+] Running Django tests: coldfront.plugins.arch_sync.tests
+
+  ✓  Applying contenttypes.0001_initial
+  ✓  Applying auth.0001_initial
+  ...
+  ✓  test_decimal (coldfront.plugins.arch_sync.tests.test_billing.DollarsToGrpTRESminsTest)
+  ✓  test_one_dollar (coldfront.plugins.arch_sync.tests.test_billing.DollarsToGrpTRESminsTest)
+  ✓  test_dept_propagates_to_default_project (...) — Setting billing dept propagates to Project.department.
+  ✓  test_simple_dn (coldfront.plugins.arch_sync.tests.test_ldap.UidFromDnTest)
+  ...
+
+----------------------------------------------------------------------
+Ran 86 tests in 0.729s
+
+OK
+</code></pre>
+<p><strong>Note:</strong> <code>SimpleTestCase</code> tests (test_billing, test_ldap) run without a database. <code>TestCase</code> tests require CREATEDB permission (granted automatically by <code>./start.sh test</code>).</p>
+<hr />
+<h2>User Guide</h2>
+<h3>Regular Users</h3>
+<p>Users join existing projects and use allocations managed by PIs.</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>View your projects</td>
+<td>Projects (sidebar)</td>
+</tr>
+<tr>
+<td>View your allocations</td>
+<td>Click a project, see Allocations section</td>
+</tr>
+<tr>
+<td>Join a project</td>
+<td>PI adds you via Add Users on the project page</td>
+</tr>
+<tr>
+<td>Check Slurm account</td>
+<td>Allocation detail shows <code>slurm_account_name</code></td>
+</tr>
+<tr>
+<td>Submit a job (web)</td>
+<td>Jobs &gt; Submit — choose partition + account</td>
+</tr>
+<tr>
+<td>View job history</td>
+<td>Jobs &gt; Metrics — filter by your username</td>
+</tr>
+<tr>
+<td>Request more hours</td>
+<td>Allocation detail &gt; Request Change</td>
+</tr>
+</tbody>
+</table>
+<h3>Principal Investigators (PIs)</h3>
+<p>PIs own projects, manage members, and control allocations.</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create a project</td>
+<td>Projects &gt; Create Project — set title, abbreviation, department, IO Number</td>
+</tr>
+<tr>
+<td>Request storage/backup</td>
+<td>Check Storage/Backup boxes on project create/update form</td>
+</tr>
+<tr>
+<td>Add users</td>
+<td>Project detail &gt; Add Users — search by username, select allocations</td>
+</tr>
+<tr>
+<td>Set weekly spend cap</td>
+<td>Allocation detail &gt; Set Weekly Cap ($)</td>
+</tr>
+<tr>
+<td>View billing</td>
+<td>My Usage &amp; Billing (sidebar)</td>
+</tr>
+<tr>
+<td>Request allocation change</td>
+<td>Allocation detail &gt; Request Change (e.g. more Core Hours)</td>
+</tr>
+</tbody>
+</table>
+<h3>Staff Tools</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Manage Users</td>
+<td>Toggle PI status, set cluster scope, impersonate users</td>
+</tr>
+<tr>
+<td>Staff User Profile</td>
+<td>Edit name/email, set LDAP password, toggle shell access (<code>/bin/bash</code> vs <code>/bin/false</code>)</td>
+</tr>
+<tr>
+<td>Promote to PI</td>
+<td>Creates default project + allocation + Slurm account automatically</td>
+</tr>
+<tr>
+<td>Elevated approvals</td>
+<td>Grant via Admin &gt; User profiles &gt; "Elevate to superuser for approvals" — allows scoped staff to approve/deny without full superuser</td>
+</tr>
+<tr>
+<td>Staff Help</td>
+<td>In-app reference at /staff/help/ with downloadable PDF</td>
+</tr>
+<tr>
+<td>Service Health</td>
+<td>Real-time status of all services at /user/service-health/</td>
+</tr>
+</tbody>
+</table>
+<h3>Best Practices</h3>
+<ul>
+<li>Keep projects tidy — archive inactive projects</li>
+<li>Use descriptive abbreviations — they become Slurm account names</li>
+<li>Plan ahead for renewals — submit extension requests before allocations expire</li>
+<li>Set weekly spend caps on paid projects to prevent overspending</li>
+</ul>
+<hr />
+<h2>Multi-Cluster Architecture</h2>
+<p>CLOACK supports two deployment models for scaling beyond a single cluster. Both use the same ColdFront codebase — the <code>SlurmCluster</code> model and <code>-M</code> flag routing are already implemented.</p>
+<h3>Model A — Single Cluster (Recommended for Start)</h3>
+<p>One slurmctld manages all nodes. Different hardware is separated by partitions.</p>
+<pre><code>                    ┌─────────────┐
+                    │  slurmdbd   │
+                    │  slurmrestd │
+                    └──────┬──────┘
+                           │
+                    ┌──────┴──────┐
+                    │  slurmctld  │
+                    │   &quot;arch&quot;    │
+                    └──────┬──────┘
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+        ┌──────────┐ ┌──────────┐ ┌──────────┐
+        │ cpu-01.. │ │ gpu-01.. │ │  hm-01.. │
+        │ (600 CPU)│ │(200 GPU) │ │ (150 HM) │
+        └──────────┘ └──────────┘ └──────────┘
+
+Partitions: scavenger, premium, gpu-a100, high-memory, dev
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Simple operations</td>
+<td>One slurmctld to manage, monitor, and upgrade</td>
+</tr>
+<tr>
+<td>Unified scheduling</td>
+<td>Scheduler sees all resources, optimal placement</td>
+</tr>
+<tr>
+<td>Easy configuration</td>
+<td>One slurm.conf, one set of partitions</td>
+</tr>
+<tr>
+<td>Scales to ~10K nodes</td>
+<td>Single slurmctld handles 1000 nodes easily</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Drawback</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single point of failure</td>
+<td>slurmctld crash affects all users</td>
+</tr>
+<tr>
+<td>Maintenance downtime</td>
+<td>Upgrade/restart impacts all jobs</td>
+</tr>
+<tr>
+<td>Mixed policies</td>
+<td>All hardware shares the same scheduling policies</td>
+</tr>
+</tbody>
+</table>
+<h3>Model B — Federation (When You Need Isolation)</h3>
+<p>Multiple slurmctld instances sharing one slurmdbd. Each cluster has its own partitions and scheduling policies. Users submit cross-cluster with <code>sbatch -M cluster_name</code>.</p>
+<pre><code>                    ┌─────────────┐
+                    │  slurmdbd   │ ← shared accounting DB
+                    │  slurmrestd │ ← single REST API for all clusters
+                    └──────┬──────┘
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+        ┌──────────┐ ┌──────────┐ ┌──────────┐
+        │slurmctld │ │slurmctld │ │slurmctld │
+        │&quot;arch-cpu&quot;│ │&quot;arch-gpu&quot;│ │&quot;arch-dev&quot;│
+        └────┬─────┘ └────┬─────┘ └────┬─────┘
+             ▼            ▼            ▼
+        ┌────────┐  ┌──────────┐  ┌────────┐
+        │600 CPU │  │ 200 GPU  │  │ 50 dev │
+        │ nodes  │  │  nodes   │  │ nodes  │
+        └────────┘  └──────────┘  └────────┘
+              ▲            ▲            ▲
+              └────────────┼────────────┘
+                     ┌─────┴─────┐
+                     │  login01  │ ← shared login node
+                     └───────────┘
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fault isolation</td>
+<td>arch-gpu crash does not affect arch-cpu jobs</td>
+</tr>
+<tr>
+<td>Independent maintenance</td>
+<td>Upgrade GPU cluster without touching CPU cluster</td>
+</tr>
+<tr>
+<td>Optimized scheduling</td>
+<td>Each cluster tuned for its hardware (GPU policies differ from CPU)</td>
+</tr>
+<tr>
+<td>Dev isolation</td>
+<td>Users test on dev cluster without impacting production</td>
+</tr>
+<tr>
+<td>Scalable beyond 10K nodes</td>
+<td>Each cluster handles up to ~10K nodes independently</td>
+</tr>
+<tr>
+<td>Unified billing</td>
+<td>Shared slurmdbd = single accounting database across all clusters</td>
+</tr>
+<tr>
+<td>Cross-cluster submission</td>
+<td><code>sbatch -M arch-gpu</code> from any login node</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Drawback</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Operational complexity</td>
+<td>Multiple slurmctld instances to manage</td>
+</tr>
+<tr>
+<td>Configuration overhead</td>
+<td>Separate slurm.conf per cluster</td>
+</tr>
+<tr>
+<td>Resource fragmentation</td>
+<td>Scheduler in arch-cpu cannot use idle arch-gpu nodes</td>
+</tr>
+</tbody>
+</table>
+<h3>Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Single Cluster</th>
+<th>Federation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scheduling</td>
+<td>1 scheduler for all jobs</td>
+<td>Dedicated scheduler per cluster</td>
+</tr>
+<tr>
+<td>Scalability</td>
+<td>~10K nodes per slurmctld</td>
+<td>~10K nodes <strong>per cluster</strong></td>
+</tr>
+<tr>
+<td>Failure blast radius</td>
+<td>All users affected</td>
+<td>Only users of that cluster</td>
+</tr>
+<tr>
+<td>Maintenance</td>
+<td>Downtime affects everyone</td>
+<td>Upgrade one cluster at a time</td>
+</tr>
+<tr>
+<td>Partitions</td>
+<td>Shared namespace</td>
+<td>Isolated per cluster (no name conflicts)</td>
+</tr>
+<tr>
+<td>Hardware</td>
+<td>Mixed or homogeneous</td>
+<td>Dedicated per cluster type</td>
+</tr>
+<tr>
+<td>Billing</td>
+<td>1 accounting DB</td>
+<td>1 accounting DB (shared slurmdbd)</td>
+</tr>
+<tr>
+<td>Cross-cluster jobs</td>
+<td>N/A</td>
+<td><code>sbatch -M cluster_name</code> from shared login</td>
+</tr>
+<tr>
+<td>CLI tools</td>
+<td><code>sacct</code>, <code>sbalance</code>, <code>slurmtree</code></td>
+<td>Same commands with <code>-M</code> flag</td>
+</tr>
+</tbody>
+</table>
+<h3>ColdFront Integration</h3>
+<p>The <code>SlurmCluster</code> model supports both architectures:</p>
+<pre><code class="language-python"># Model A: single cluster
+SlurmCluster(name=&quot;arch&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+
+# Model B: federation — same or separate slurmrestd
+SlurmCluster(name=&quot;arch-cpu&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+SlurmCluster(name=&quot;arch-gpu&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+
+# Model B: separate slurmdbd per group (advanced)
+SlurmCluster(name=&quot;arch-cpu&quot;, slurmrestd_url=&quot;http://restd-1:6820&quot;)
+SlurmCluster(name=&quot;arch-dev&quot;, slurmrestd_url=&quot;http://restd-2:6820&quot;)
+</code></pre>
+<p><strong>Recommendation for JHU (1000 nodes, 10K users):</strong> Start with Model A (single cluster with partitions). Migrate to Model B when hardware diversity or operational isolation justifies the complexity. The migration is infrastructure-only — add another slurmctld, create a new <code>SlurmCluster</code> in Django Admin, no code changes needed.</p>
+<hr /></div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARCH Portal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #0a0e17; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-nav { background: #0f1a2e; border-bottom: 1px solid #2d4a6f; padding: 10px 20px;
+            display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.site-nav a { color: #4a9eff; text-decoration: none; font-size: 0.95rem; padding: 4px 10px;
+              border-radius: 4px; transition: background 0.15s; }
+.site-nav a:hover, .site-nav a.active { background: #1a2d4a; color: #fff; }
+.site-nav .brand { font-weight: bold; font-size: 1.1rem; color: #4a9eff; letter-spacing: 1px; }
+.page-content { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+</style>
+  
+</head>
+<body>
+  <nav class="site-nav"><span class="brand">ARCH Portal</span><a href="index.html" class="active">Home</a> <a href="readme.html">README</a> <a href="cloack.html">CLOACK</a> <a href="architecture.html">Architecture</a></nav>
+  <div class="page-content">
+    
+    <div style="text-align:center; padding: 60px 20px 30px;">
+      <h1 style="color:#4a9eff; font-size:2.2rem; letter-spacing:2px;">ARCH Portal</h1>
+      <p style="color:#5a6d7f; font-size:1.1rem; margin-top:8px;">
+        Containerized identity and resource management for HPC clusters at Johns Hopkins University
+      </p>
+      <div style="margin-top:30px; display:flex; gap:16px; justify-content:center; flex-wrap:wrap;">
+        <a href="readme.html" style="background:#1a2d4a; border:1px solid #2d4a6f; border-radius:8px; padding:18px 28px; color:#4a9eff; text-decoration:none; font-size:1rem; min-width:180px;">
+          <strong>README</strong><br><small style="color:#5a6d7f;">Setup &amp; Usage Guide</small>
+        </a>
+        <a href="cloack.html" style="background:#1a2d4a; border:1px solid #2d4a6f; border-radius:8px; padding:18px 28px; color:#00cec9; text-decoration:none; font-size:1rem; min-width:180px;">
+          <strong>CLOACK</strong><br><small style="color:#5a6d7f;">Stack Documentation</small>
+        </a>
+        <a href="architecture.html" style="background:#1a2d4a; border:1px solid #2d4a6f; border-radius:8px; padding:18px 28px; color:#f39c12; text-decoration:none; font-size:1rem; min-width:180px;">
+          <strong>Architecture</strong><br><small style="color:#5a6d7f;">Interactive Diagram</small>
+        </a>
+      </div>
+    </div>
+    
+  </div>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+</body>
+</html>
