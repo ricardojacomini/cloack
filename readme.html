@@ -561,7 +561,7 @@ docker exec openldap ldapsearch -H ldapi:/// -x \
 <p>ARCH includes a comprehensive billing system built into ColdFront to track resource usage (compute, GPU, storage, backup) and manage invoicing for JHU and Schmidt Sciences allocations.</p>
 <h3>Key Features</h3>
 <h4><strong>Two-Track Billing Model</strong></h4>
-<p>The system supports two billing approaches:</p>
+<p>The system supports three billing types:</p>
 <table>
 <thead>
 <tr>
@@ -581,9 +581,18 @@ docker exec openldap ldapsearch -H ldapi:/// -x \
 <td>PIs who purchased hardware</td>
 <td>Credits cover compute hours only; O&amp;M (power/cooling) charged separately in cash</td>
 </tr>
+<tr>
+<td><strong>No Charge</strong></td>
+<td>Default, scavenger, and Schmidt allocations</td>
+<td>Usage tracked but not billed ($0 total)</td>
+</tr>
 </tbody>
 </table>
 <p><strong>Important:</strong> Credits do NOT pay O&amp;M bills. The system UI clearly separates credit consumption from cash charges to prevent confusion.</p>
+<p><strong>Billing eligibility</strong> is controlled by <code>AllocationBilling.is_billable</code> (set automatically by signal):
+- <code>is_billable=True</code> → allocation is charged (Pay Per Use or Credit Holder)
+- <code>is_billable=False</code> → allocation is tracked with <code>billing_type='no_charge'</code> and <code>payment_status='no_charge'</code></p>
+<p>Allocations with <code>is_billable=False</code> still appear in billing reports showing real usage (hours, rate) but with $0 total and "No Charge" label. Staff can toggle <code>is_billable</code> via Django Admin. The billing report includes a "Billable only" checkbox (default ON) to filter the view.</p>
 <h4><strong>Staff Billing Report</strong></h4>
 <p>Superusers and billing staff can:
 - View filterable billing report with all usage and charges
@@ -1040,30 +1049,35 @@ SLURM_NOOP=0
 <table>
 <thead>
 <tr>
-<th>Modelo</th>
-<th>O que é</th>
-<th>Página</th>
+<th>Model</th>
+<th>What</th>
+<th>Page</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td><code>Affiliation</code></td>
+<td>Organizational domain (JHU, Schmidt) — managed via Admin, FK on UserProfile/Department/School</td>
+<td>Admin</td>
+</tr>
+<tr>
 <td><code>BillingRate</code></td>
-<td>Tabela de preços: custo por CPU/GPU/storage/backup por partição (ex: <code>$0.35/hr CPU</code>, <code>$1.20/hr GPU</code>)</td>
+<td>Rate catalog: cost per CPU/GPU/storage/backup per partition (e.g. <code>$0.35/hr CPU</code>, <code>$1.20/hr GPU</code>)</td>
 <td><code>/billing/rates/</code></td>
 </tr>
 <tr>
 <td><code>AllocationBilling</code></td>
-<td>Config por alocação: IO number, billing type, storage/backup TB, departamento</td>
+<td>Per-allocation config: IO number, billing type, is_billable flag, storage/backup TB, department</td>
 <td><code>/allocation/&lt;id&gt;/</code></td>
 </tr>
 <tr>
 <td><code>SlurmAccountUsagePeriod</code></td>
-<td>Uso agregado por mês: total CPU hours, GPU hours, job count por conta</td>
+<td>Monthly aggregated usage: CPU hours, GPU hours, job count per account + payment status</td>
 <td><code>/billing/report/</code> <code>/billing/my-usage/</code></td>
 </tr>
 <tr>
 <td><code>SlurmJob</code></td>
-<td>Cada job individual: usuário, partição, CPU/GPU usados, duração, estado</td>
+<td>Individual job: user, partition, CPU/GPU used, duration, state</td>
 <td><code>/jobs/metrics/</code></td>
 </tr>
 </tbody>
