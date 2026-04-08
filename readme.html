@@ -129,7 +129,7 @@ Use `start.sh` to manage the full CLOACK stack. It wraps `docker compose` with i
 | `./start.sh prune-volumes [dev]` | Stop services and delete OpenLDAP named volumes (data loss — use with care) |
 | `./start.sh prune-slurm [dev]` | Stop Slurm containers and delete all Slurm volumes (munge key reset) |
 | `./start.sh prune-images` | Remove all Slurm Docker images (`arch/cn-rockylinux`, `arch/slurmd`, etc.) |
-| `./start.sh clean-all` | Full cleanup: stop, destroy, remove all volumes/images, prune Docker. In dev mode also removes home/scratch data. Fresh start |
+| `./start.sh clean-all` | Full cleanup: stop, destroy, remove arch volumes/images/networks only (safe for co-hosted services). In dev mode also removes home/scratch data. Fresh start |
 | `./start.sh log [SERVICE]` | Tail logs for a service (default: `coldfront`) |
 | `./start.sh reconf` | Push updated `slurm.conf` to all nodes (`scontrol reconfigure`) |
 | `./start.sh test [dev] [MODULE]` | Run Django unit tests (default: all arch_sync tests). Example: `./start.sh test coldfront.plugins.arch_sync.tests.test_billing` |
