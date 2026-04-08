@@ -273,6 +273,7 @@ SLURM_NOOP=0
 </table>
 <h3>JWT token for slurmrestd</h3>
 <p><code>start.sh slurm start</code> generates a 30-day JWT token and writes it to <code>${BASE_ETC}/slurm/slurm_jwt.token</code>. This file is bind-mounted into coldfront and qcluster containers. The <code>SlurmClient</code> reads the token for REST API authentication. A crontab entry (installed by <code>init</code>) renews it daily at 3am.</p>
+<p>In dev mode, if no <code>docker-compose-slurm-*.yml</code> overlay exists, <code>slurm start</code> auto-generates a default <code>docker-compose-slurm-arch-dev.yml</code> with the standard 4-node cluster (login01, cn-01, cn-02, cn-03) and default partitions (premium, scavenger). In production, the overlay must be deployed from the ColdFront UI.</p>
 <p><strong>Note:</strong> JWT auth requires Slurm 23.x+. Docker dev currently uses Slurm 22.05 which has a known JWT bug — upgrade to 25.11 is planned.</p>
 <h3>Compose project isolation</h3>
 <table>
