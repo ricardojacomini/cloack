@@ -111,71 +111,63 @@ body { background: #0a0e17; color: #c8d6e5; margin: 0; padding: 0;
 </div>
 
 <!-- ══════ Benefits / Drawbacks ══════ -->
-<div class="row">
-  <div class="col-md-6">
-    <div class="card mb-3" style="border-left: 3px solid #27ae60;">
-      <div class="card-body">
-        <h5 class="text-success">Model A &mdash; Single Cluster</h5>
-        <h6 class="text-success mt-3">Benefits</h6>
-        <ul style="font-size: 1rem; line-height: 2;">
-          <li>Simple to operate &mdash; one slurmctld to manage</li>
-          <li>Unified scheduling &mdash; scheduler sees all resources</li>
-          <li>One slurm.conf, one set of partitions</li>
-          <li>Scales comfortably to ~10,000 nodes</li>
-        </ul>
-        <h6 class="text-danger mt-3">Drawbacks</h6>
-        <ul style="font-size: 1rem; line-height: 2;">
-          <li>Single point of failure &mdash; slurmctld crash affects all</li>
-          <li>Maintenance downtime impacts every user</li>
-          <li>All hardware shares the same scheduling policies</li>
-        </ul>
-      </div>
-    </div>
+<div style="display: flex; gap: 16px; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 300px; background: #0f1a2e; border: 1px solid #2d4a6f; border-left: 3px solid #27ae60; border-radius: 8px; padding: 20px;">
+    <h5 style="color: #27ae60;">Model A &mdash; Single Cluster</h5>
+    <h6 style="color: #27ae60; margin-top: 14px;">Benefits</h6>
+    <ul style="font-size: 1rem; line-height: 2; color: #c8d6e5;">
+      <li>Simple to operate &mdash; one slurmctld to manage</li>
+      <li>Unified scheduling &mdash; scheduler sees all resources</li>
+      <li>One slurm.conf, one set of partitions</li>
+      <li>Scales comfortably to ~10,000 nodes</li>
+    </ul>
+    <h6 style="color: #e74c3c; margin-top: 14px;">Drawbacks</h6>
+    <ul style="font-size: 1rem; line-height: 2; color: #c8d6e5;">
+      <li>Single point of failure &mdash; slurmctld crash affects all</li>
+      <li>Maintenance downtime impacts every user</li>
+      <li>All hardware shares the same scheduling policies</li>
+    </ul>
   </div>
-  <div class="col-md-6">
-    <div class="card mb-3" style="border-left: 3px solid #f39c12;">
-      <div class="card-body">
-        <h5 style="color: #f39c12;">Model B &mdash; Federation</h5>
-        <h6 class="text-success mt-3">Benefits</h6>
-        <ul style="font-size: 1rem; line-height: 2;">
-          <li>Fault isolation &mdash; one cluster crash doesn&rsquo;t affect others</li>
-          <li>Independent maintenance &mdash; upgrade GPU without touching CPU</li>
-          <li>Optimized scheduling policies per hardware type</li>
-          <li>Dev cluster fully isolated from production</li>
-          <li>Unified billing via shared slurmdbd</li>
-          <li>Cross-cluster submission: <code>sbatch -M schmidt</code></li>
-        </ul>
-        <h6 class="text-danger mt-3">Drawbacks</h6>
-        <ul style="font-size: 1rem; line-height: 2;">
-          <li>More complex to operate (multiple slurmctld)</li>
-          <li>Separate slurm.conf per cluster</li>
-          <li>Resource fragmentation between clusters</li>
-        </ul>
-      </div>
-    </div>
+  <div style="flex: 1; min-width: 300px; background: #0f1a2e; border: 1px solid #2d4a6f; border-left: 3px solid #f39c12; border-radius: 8px; padding: 20px;">
+    <h5 style="color: #f39c12;">Model B &mdash; Federation</h5>
+    <h6 style="color: #27ae60; margin-top: 14px;">Benefits</h6>
+    <ul style="font-size: 1rem; line-height: 2; color: #c8d6e5;">
+      <li>Fault isolation &mdash; one cluster crash doesn&rsquo;t affect others</li>
+      <li>Independent maintenance &mdash; upgrade GPU without touching CPU</li>
+      <li>Optimized scheduling policies per hardware type</li>
+      <li>Dev cluster fully isolated from production</li>
+      <li>Unified billing via shared slurmdbd</li>
+      <li>Cross-cluster submission: <code style="color:#00cec9; background:#1a2d4a; padding:2px 6px; border-radius:3px;">sbatch -M schmidt</code></li>
+    </ul>
+    <h6 style="color: #e74c3c; margin-top: 14px;">Drawbacks</h6>
+    <ul style="font-size: 1rem; line-height: 2; color: #c8d6e5;">
+      <li>More complex to operate (multiple slurmctld)</li>
+      <li>Separate slurm.conf per cluster</li>
+      <li>Resource fragmentation between clusters</li>
+    </ul>
   </div>
 </div>
 
 <h6 style="color: #c8d6e5;">Comparison</h6>
-<table class="table table-sm table-bordered" style="font-size: 0.95rem; color: #c8d6e5;">
+<table style="width:100%; font-size: 0.95rem; color: #c8d6e5; border-collapse: collapse;">
   <thead>
-    <tr style="background: #1a2d4a;"><th style="color: #4a9eff; border-color: #2d4a6f;">Aspect</th><th style="color: #27ae60; border-color: #2d4a6f;">Single Cluster</th><th style="color: #f39c12; border-color: #2d4a6f;">Federation</th></tr>
+    <tr style="background: #1a2d4a;"><th style="color: #4a9eff; border: 1px solid #2d4a6f; padding: 8px 12px;">Aspect</th><th style="color: #27ae60; border: 1px solid #2d4a6f; padding: 8px 12px;">Single Cluster</th><th style="color: #f39c12; border: 1px solid #2d4a6f; padding: 8px 12px;">Federation</th></tr>
   </thead>
   <tbody>
-    <tr><td style="border-color: #2d4a6f;">Scheduling</td><td style="border-color: #2d4a6f;">1 scheduler for all jobs</td><td style="border-color: #2d4a6f;">Dedicated scheduler per cluster</td></tr>
-    <tr><td style="border-color: #2d4a6f;">Scalability</td><td style="border-color: #2d4a6f;">~10K nodes per slurmctld</td><td style="border-color: #2d4a6f;">~10K nodes <strong>per cluster</strong></td></tr>
-    <tr><td style="border-color: #2d4a6f;">Failure</td><td style="border-color: #2d4a6f;">All users affected</td><td style="border-color: #2d4a6f;">Only users of that cluster</td></tr>
-    <tr><td style="border-color: #2d4a6f;">Maintenance</td><td style="border-color: #2d4a6f;">Downtime affects everyone</td><td style="border-color: #2d4a6f;">Upgrade one cluster at a time</td></tr>
-    <tr><td style="border-color: #2d4a6f;">Partitions</td><td style="border-color: #2d4a6f;">Shared namespace</td><td style="border-color: #2d4a6f;">Isolated per cluster</td></tr>
-    <tr><td style="border-color: #2d4a6f;">Billing</td><td style="border-color: #2d4a6f;">1 accounting DB</td><td style="border-color: #2d4a6f;">1 accounting DB (shared slurmdbd)</td></tr>
-    <tr><td style="border-color: #2d4a6f;">CLI tools</td><td style="border-color: #2d4a6f;"><code>sacct</code>, <code>sbalance</code></td><td style="border-color: #2d4a6f;">Same commands + <code>-M</code> flag</td></tr>
+    <tr style="background: #0f1a2e;"><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Scheduling</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">1 scheduler for all jobs</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Dedicated scheduler per cluster</td></tr>
+    <tr style="background: #0a1223;"><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Scalability</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">~10K nodes per slurmctld</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">~10K nodes <strong>per cluster</strong></td></tr>
+    <tr style="background: #0f1a2e;"><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Failure</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">All users affected</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Only users of that cluster</td></tr>
+    <tr style="background: #0a1223;"><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Maintenance</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Downtime affects everyone</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Upgrade one cluster at a time</td></tr>
+    <tr style="background: #0f1a2e;"><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Partitions</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Shared namespace</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Isolated per cluster</td></tr>
+    <tr style="background: #0a1223;"><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Billing</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">1 accounting DB</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">1 accounting DB (shared slurmdbd)</td></tr>
+    <tr style="background: #0f1a2e;"><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">CLI tools</td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;"><code style="color:#00cec9; background:#1a2d4a; padding:2px 6px; border-radius:3px;">sacct</code> <code style="color:#00cec9; background:#1a2d4a; padding:2px 6px; border-radius:3px;">sbalance</code></td><td style="border: 1px solid #2d4a6f; padding: 8px 12px;">Same commands + <code style="color:#00cec9; background:#1a2d4a; padding:2px 6px; border-radius:3px;">-M</code> flag</td></tr>
   </tbody>
 </table>
 
-<div class="alert alert-info">
-  <strong>Recommendation for JHU:</strong> Start with Model A (single cluster with partitions).
+<div style="background: rgba(74,158,255,0.1); border: 1px solid #4a9eff; border-radius: 6px; padding: 14px 18px; margin-top: 16px; color: #c8d6e5;">
+  <strong style="color: #4a9eff;">Recommendation for JHU:</strong> Start with Model A (single cluster with partitions).
   Migrate to Model B when hardware diversity or operational isolation justifies the complexity.
-  The ColdFront <code>SlurmCluster</code> model supports both &mdash; migration is infrastructure-only, no code changes needed.
+  The ColdFront <code style="color:#00cec9; background:#1a2d4a; padding:2px 6px; border-radius:3px;">SlurmCluster</code> model supports both &mdash; migration is infrastructure-only, no code changes needed.
 </div>
   </div>
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
