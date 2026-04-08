@@ -156,19 +156,19 @@ body { background: #0a0e17; color: #c8d6e5; margin: 0; padding: 0;
   </div>
 </div>
 
-<h6>Comparison</h6>
-<table class="table table-sm table-bordered" style="font-size: 0.95rem;">
-  <thead class="thead-light">
-    <tr><th>Aspect</th><th>Single Cluster</th><th>Federation</th></tr>
+<h6 style="color: #c8d6e5;">Comparison</h6>
+<table class="table table-sm table-bordered" style="font-size: 0.95rem; color: #c8d6e5;">
+  <thead>
+    <tr style="background: #1a2d4a;"><th style="color: #4a9eff; border-color: #2d4a6f;">Aspect</th><th style="color: #27ae60; border-color: #2d4a6f;">Single Cluster</th><th style="color: #f39c12; border-color: #2d4a6f;">Federation</th></tr>
   </thead>
   <tbody>
-    <tr><td>Scheduling</td><td>1 scheduler for all jobs</td><td>Dedicated scheduler per cluster</td></tr>
-    <tr><td>Scalability</td><td>~10K nodes per slurmctld</td><td>~10K nodes <strong>per cluster</strong></td></tr>
-    <tr><td>Failure</td><td>All users affected</td><td>Only users of that cluster</td></tr>
-    <tr><td>Maintenance</td><td>Downtime affects everyone</td><td>Upgrade one cluster at a time</td></tr>
-    <tr><td>Partitions</td><td>Shared namespace</td><td>Isolated per cluster</td></tr>
-    <tr><td>Billing</td><td>1 accounting DB</td><td>1 accounting DB (shared slurmdbd)</td></tr>
-    <tr><td>CLI tools</td><td><code>sacct</code>, <code>sbalance</code></td><td>Same commands + <code>-M</code> flag</td></tr>
+    <tr><td style="border-color: #2d4a6f;">Scheduling</td><td style="border-color: #2d4a6f;">1 scheduler for all jobs</td><td style="border-color: #2d4a6f;">Dedicated scheduler per cluster</td></tr>
+    <tr><td style="border-color: #2d4a6f;">Scalability</td><td style="border-color: #2d4a6f;">~10K nodes per slurmctld</td><td style="border-color: #2d4a6f;">~10K nodes <strong>per cluster</strong></td></tr>
+    <tr><td style="border-color: #2d4a6f;">Failure</td><td style="border-color: #2d4a6f;">All users affected</td><td style="border-color: #2d4a6f;">Only users of that cluster</td></tr>
+    <tr><td style="border-color: #2d4a6f;">Maintenance</td><td style="border-color: #2d4a6f;">Downtime affects everyone</td><td style="border-color: #2d4a6f;">Upgrade one cluster at a time</td></tr>
+    <tr><td style="border-color: #2d4a6f;">Partitions</td><td style="border-color: #2d4a6f;">Shared namespace</td><td style="border-color: #2d4a6f;">Isolated per cluster</td></tr>
+    <tr><td style="border-color: #2d4a6f;">Billing</td><td style="border-color: #2d4a6f;">1 accounting DB</td><td style="border-color: #2d4a6f;">1 accounting DB (shared slurmdbd)</td></tr>
+    <tr><td style="border-color: #2d4a6f;">CLI tools</td><td style="border-color: #2d4a6f;"><code>sacct</code>, <code>sbalance</code></td><td style="border-color: #2d4a6f;">Same commands + <code>-M</code> flag</td></tr>
   </tbody>
 </table>
 
