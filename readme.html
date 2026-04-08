@@ -1383,11 +1383,15 @@ sacctmgr modify account where name=rdesouz4 set parent=nodep -i
 <p><strong>Note:</strong> <code>sacctmgr list account format=ParentName</code> returns empty. Use <code>list associations where user=</code> to get parent info.</p>
 </blockquote>
 <h3>start.sh slurm — Cluster Management</h3>
-<pre><code class="language-bash"># Check status (node state + job queue)
-./start.sh slurm status
+<pre><code class="language-bash"># Generate compose overlay (arch-dev in dev, arch in prod)
+./start.sh slurm create             # uses default name for current mode
+./start.sh slurm create my-cluster  # custom name → docker-compose-slurm-my-cluster.yml
 
-# Start the Slurm cluster
+# Start the Slurm cluster (auto-creates overlay if missing)
 ./start.sh slurm start
+
+# Check status (node state + job queue)
+./start.sh slurm status
 
 # Stop Slurm services
 ./start.sh slurm stop
