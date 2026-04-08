@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARCH Portal — Cluster Architecture Models</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #0a0e17; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-nav { background: #0f1a2e; border-bottom: 1px solid #2d4a6f; padding: 10px 20px;
+            display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.site-nav a { color: #4a9eff; text-decoration: none; font-size: 0.95rem; padding: 4px 10px;
+              border-radius: 4px; transition: background 0.15s; }
+.site-nav a:hover, .site-nav a.active { background: #1a2d4a; color: #fff; }
+.site-nav .brand { font-weight: bold; font-size: 1.1rem; color: #4a9eff; letter-spacing: 1px; }
+.page-content { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+</style>
+  
+</head>
+<body>
+  <nav class="site-nav"><span class="brand">ARCH Portal</span><a href="index.html">Home</a> <a href="readme.html">README</a> <a href="cloack.html">CLOACK</a> <a href="architecture.html">Architecture</a> <a href="cluster-models.html" class="active">Cluster Models</a></nav>
+  <div class="page-content">
+    <style>
+.arch-diagram { display: flex; gap: 20px; margin-bottom: 20px; }
+.arch-panel { flex: 1; background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 8px; padding: 20px; }
+.arch-title { text-align: center; padding: 8px 20px; border-radius: 6px; font-weight: bold; font-size: 1.1rem; margin-bottom: 18px; }
+.arch-title-a { background: rgba(39,174,96,0.3); border: 2px solid #27ae60; color: #c8d6e5; }
+.arch-title-b { background: rgba(243,156,18,0.3); border: 2px solid #f39c12; color: #c8d6e5; }
+.arch-box { text-align: center; padding: 12px 8px; border-radius: 6px; margin: 0 auto 4px auto; font-weight: bold; font-size: 0.95rem; color: #c8d6e5; }
+.arch-box small { display: block; font-weight: normal; font-size: 0.8rem; color: #5a6d7f; margin-top: 2px; }
+.arch-arrow { text-align: center; color: #2d4a6f; font-size: 1.2rem; margin: 2px 0; }
+.arch-row { display: flex; gap: 8px; justify-content: center; margin: 4px 0; }
+.arch-row > div { flex: 1; }
+.arch-part-label { text-align: center; font-size: 0.78rem; color: #5a6d7f; font-style: italic; margin-bottom: 6px; }
+.arch-badge { text-align: center; margin-top: 14px; }
+.arch-badge span { padding: 6px 18px; border-radius: 20px; font-weight: bold; font-size: 0.95rem; }
+.b-cyan { background: rgba(0,206,201,0.15); border: 1.5px solid #00cec9; }
+.b-blue { background: rgba(74,158,255,0.15); border: 1.5px solid #4a9eff; }
+.b-green { background: rgba(39,174,96,0.15); border: 1.5px solid #27ae60; }
+.b-orange { background: rgba(243,156,18,0.15); border: 1.5px solid #f39c12; }
+.b-purple { background: rgba(155,89,182,0.15); border: 1.5px solid #9b59b6; }
+.b-muted { background: rgba(90,109,127,0.15); border: 1.5px solid #5a6d7f; }
+</style>
+
+<div class="arch-diagram">
+  <!-- ══════ MODEL A ══════ -->
+  <div class="arch-panel">
+    <div class="arch-title arch-title-a">MODEL A &mdash; SINGLE CLUSTER</div>
+
+    <div class="arch-box b-cyan" style="max-width:70%;">slurmdbd + slurmrestd<small>1 instance &middot; shared accounting DB</small></div>
+    <div class="arch-arrow">&darr;</div>
+    <div class="arch-box b-blue" style="max-width:70%;">slurmctld &quot;arch&quot;<small>1 scheduler &middot; all partitions</small></div>
+    <div class="arch-arrow">&darr;&nbsp;&nbsp;&darr;&nbsp;&nbsp;&darr;&nbsp;&nbsp;&darr;</div>
+
+    <div class="arch-row">
+      <div><div class="arch-box b-green">CPU nodes</div><div class="arch-part-label">scavenger &middot; premium</div></div>
+      <div><div class="arch-box b-orange">GPU nodes</div><div class="arch-part-label">gpu-a100 &middot; gpu-h100</div></div>
+      <div><div class="arch-box b-purple">HM nodes</div><div class="arch-part-label">high-memory</div></div>
+      <div><div class="arch-box b-muted">Dev nodes</div><div class="arch-part-label">dev</div></div>
+    </div>
+
+    <div class="arch-arrow">&darr;</div>
+    <div class="arch-box b-blue" style="max-width:75%;">login01 &middot; login02 (shared or multiple)</div>
+
+    <div class="arch-badge"><span style="background:rgba(39,174,96,0.15); border:1.5px solid #27ae60; color:#27ae60;">Recommended for start</span></div>
+  </div>
+
+  <!-- ══════ MODEL B ══════ -->
+  <div class="arch-panel">
+    <div class="arch-title arch-title-b">MODEL B &mdash; FEDERATION</div>
+
+    <div class="arch-box b-cyan" style="max-width:75%;">slurmdbd + slurmrestd (shared)<small>1 instance &middot; unified accounting for all clusters</small></div>
+    <div class="arch-arrow">&darr;&nbsp;&nbsp;&nbsp;&darr;&nbsp;&nbsp;&nbsp;&darr;</div>
+
+    <div class="arch-row">
+      <div><div class="arch-box b-green">slurmctld &quot;jhu&quot;</div></div>
+      <div><div class="arch-box b-orange">slurmctld &quot;schmidt&quot;</div></div>
+      <div><div class="arch-box b-purple">slurmctld &quot;dev&quot;</div></div>
+    </div>
+    <div class="arch-arrow">&darr;&nbsp;&nbsp;&nbsp;&darr;&nbsp;&nbsp;&nbsp;&darr;</div>
+
+    <div class="arch-row">
+      <div><div class="arch-box b-green">CPU + GPU nodes</div><div class="arch-part-label">scavenger &middot; premium</div></div>
+      <div><div class="arch-box b-orange">CPU + GPU nodes</div><div class="arch-part-label">scavenger &middot; premium</div></div>
+      <div><div class="arch-box b-purple">Dev nodes</div><div class="arch-part-label">dev</div></div>
+    </div>
+
+    <div class="arch-arrow">&darr;</div>
+    <div class="arch-box b-blue" style="max-width:80%;">login01 &middot; login02 (shared or multiple)<small>sbatch -M schmidt &middot; sacct -M jhu</small></div>
+
+    <div class="arch-badge"><span style="background:rgba(243,156,18,0.15); border:1.5px solid #f39c12; color:#f39c12;">When isolation is needed</span></div>
+  </div>
+</div>
+
+<!-- ══════ Benefits / Drawbacks ══════ -->
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-3" style="border-left: 3px solid #27ae60;">
+      <div class="card-body">
+        <h5 class="text-success">Model A &mdash; Single Cluster</h5>
+        <h6 class="text-success mt-3">Benefits</h6>
+        <ul style="font-size: 1rem; line-height: 2;">
+          <li>Simple to operate &mdash; one slurmctld to manage</li>
+          <li>Unified scheduling &mdash; scheduler sees all resources</li>
+          <li>One slurm.conf, one set of partitions</li>
+          <li>Scales comfortably to ~10,000 nodes</li>
+        </ul>
+        <h6 class="text-danger mt-3">Drawbacks</h6>
+        <ul style="font-size: 1rem; line-height: 2;">
+          <li>Single point of failure &mdash; slurmctld crash affects all</li>
+          <li>Maintenance downtime impacts every user</li>
+          <li>All hardware shares the same scheduling policies</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card mb-3" style="border-left: 3px solid #f39c12;">
+      <div class="card-body">
+        <h5 style="color: #f39c12;">Model B &mdash; Federation</h5>
+        <h6 class="text-success mt-3">Benefits</h6>
+        <ul style="font-size: 1rem; line-height: 2;">
+          <li>Fault isolation &mdash; one cluster crash doesn&rsquo;t affect others</li>
+          <li>Independent maintenance &mdash; upgrade GPU without touching CPU</li>
+          <li>Optimized scheduling policies per hardware type</li>
+          <li>Dev cluster fully isolated from production</li>
+          <li>Unified billing via shared slurmdbd</li>
+          <li>Cross-cluster submission: <code>sbatch -M schmidt</code></li>
+        </ul>
+        <h6 class="text-danger mt-3">Drawbacks</h6>
+        <ul style="font-size: 1rem; line-height: 2;">
+          <li>More complex to operate (multiple slurmctld)</li>
+          <li>Separate slurm.conf per cluster</li>
+          <li>Resource fragmentation between clusters</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h6>Comparison</h6>
+<table class="table table-sm table-bordered" style="font-size: 0.95rem;">
+  <thead class="thead-light">
+    <tr><th>Aspect</th><th>Single Cluster</th><th>Federation</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Scheduling</td><td>1 scheduler for all jobs</td><td>Dedicated scheduler per cluster</td></tr>
+    <tr><td>Scalability</td><td>~10K nodes per slurmctld</td><td>~10K nodes <strong>per cluster</strong></td></tr>
+    <tr><td>Failure</td><td>All users affected</td><td>Only users of that cluster</td></tr>
+    <tr><td>Maintenance</td><td>Downtime affects everyone</td><td>Upgrade one cluster at a time</td></tr>
+    <tr><td>Partitions</td><td>Shared namespace</td><td>Isolated per cluster</td></tr>
+    <tr><td>Billing</td><td>1 accounting DB</td><td>1 accounting DB (shared slurmdbd)</td></tr>
+    <tr><td>CLI tools</td><td><code>sacct</code>, <code>sbalance</code></td><td>Same commands + <code>-M</code> flag</td></tr>
+  </tbody>
+</table>
+
+<div class="alert alert-info">
+  <strong>Recommendation for JHU:</strong> Start with Model A (single cluster with partitions).
+  Migrate to Model B when hardware diversity or operational isolation justifies the complexity.
+  The ColdFront <code>SlurmCluster</code> model supports both &mdash; migration is infrastructure-only, no code changes needed.
+</div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+</body>
+</html>
