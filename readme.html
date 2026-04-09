@@ -1893,19 +1893,57 @@ Partitions: scavenger, premium, gpu-a100, high-memory, dev
 </tbody>
 </table>
 <h3>ColdFront Integration</h3>
-<p>The <code>SlurmCluster</code> model supports both architectures:</p>
-<pre><code class="language-python"># Model A: single cluster
-SlurmCluster(name=&quot;arch&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+<p>The <code>SlurmCluster</code> model supports both architectures. The <code>root_account</code> field drives which deployment model is used — no code changes needed:</p>
+<table>
+<thead>
+<tr>
+<th><code>root_account</code></th>
+<th>Deployment Model</th>
+<th>Affiliations</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>root</code> / <code>arch</code> / other</td>
+<td>Model A/C</td>
+<td>Both JHU + Schmidt</td>
+<td>Single cluster or hardware split</td>
+</tr>
+<tr>
+<td><code>jhu</code></td>
+<td>Model B</td>
+<td>JHU only</td>
+<td>Federation — JHU-dedicated cluster</td>
+</tr>
+<tr>
+<td><code>schmidt</code></td>
+<td>Model B</td>
+<td>Schmidt only</td>
+<td>Federation — Schmidt-dedicated cluster</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python"># Model A: single cluster (both affiliations)
+SlurmCluster(name=&quot;arch&quot;, root_account=&quot;root&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
 
-# Model B: federation — same or separate slurmrestd
-SlurmCluster(name=&quot;arch-cpu&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
-SlurmCluster(name=&quot;arch-gpu&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+# Model B: federation — one cluster per affiliation
+SlurmCluster(name=&quot;jhu-cluster&quot;, root_account=&quot;jhu&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+SlurmCluster(name=&quot;schmidt-cluster&quot;, root_account=&quot;schmidt&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
 
-# Model B: separate slurmdbd per group (advanced)
-SlurmCluster(name=&quot;arch-cpu&quot;, slurmrestd_url=&quot;http://restd-1:6820&quot;)
-SlurmCluster(name=&quot;arch-dev&quot;, slurmrestd_url=&quot;http://restd-2:6820&quot;)
+# Model C: hardware split (both affiliations per cluster)
+SlurmCluster(name=&quot;arch-cpu&quot;, root_account=&quot;arch&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+SlurmCluster(name=&quot;arch-gpu&quot;, root_account=&quot;arch&quot;, slurmrestd_url=&quot;http://restd-2:6820&quot;)
 </code></pre>
-<p><strong>Recommendation for JHU (1000 nodes, 10K users):</strong> Start with Model A (single cluster with partitions). Migrate to Model B when hardware diversity or operational isolation justifies the complexity. The migration is infrastructure-only — add another slurmctld, create a new <code>SlurmCluster</code> in Django Admin, no code changes needed.</p>
+<p>The <code>slurm_sync</code> respects <code>root_account</code> automatically:
+- <strong>Model A/C</strong> (<code>root_account</code> ≠ jhu/schmidt): creates both <code>jhu</code> and <code>schmidt</code> root accounts under <code>cluster_root</code>, syncs all allocations
+- <strong>Model B</strong> (<code>root_account</code> = jhu): creates only <code>jhu</code> root, filters out Schmidt PI allocations
+- <strong>Model B</strong> (<code>root_account</code> = schmidt): creates only <code>schmidt</code> root, filters out JHU PI allocations</p>
+<p>Admin presets in the Django Admin pre-fill the correct <code>root_account</code> for each deployment model.</p>
+<h3>Real-time Account Provisioning</h3>
+<p>When an allocation transitions to <strong>Active</strong> (staff approval), the system immediately creates the Slurm account hierarchy via REST API — no waiting for the periodic sync. This is best-effort: if the REST API is unavailable, the periodic sync (every 3 hours) acts as a safety net.</p>
+<p>The provisioning respects Model B affiliation filtering: a JHU PI allocation approved on a Schmidt-only cluster is silently skipped.</p>
+<p><strong>Recommendation for JHU (1000 nodes, 10K users):</strong> Start with Model A (single cluster with partitions). Migrate to Model B when hardware diversity or operational isolation justifies the complexity. The migration is infrastructure-only — add another slurmctld, create a new <code>SlurmCluster</code> in Django Admin with the appropriate <code>root_account</code>, no code changes needed.</p>
 <hr /></div>
   </div>
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
