@@ -6,15 +6,19 @@
   <title>ARCH Portal</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
   <style>
-body { background: #0a0e17; color: #c8d6e5; margin: 0; padding: 0;
+body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-.site-nav { background: #0f1a2e; border-bottom: 1px solid #2d4a6f; padding: 10px 20px;
-            display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
-.site-nav a { color: #4a9eff; text-decoration: none; font-size: 0.95rem; padding: 4px 10px;
-              border-radius: 4px; transition: background 0.15s; }
-.site-nav a:hover, .site-nav a.active { background: #1a2d4a; color: #fff; }
-.site-nav .brand { font-weight: bold; font-size: 1.1rem; color: #4a9eff; letter-spacing: 1px; }
-.page-content { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
+.site-shell { display: flex; min-height: 100vh; }
+.site-sidebar { width: 260px; background: linear-gradient(180deg, #0c111b 0%, #141a25 100%);
+               border-right: 1px solid #1f2b42; padding: 24px 0; display: flex; flex-direction: column; }
+.sidebar-brand { font-weight: 700; font-size: 1.1rem; color: #e0efff; text-align: center;
+                 margin-bottom: 24px; letter-spacing: 2px; }
+.sidebar-links { display: flex; flex-direction: column; gap: 4px; padding: 0 16px; }
+.sidebar-links a { color: #b3c7dd; text-decoration: none; padding: 10px 14px;
+                  border-radius: 6px; font-size: 0.95rem; display: block; transition: all 0.15s; }
+.sidebar-links a:hover { background: rgba(74, 158, 255, 0.14); color: #fff; }
+.sidebar-links a.active { background: rgba(74, 158, 255, 0.22); color: #fff; border-left: 4px solid #4a9eff; padding-left: 10px; }
+.page-content { flex: 1; max-width: 1200px; margin: 0 auto; padding: 36px 32px; }
 /* Markdown styling */
 .md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
 .md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
@@ -35,10 +39,18 @@ body { background: #0a0e17; color: #c8d6e5; margin: 0; padding: 0;
 </style>
   
 </head>
-<body>
-  <nav class="site-nav"><span class="brand">ARCH Portal</span><a href="index.html" class="active">Home</a> <a href="readme.html">README</a> <a href="cloack.html">CLOACK</a> <a href="architecture.html">Architecture</a> <a href="cluster-models.html">Cluster Models</a> <a href="help.html">Help</a></nav>
-  <div class="page-content">
+  <body>
+  <div class="site-shell">
     
+    <aside class="site-sidebar">
+      <div class="sidebar-brand">ARCH Portal</div>
+      <div class="sidebar-links">
+        <a href="index.html" class="active">Home</a><a href="readme.html">README</a><a href="cloack.html">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html">Help</a>
+      </div>
+    </aside>
+    
+    <main class="page-content">
+      
     <div style="text-align:center; padding: 60px 20px 30px;">
       <h1 style="color:#4a9eff; font-size:2.2rem; letter-spacing:2px;">ARCH Portal</h1>
       <p style="color:#5a6d7f; font-size:1.1rem; margin-top:8px;">
@@ -63,6 +75,7 @@ body { background: #0a0e17; color: #c8d6e5; margin: 0; padding: 0;
       </div>
     </div>
     
+    </main>
   </div>
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
