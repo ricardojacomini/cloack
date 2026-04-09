@@ -68,33 +68,46 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
                   </div>
                   <div id="c2" class="collapse show" data-parent="#helpAccordion">
                     <div class="card-body"><ol>
-            <li><strong>PI creates project</strong> &mdash; sets title, abbreviation, department, IO number, storage/backup needs. Must accept ToS if active.</li>
-            <li><strong>PI requests allocation</strong> &mdash; chooses cluster resource, enters core hours.</li>
-            <li><strong>Staff reviews &amp; approves</strong> &mdash; allocation moves to <span class="badge badge-success">Active</span>.</li>
-            <li><strong>Auto-seed on activation:</strong>
-              <ul>
-                <li><code>AllocationBilling</code> created (copies IO, department, storage/backup from project)</li>
-                <li>Default attributes seeded: Core Usage, Extra Core Hours, Next Reset</li>
-              </ul>
-            </li>
-            <li><strong>Slurm sync triggers</strong> &mdash; creates Slurm account, sets hierarchy, QOS, GrpTRESMins. <em>Users without ToS acceptance are skipped.</em></li>
-            <li><strong>LDAP sync</strong> &mdash; ensures user exists in LDAP with home directory.</li>
-            <li><strong>Users submit jobs</strong> &mdash; billing tracked via <code>sacct</code> collection every 15 minutes.</li>
-          </ol>
+  <li><strong>PI creates project</strong> &mdash; sets title, abbreviation, department, IO number, storage/backup needs. Must accept ToS if active.</li>
+  <li><strong>PI requests allocation</strong> &mdash; chooses cluster resource, enters core hours.</li>
+  <li><strong>Staff reviews &amp; approves</strong> &mdash; allocation moves to <span class="badge badge-success">Active</span>.</li>
+  <li><strong>Auto-seed on activation:</strong>
+    <ul>
+      <li><code>AllocationBilling</code> created (copies IO, department, storage/backup from project)</li>
+      <li>Default attributes seeded: Core Usage, Extra Core Hours, Next Reset</li>
+    </ul>
+  </li>
+  <li><strong>Slurm account provisioning (real-time)</strong> &mdash; creates Slurm account hierarchy via REST API. <em>PI must have accepted ToS for their user association to be created.</em></li>
+  <li><strong>ToS acceptance triggers Slurm association</strong> &mdash; when PI accepts ToS, a <code>post_save</code> signal immediately provisions their user association on all active allocations. If <strong>User Required</strong> is enabled on the ToS, regular users must also accept before being added.</li>
+  <li><strong>Periodic sync (safety net)</strong> &mdash; <code>sync_slurm</code> runs every 3 hours, catches any missed associations. Respects ToS gating.</li>
+  <li><strong>LDAP sync</strong> &mdash; ensures user exists in LDAP with home directory.</li>
+  <li><strong>Users submit jobs</strong> &mdash; billing tracked via <code>sacct</code> collection every 15 minutes.</li>
+</ol>
 
-          <h6>Default vs Paid Allocations</h6>
-          <table class="table table-sm table-bordered">
-            <thead class="thead-light">
-              <tr><th>Type</th><th>Project Name</th><th>Slurm Account</th><th>QOS</th><th>Billed?</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Default</td><td>PI username (no abbreviation)</td><td><code>pi_username</code></td><td>scavenger</td><td>No</td></tr>
-              <tr><td>Paid</td><td>Custom (with abbreviation)</td><td><code>pi_username_proj1</code></td><td>normal, premium</td><td>Yes</td></tr>
-            </tbody>
-          </table>
+<h6>ToS Gating for Slurm Access</h6>
+<table class="table table-sm table-bordered">
+  <thead class="thead-light">
+    <tr><th>Role</th><th>ToS Required?</th><th>Where to Accept</th><th>Slurm Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>PI</td><td><strong>Always</strong> (when active ToS exists)</td><td>Project creation, allocation request, or Project Detail page</td><td>No user association until accepted</td></tr>
+    <tr><td>Regular User</td><td>Only when <strong>User Required</strong> is enabled on the ToS</td><td>Project Detail page (warning card shown)</td><td>No user association until accepted</td></tr>
+  </tbody>
+</table>
 
-          <div class="alert alert-info">
-            <strong>Tip:</strong> Use the "Sync Now" button on any allocation detail page to trigger an immediate Slurm sync.</div>
+<h6>Default vs Paid Allocations</h6>
+<table class="table table-sm table-bordered">
+  <thead class="thead-light">
+    <tr><th>Type</th><th>Project Name</th><th>Slurm Account</th><th>QOS</th><th>Billed?</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Default</td><td>PI username (no abbreviation)</td><td><code>pi_username</code></td><td>scavenger</td><td>No</td></tr>
+    <tr><td>Paid</td><td>Custom (with abbreviation)</td><td><code>pi_username_proj1</code></td><td>normal, premium</td><td>Yes</td></tr>
+  </tbody>
+</table>
+
+<div class="alert alert-info">
+  <strong>Tip:</strong> Use the "Sync Now" button on any allocation detail page to trigger an immediate Slurm sync.</div>
                   </div>
                 </div>
                 
@@ -901,45 +914,66 @@ docker exec login01 su - &lt;user&gt; -c 'sassoc --clusters' # List clusters</pr
                   <div id="c21" class="collapse " data-parent="#helpAccordion">
                     <div class="card-body"><p>The Terms of Service (ToS) system requires PIs to accept usage policies before creating projects or requesting allocations. Each ToS version has sub-sections that must be individually accepted.</p>
 
-          <h6>Creating a ToS Version</h6>
-          <p>There are two ways to create a ToS version:</p>
+<h6>User Required Option</h6>
+<p>Each ToS version has a <strong>User Required</strong> checkbox (Admin &rarr; Terms of Service):</p>
+<ul>
+  <li><strong>Disabled</strong> (default): Only PIs must accept ToS. Regular users are added to Slurm accounts without ToS acceptance.</li>
+  <li><strong>Enabled</strong>: Both PIs and regular users must accept ToS before being added to Slurm accounts. Users see a ToS acceptance card on the <strong>Project Detail</strong> page.</li>
+</ul>
 
-          <p><strong>Option A: Import from CSV</strong> (recommended)</p>
-          <ol>
-            <li>Go to <strong>Admin Tools &rarr; Import ToS</strong> in the sidebar</li>
-            <li>Prepare a semicolon-delimited CSV file: <code>"Title";"Section content..."</code> (one row per section, no header)</li>
-            <li>Enter a version number (e.g. "1.0", "2.0") and optional title</li>
-            <li>Check <strong>Set as active</strong> to make it the current ToS (deactivates previous version)</li>
-            <li>Upload and import</li>
-          </ol>
+<h6>Acceptance Flow</h6>
+<table class="table table-sm table-bordered">
+  <thead class="thead-light">
+    <tr><th>Step</th><th>PI</th><th>Regular User (when User Required)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1. Accept ToS</td><td>Project creation, allocation request, or Project Detail</td><td>Project Detail page</td></tr>
+    <tr><td>2. Signal fires</td><td colspan="2"><code>on_tos_accepted</code> &rarr; provisions Slurm user association immediately via REST API</td></tr>
+    <tr><td>3. Safety net</td><td colspan="2"><code>sync_slurm</code> (every 3h) catches any missed associations</td></tr>
+  </tbody>
+</table>
 
-          <p><strong>Option B: Manual via Django Admin</strong></p>
-          <ol>
-            <li>Go to <strong>Admin &rarr; Terms of Service &rarr; Add</strong></li>
-            <li>Set version (e.g. "1.0"), title, and effective date</li>
-            <li>Add sections using the inline form (Acceptable Use, Account Responsibility, Data Storage, etc.)</li>
-            <li>Check <strong>Is active</strong> &mdash; this deactivates any previous version</li>
-            <li>Save</li>
-          </ol>
+<h6>Creating a ToS Version</h6>
+<p>There are two ways to create a ToS version:</p>
 
-          <h6>Viewing Acceptance Reports</h6>
-          <ul>
-            <li><strong>Admin &rarr; ToS Acceptances</strong> &mdash; shows who accepted which version, when, from which IP, and in what context (project creation, allocation request, etc.)</li>
-            <li>Filter by version or context to audit specific actions</li>
-          </ul>
+<p><strong>Option A: Import from CSV</strong> (recommended)</p>
+<ol>
+  <li>Go to <strong>Admin Tools &rarr; Import ToS</strong> in the sidebar</li>
+  <li>Prepare a semicolon-delimited CSV file: <code>"Title";"Section content..."</code> (one row per section, no header)</li>
+  <li>Enter a version number (e.g. "1.0", "2.0") and optional title</li>
+  <li>Check <strong>Set as active</strong> to make it the current ToS (deactivates previous version)</li>
+  <li>Upload and import</li>
+</ol>
 
-          <h6>Forcing Re-acceptance</h6>
-          <p>Create a new ToS version (e.g. "1.1") and set it as active. All users will be required to accept the new version on their next project creation or allocation request. PIs with existing projects can also accept directly from their <strong>Project Detail</strong> page, where a warning card with ToS sections appears when acceptance is pending.</p>
+<p><strong>Option B: Manual via Django Admin</strong></p>
+<ol>
+  <li>Go to <strong>Admin &rarr; Terms of Service &rarr; Add</strong></li>
+  <li>Set version (e.g. "1.0"), title, and effective date</li>
+  <li>Add sections using the inline form (Acceptable Use, Account Responsibility, Data Storage, etc.)</li>
+  <li>Check <strong>Is active</strong> &mdash; this deactivates any previous version</li>
+  <li>Optionally check <strong>User required</strong> if regular users should also accept</li>
+  <li>Save</li>
+</ol>
 
-          <h6>Users Who Haven't Accepted</h6>
-          <ul>
-            <li>Users who haven't accepted the current ToS <strong>cannot create projects or request allocations</strong></li>
-            <li>The <code>slurm_sync</code> process also skips creating Slurm accounts for users without ToS acceptance</li>
-            <li>Once a user accepts, their account is created on the next sync cycle</li>
-          </ul>
+<h6>Viewing Acceptance Reports</h6>
+<ul>
+  <li><strong>Admin &rarr; ToS Acceptances</strong> &mdash; shows who accepted which version, when, from which IP, and in what context (project creation, allocation request, user onboarding, etc.)</li>
+  <li>Filter by version or context to audit specific actions</li>
+</ul>
 
-          <div class="alert alert-info">
-            <strong>Tip:</strong> If no ToS is active (none have <code>is_active=True</code>), the system allows all actions without ToS acceptance. This is the default state before any ToS is configured.</div>
+<h6>Forcing Re-acceptance</h6>
+<p>Create a new ToS version (e.g. "1.1") and set it as active. All PIs will be required to accept the new version on their next project creation or allocation request. PIs with existing projects can also accept directly from their <strong>Project Detail</strong> page. If <strong>User Required</strong> is enabled, regular users will also see a ToS acceptance card on the Project Detail page.</p>
+
+<h6>Users Who Haven't Accepted</h6>
+<ul>
+  <li>PIs who haven't accepted the current ToS <strong>cannot create projects or request allocations</strong>, and their Slurm user association is not created</li>
+  <li>When <strong>User Required</strong> is enabled, regular users without ToS acceptance are also skipped during Slurm sync</li>
+  <li>Once a user accepts, a <code>post_save</code> signal on <code>TOSAcceptance</code> immediately provisions their Slurm association via REST API</li>
+  <li>The periodic <code>sync_slurm</code> (every 3 hours) acts as a safety net for any missed provisions</li>
+</ul>
+
+<div class="alert alert-info">
+  <strong>Tip:</strong> If no ToS is active (none have <code>is_active=True</code>), the system allows all actions without ToS acceptance. This is the default state before any ToS is configured.</div>
                   </div>
                 </div>
                 
@@ -1008,7 +1042,15 @@ docker exec login01 su - &lt;user&gt; -c 'sassoc --clusters' # List clusters</pr
 <p>
   When staff approves an allocation (status → <strong>Active</strong>), the system
   immediately creates the full Slurm account hierarchy via REST API:
-  <code>root → school → dept → PI → project account + user associations</code>.
+  <code>root → school → dept → PI → project account</code>.
+</p>
+<p>
+  <strong>User associations are gated by ToS acceptance:</strong> the PI's user
+  association is only created if they have accepted the current ToS. Regular users
+  are added immediately unless <strong>User Required</strong> is enabled on the ToS,
+  in which case they must also accept first. When a user later accepts ToS, a
+  <code>post_save</code> signal on <code>TOSAcceptance</code> triggers immediate
+  provisioning of their Slurm association.
 </p>
 <p>
   This is <strong>best-effort</strong>: if the REST API is unavailable, a warning is
