@@ -1297,19 +1297,24 @@ for month_offset in range(6):  # 6 months → change to 12 for 1 year
 - Check that allocations have <code>billing__is_billable=True</code></p>
 <hr />
 <h2>10. Slurm CLI Utilities</h2>
-<p>These utilities are installed in the base Slurm image (<code>arch/cn-rockylinux</code>) and available on all nodes (login, compute, slurmctld).</p>
-<h3>slurmtree — Account Hierarchy</h3>
-<pre><code class="language-bash"># Show full account tree with fairshare values
-slurmtree
+<p>These utilities are installed in the base Slurm image (<code>arch/cn-rockylinux</code>) at <code>/usr/local/bin/</code> and available on all nodes. All ARCH tools support <code>-M &lt;cluster&gt;</code> for multi-cluster queries.</p>
+<h3>stree — Account Hierarchy</h3>
+<pre><code class="language-bash"># Show your own account tree (auto-detects $USER)
+stree
 
-# Show tree with users under each account
-slurmtree --full
+# Show your tree with user associations
+stree --full
 
-# Show tree starting from a specific root
-slurmtree -r jhu
-slurmtree -r schmidt
+# Show subtree (admin or own accounts only)
+stree -r jhu
+
+# Full hierarchy from root (admin only)
+stree -r root --full
 </code></pre>
-<p>Run <code>slurmtree</code> on a login node to see the live hierarchy. Example output:</p>
+<blockquote>
+<p><strong>Note:</strong> Regular users can only view accounts they belong to. <code>stree -r root</code> requires admin privileges (root/slurm/admin group). Old name <code>slurmtree</code> still works as a symlink.</p>
+</blockquote>
+<p>Run <code>stree -r root</code> on a login node to see the live hierarchy. Example output:</p>
 <pre><code>root
 |-- jhu   [Fairshare=20]
 |   |-- wse   (school)
@@ -1335,48 +1340,100 @@ slurmtree -r schmidt
             +-- ssci-gomes
 
 [N] = Core Usage (Hours) / Fairshare weight
-Use slurmtree --full to include users
+Use stree --full to include users
 </code></pre>
 <p><strong>Troubleshooting:</strong>
 - <strong>PIs flat under root (not under school/dept)?</strong> → PI project has no Department set. Fix: assign a department in ColdFront Project Detail, then run <code>sync_slurm</code>
-- <strong>Hierarchy not updating?</strong> → Run: <code>docker exec coldfront python -m django sync_slurm</code>
+- <strong>Hierarchy not updating?</strong> → Run: <code>docker exec coldfront coldfront sync_slurm</code>
 - <strong>Need to reparent an account manually?</strong> → <code>sacctmgr modify account where name=ACCT set parent=NEWPARENT -i</code> (requires <code>where</code> keyword)</p>
+<h3>interact — Interactive Sessions</h3>
+<pre><code class="language-bash"># List available partitions + your accounts &amp; QOS
+interact -l
+
+# Start a session (1 core, 1 hour, scavenger)
+interact -p scavenger -n 1
+
+# 4 cores, 16GB, premium with specific account
+interact -p premium -n 4 -m 16G -a mypi_proj1
+
+# GPU session
+interact -p gpu -g 1 -n 4 -m 32G -t 2:00:00
+</code></pre>
+<p><strong>Built-in checks:</strong> validates walltime against partition limit, auto-detects GPU partitions, shows weekly cap budget remaining before submitting.</p>
 <h3>sbalance — Usage Report</h3>
-<pre><code class="language-bash"># Show usage for all accounts
+<pre><code class="language-bash"># Show usage for all your accounts
 sbalance
 
-# Show usage for a specific user
-sbalance -u rdesouz4
+# Show weekly spend cap status (cap vs usage in $)
+sbalance --week
 
-# Show usage for a PI's accounts
+# Show usage for a specific PI or user
 sbalance -p rdesouz4
+sbalance -u rdesouz4
 
 # Hide accounts with zero usage
 sbalance --hide-zero
-
-# Show percentages
-sbalance --pct
 </code></pre>
 <p><strong>Troubleshooting:</strong>
 - <strong>All zeros?</strong> → No jobs have run yet, or <code>collect_sacct</code> hasn't imported them
 - <strong>Missing accounts?</strong> → Run <code>sync_slurm</code> to ensure ColdFront allocations are synced to Slurm</p>
-<h3>slurmqos — QOS Definitions</h3>
+<h3>sqos — QOS Definitions</h3>
 <pre><code class="language-bash"># Show all QOS definitions
-slurmqos all
+sqos all
 
 # Show a specific QOS
-slurmqos name=normal
+sqos name=normal
 
-# Show QOS for a specific account
-slurmqos account=rdesouz4
-
-# Show QOS for a specific user
-slurmqos user=rdesouz4
-slurmqos rdesouz4
+# Show QOS for a specific account or user
+sqos account=rdesouz4
+sqos rdesouz4
 </code></pre>
-<p><strong>Troubleshooting:</strong>
-- <strong>Weekly cap QOS not created?</strong> → Set "Weekly Cap (Hours)" attribute on the allocation in ColdFront, then run <code>sync_slurm</code>
-- <strong>QOS shows wrong limits?</strong> → Check <code>GrpTRESMins</code> via: <code>sacctmgr show qos name=wk_&lt;alloc_id&gt; format=Name,GrpTRESMins</code></p>
+<blockquote>
+<p>Old name <code>slurmqos</code> still works as a symlink.</p>
+</blockquote>
+<h3>Other Tools</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sqme</code></td>
+<td>Show your active jobs (formatted <code>squeue</code>)</td>
+</tr>
+<tr>
+<td><code>seff &lt;jobid&gt;</code></td>
+<td>Show CPU and memory efficiency for a completed job</td>
+</tr>
+<tr>
+<td><code>sfeatures</code></td>
+<td>Show node features, GRES, and partition info</td>
+</tr>
+<tr>
+<td><code>sbrief</code></td>
+<td>Job state summary (count by Running, Pending, etc.)</td>
+</tr>
+<tr>
+<td><code>sassoc</code></td>
+<td>Show your associations (account, QOS, fairshare)</td>
+</tr>
+<tr>
+<td><code>sassoc --clusters</code></td>
+<td>List all registered Slurm clusters</td>
+</tr>
+<tr>
+<td><code>sadmin priority &lt;jobid&gt;</code></td>
+<td>Set high priority (admin only)</td>
+</tr>
+<tr>
+<td><code>sadmin addtime &lt;jobid&gt; &lt;time&gt;</code></td>
+<td>Add time to running job (admin only)</td>
+</tr>
+</tbody>
+</table>
 <h3>sacctmgr — Common Debugging Commands</h3>
 <pre><code class="language-bash"># List all associations for an account
 sacctmgr -n -P list assoc where account=ACCOUNT format=Cluster,Account,User,Partition,QOS
@@ -1830,7 +1887,7 @@ Partitions: scavenger, premium, gpu-a100, high-memory, dev
 </tr>
 <tr>
 <td>CLI tools</td>
-<td><code>sacct</code>, <code>sbalance</code>, <code>slurmtree</code></td>
+<td><code>sacct</code>, <code>sbalance</code>, <code>stree</code>, <code>sqos</code></td>
 <td>Same commands with <code>-M</code> flag</td>
 </tr>
 </tbody>
