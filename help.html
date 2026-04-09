@@ -931,6 +931,83 @@ docker exec login01 su - &lt;user&gt; -c 'sassoc --clusters' # List clusters</pr
                   </div>
                 </div>
                 
+
+                <div class="card">
+                  <div class="card-header" id="h23">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c23"
+                              aria-expanded="false">Deployment Models & Real-time Provisioning</button>
+                    </h5>
+                  </div>
+                  <div id="c23" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>
+  CLOACK supports three deployment models for Slurm clusters. The model is determined
+  by the <code>root_account</code> field on each <code>SlurmCluster</code> record
+  in Django Admin &mdash; no code changes needed.
+</p>
+
+<h6>Model A &mdash; Single Cluster (both affiliations)</h6>
+<p>
+  <code>root_account = "root"</code> or <code>"arch"</code> (any value other than
+  <code>"jhu"</code> or <code>"schmidt"</code>).<br>
+  Both JHU and Schmidt PI accounts are created under the same cluster root.
+  The sync creates <code>jhu</code> and <code>schmidt</code> as sub-accounts
+  under the cluster root.
+</p>
+<pre>cluster_root (root/arch)
+├── jhu → school → dept → PI → project
+└── schmidt → ssci-* PIs</pre>
+
+<h6>Model B &mdash; Federation (one affiliation per cluster)</h6>
+<p>
+  <code>root_account = "jhu"</code> → JHU-only cluster (skips Schmidt PIs).<br>
+  <code>root_account = "schmidt"</code> → Schmidt-only cluster (skips JHU PIs).<br>
+  Multiple clusters share one <code>slurmdbd</code>. Users submit cross-cluster
+  with <code>sbatch -M cluster_name</code>.
+</p>
+<pre>slurmdbd (shared)
+├── jhu-cluster (root_account=jhu) → only JHU allocations
+└── schmidt-cluster (root_account=schmidt) → only Schmidt allocations</pre>
+
+<h6>Model C &mdash; Hardware Split (both affiliations, multiple clusters)</h6>
+<p>
+  Same as Model A but with separate clusters per hardware type (CPU, GPU).
+  Each cluster has <code>root_account = "arch"</code> (or similar) and serves
+  both affiliations.
+</p>
+<pre>slurmdbd (shared)
+├── arch-cpu (root_account=arch) → both JHU + Schmidt
+└── arch-gpu (root_account=arch) → both JHU + Schmidt</pre>
+
+<h6>Admin Presets</h6>
+<table class="table table-sm table-bordered">
+  <thead><tr><th>Preset</th><th>root_account</th><th>Model</th></tr></thead>
+  <tbody>
+    <tr><td>Dev / Docker Compose</td><td><code>root</code></td><td>A</td></tr>
+    <tr><td>Production — ARCH</td><td><code>arch</code></td><td>A/C</td></tr>
+    <tr><td>Production — JHU</td><td><code>jhu</code></td><td>B</td></tr>
+    <tr><td>Production — Schmidt</td><td><code>schmidt</code></td><td>B</td></tr>
+  </tbody>
+</table>
+
+<h6>Real-time Account Provisioning</h6>
+<p>
+  When staff approves an allocation (status → <strong>Active</strong>), the system
+  immediately creates the full Slurm account hierarchy via REST API:
+  <code>root → school → dept → PI → project account + user associations</code>.
+</p>
+<p>
+  This is <strong>best-effort</strong>: if the REST API is unavailable, a warning is
+  logged and the periodic <code>sync_slurm</code> (every 3 hours) acts as safety net.
+  The provisioning respects Model B affiliation filtering &mdash; a JHU PI allocation
+  approved on a Schmidt-only cluster is silently skipped.
+</p>
+</div>
+                  </div>
+                </div>
+                
     </div>
     
   </div>
