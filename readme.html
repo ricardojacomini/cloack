@@ -1662,7 +1662,11 @@ OK
 <tbody>
 <tr>
 <td>Manage Users</td>
-<td>Toggle PI status, set cluster scope, impersonate users</td>
+<td>Toggle PI status, assign cluster/affiliation scope, impersonate users</td>
+</tr>
+<tr>
+<td>Assign Staff Scope</td>
+<td>Set cluster scope (manage clusters) and affiliation scope (manage users/PIs)</td>
 </tr>
 <tr>
 <td>Staff User Profile</td>
@@ -1686,6 +1690,27 @@ OK
 </tr>
 </tbody>
 </table>
+<h4>Delegated Staff Administration</h4>
+<p>Staff members can be given two independent scopes via the "Assign Staff Scope" page:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>What It Controls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cluster Scope</strong></td>
+<td>View cluster status, drain/resume nodes for assigned clusters</td>
+</tr>
+<tr>
+<td><strong>Affiliation Scope</strong></td>
+<td>See/manage users, PIs, projects, allocations of assigned affiliations</td>
+</tr>
+</tbody>
+</table>
+<p>Multiple clusters and affiliations can be assigned (checkboxes). Superusers always see everything. Scoped staff see a simplified Manage Users page with only their affiliation's users. Deploy/stop/restart operations remain superuser-only.</p>
 <h3>Best Practices</h3>
 <ul>
 <li>Keep projects tidy — archive inactive projects</li>
