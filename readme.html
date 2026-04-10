@@ -100,6 +100,10 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 - Domain C (schmidt.arch.cluster): suffix <code>ou=schmidt,dc=arch,dc=cluster</code> — UID/GID range starting 30000</p>
 <p>Keep UID/GID ranges non-overlapping.</p>
 <p><strong>ColdFront as Directory Ground Truth:</strong> UID and GID allocation is centralized in the ColdFront database via <code>Affiliation.next_uid</code> / <code>next_gid</code> counters (atomic, race-condition free). <code>UserProfile</code> stores <code>ldap_uid</code>, <code>ldap_gid</code>, and <code>ldap_groups</code> (readonly, cached from LDAP sync). The Django Admin "Change User" and "UserProfile" pages show a "Directory (LDAP)" fieldset with this information. On ColdFront startup, <code>sync_ldap</code> automatically pushes users/groups to LDAP. The Import Users page supports two modes: <strong>New Users</strong> (CSV, allocate new UIDs) and <strong>Migration</strong> (LDIF slapcat dump, preserve existing UIDs/GIDs/passwords).</p>
+<p><strong>Minimal LDAP Bootstrap:</strong> <code>install.sh</code> creates only the bare minimum (root DN, cn=root, munge/slurm system accounts). OUs (<code>ou=jhu</code>, <code>ou=schmidt</code>, etc.) and user accounts are <strong>not</strong> hardcoded — they come from ColdFront via:
+- <strong>Option A:</strong> Import Users → Migration (LDIF upload via UI) — replays structural entries + users + groups + creates projects/allocations
+- <strong>Option B:</strong> <code>./start.sh ldap-reinit</code> (CLI) — restores full slapcat dump
+- <strong>Option C:</strong> <code>sync_ldap</code> — pushes users/groups from ColdFront DB to LDAP</p>
 <p>Put the cross-domain admin group (e.g., <code>PI_XX</code>) as a DN-based group (for example <code>groupOfNames</code> or <code>groupOfUniqueNames</code>) and include member DNs from any suffix so membership is unambiguous.</p>
 <p>Why this is safe / best-practice
 - Disjoint numeric ranges prevent collisions for NSS/PAM and NFS.
