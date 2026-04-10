@@ -1484,8 +1484,11 @@ sacctmgr modify account where name=rdesouz4 set parent=nodep -i
 # Stop Slurm services
 ./start.sh slurm stop
 
-# Restart in correct order (per SLURM_RESTART_GUIDE.md)
+# Restart in correct order (slurmdbd → slurmctld → nodes)
 ./start.sh slurm restart
+
+# Destroy: stop + remove containers, volumes, overlay (optionally DB record)
+./start.sh slurm destroy
 </code></pre>
 <p><strong>Troubleshooting:</strong>
 - <strong>Nodes showing "down" after restart?</strong> → Wait 10 seconds (auto-resume runs in background). If still down: <code>scontrol update nodename=cn-01 state=resume</code>
