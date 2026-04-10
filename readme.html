@@ -1726,6 +1726,7 @@ OK
 <hr />
 <h2>Multi-Cluster Architecture</h2>
 <p>CLOACK supports two deployment models for scaling beyond a single cluster. Both use the same ColdFront codebase — the <code>SlurmCluster</code> model and <code>-M</code> flag routing are already implemented.</p>
+<p><strong>Docker Multi-Cluster:</strong> Each cluster gets its own prefixed containers (<code>{name}-slurmctld</code>, <code>{name}-cn-01</code>) and volumes (<code>{name}_slurm_state</code>). Shared services (<code>slurmdbd</code>, <code>slurmrestd</code>, <code>slurm-db</code>) run as single instances supporting federation. Multiple clusters can run simultaneously.</p>
 <h3>Model A — Single Cluster (Recommended for Start)</h3>
 <p>One slurmctld manages all nodes. Different hardware is separated by partitions.</p>
 <pre><code>                    ┌─────────────┐
