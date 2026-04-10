@@ -99,6 +99,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 - Domain B (jhu.arch.cluster): suffix <code>ou=jhu,dc=arch,dc=cluster</code> — UID/GID range starting 10000
 - Domain C (schmidt.arch.cluster): suffix <code>ou=schmidt,dc=arch,dc=cluster</code> — UID/GID range starting 30000</p>
 <p>Keep UID/GID ranges non-overlapping.</p>
+<p><strong>ColdFront as Directory Ground Truth:</strong> UID and GID allocation is centralized in the ColdFront database via <code>Affiliation.next_uid</code> / <code>next_gid</code> counters (atomic, race-condition free). <code>UserProfile</code> stores <code>ldap_uid</code>, <code>ldap_gid</code>, and <code>ldap_groups</code> (readonly, cached from LDAP sync). The Django Admin "Change User" and "UserProfile" pages show a "Directory (LDAP)" fieldset with this information. On ColdFront startup, <code>sync_ldap</code> automatically pushes users/groups to LDAP. The Import Users page supports two modes: <strong>New Users</strong> (CSV, allocate new UIDs) and <strong>Migration</strong> (LDIF slapcat dump, preserve existing UIDs/GIDs/passwords).</p>
 <p>Put the cross-domain admin group (e.g., <code>PI_XX</code>) as a DN-based group (for example <code>groupOfNames</code> or <code>groupOfUniqueNames</code>) and include member DNs from any suffix so membership is unambiguous.</p>
 <p>Why this is safe / best-practice
 - Disjoint numeric ranges prevent collisions for NSS/PAM and NFS.
@@ -1069,7 +1070,7 @@ SLURM_NOOP=0
 <tbody>
 <tr>
 <td><code>Affiliation</code></td>
-<td>Organizational domain (JHU, Schmidt) — managed via Admin, FK on UserProfile/Department/School</td>
+<td>Organizational domain (JHU, Schmidt) — managed via Admin, FK on UserProfile/Department/School. Includes <code>next_uid</code>/<code>next_gid</code> counters for centralized UID/GID allocation</td>
 <td>Admin</td>
 </tr>
 <tr>
