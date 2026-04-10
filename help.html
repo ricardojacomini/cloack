@@ -59,14 +59,91 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     <div class="accordion" id="helpAccordion">
     
                 <div class="card">
-                  <div class="card-header" id="h2">
+                  <div class="card-header" id="h1">
                     <h5 class="mb-0">
                       <button class="btn btn-link " type="button"
-                              data-toggle="collapse" data-target="#c2"
-                              aria-expanded="true">Project & Allocation Lifecycle</button>
+                              data-toggle="collapse" data-target="#c1"
+                              aria-expanded="true">Portal Setup (Before First Use)</button>
                     </h5>
                   </div>
-                  <div id="c2" class="collapse show" data-parent="#helpAccordion">
+                  <div id="c1" class="collapse show" data-parent="#helpAccordion">
+                    <div class="card-body"><p>Before PIs can create projects and submit jobs, staff must complete these one-time setup steps:</p>
+
+          <h6>Step 1 &mdash; Import Schools &amp; Departments</h6>
+          <p>
+            Go to <strong>Admin Tools &rarr; Import Departments</strong> (<code>/admin-tools/import-departments/</code>).
+            Upload a CSV with columns: <code>name, code, school, school_code, affiliation</code> (jhu or schmidt).
+            This creates the School &rarr; Department hierarchy used for Slurm account placement and billing.
+          </p>
+
+          <h6>Step 2 &mdash; Create Slurm Cluster</h6>
+          <p>
+            Go to <strong>Django Admin &rarr; Slurm Clusters</strong>. Create a cluster record with:
+          </p>
+          <ul>
+            <li><strong>Name</strong> &mdash; must match Slurm's cluster name (e.g. <code>arch</code>)</li>
+            <li><strong>Type</strong> &mdash; <code>docker</code> (dev) or <code>bare_metal</code> (prod)</li>
+            <li><strong>Root account</strong> &mdash; top of Slurm hierarchy (e.g. <code>jhu</code> or <code>schmidt</code>)</li>
+            <li><strong>TRES types</strong> &mdash; e.g. <code>cpu,billing</code> or <code>cpu,gres/gpu,billing</code></li>
+          </ul>
+
+          <h6>Step 3 &mdash; Create Partitions &amp; Nodes</h6>
+          <p>
+            Go to <strong>Django Admin &rarr; Slurm Partitions</strong>. Create partition records
+            (e.g. <code>scavenger</code>, <code>premium</code>) and assign nodes.
+            Set <code>AllowQos</code> and <code>TRESBillingWeights</code> as needed.
+          </p>
+
+          <h6>Step 4 &mdash; Configure QOS</h6>
+          <p>
+            Go to <strong>Django Admin &rarr; Slurm QOS</strong>. Default records (<code>scavenger</code>,
+            <code>normal</code>, <code>premium</code>) are created automatically on deploy.
+            Mark <code>scavenger</code> as <code>is_free=True</code> so it is never billed.
+          </p>
+
+          <h6>Step 5 &mdash; Set Billing Rates</h6>
+          <p>
+            Go to <strong>Django Admin &rarr; Billing Rates</strong>. Create rate records for each
+            rate type (<code>cpu_full</code>, <code>cpu_om</code>, <code>gpu_full</code>, <code>gpu_om</code>,
+            <code>storage</code>, <code>backup</code>) with effective dates.
+          </p>
+
+          <h6>Step 6 &mdash; Activate Terms of Service</h6>
+          <p>
+            Go to <strong>Admin Tools &rarr; Import ToS</strong> (<code>/admin-tools/import-tos/</code>)
+            to upload a ToS CSV, or create directly in <strong>Django Admin &rarr; Terms of Service</strong>.
+            Set <code>is_active=True</code> on the current version. Only one version can be active at a time.
+          </p>
+          <div class="alert alert-warning">
+            <strong>Important:</strong> Without an active ToS, all users can create projects freely.
+            With an active ToS, users must accept all required sections before creating a project.
+            Users who have not accepted the ToS will <strong>not</strong> get a Slurm account &mdash;
+            even if they can log in, they cannot submit jobs.
+          </div>
+
+          <h6>Step 7 &mdash; Create ColdFront Resource</h6>
+          <p>
+            Go to <strong>Django Admin &rarr; Resources</strong>. Create a resource
+            (e.g. "ARCH Cluster") that PIs will select when requesting allocations.
+            This links ColdFront allocations to the Slurm cluster.
+          </p>
+
+          <div class="alert alert-success">
+            <strong>Ready!</strong> Once all steps are complete, PIs can create projects,
+            request allocations, and start submitting jobs after staff approval.</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h2">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c2"
+                              aria-expanded="false">Project & Allocation Lifecycle</button>
+                    </h5>
+                  </div>
+                  <div id="c2" class="collapse " data-parent="#helpAccordion">
                     <div class="card-body"><ol>
   <li><strong>PI creates project</strong> &mdash; sets title, abbreviation, department, IO number, storage/backup needs. Must accept ToS if active.</li>
   <li><strong>PI requests allocation</strong> &mdash; chooses cluster resource, enters core hours.</li>
@@ -480,6 +557,162 @@ if weekly_cap_dollars:
                 
 
                 <div class="card">
+                  <div class="card-header" id="h5">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c5"
+                              aria-expanded="false">TRES Configuration</button>
+                    </h5>
+                  </div>
+                  <div id="c5" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><h6>What is TRES?</h6>
+          <p>
+            <strong>Trackable Resources (TRES)</strong> are Slurm resources that can be tracked for usage
+            and limited. Common types: <code>cpu</code>, <code>mem</code>, <code>gres/gpu</code>, <code>billing</code>.
+          </p>
+
+          <h6>Cluster TRES Types</h6>
+          <p>
+            Configured in <strong>Admin &gt; Slurm Clusters &gt; "Slurm Account Defaults"</strong> via the
+            <code>tres_types</code> field. This defines which TRES types are used in <code>GrpTRESMins</code> limits.
+          </p>
+          <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+              <tr><th>Cluster Type</th><th>tres_types</th><th>GrpTRESMins Example</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>CPU-only</td><td><code>cpu,billing</code></td><td><code>cpu=60000,billing=60000</code></td></tr>
+              <tr><td>GPU-enabled</td><td><code>cpu,gres/gpu,billing</code></td><td><code>cpu=60000,gres/gpu=1000,billing=60000</code></td></tr>
+            </tbody>
+          </table>
+
+          <h6>TRESBillingWeights (per partition)</h6>
+          <p>
+            Configured on each <code>SlurmPartition</code> in Django Admin. Generates the
+            <code>TRESBillingWeights="..."</code> directive in <code>slurm.conf</code>.
+          </p>
+          <pre class="bg-light p-3 rounded">
+# Example: 1 GPU = 2 billing units
+TRESBillingWeights="CPU=1.0,Mem=0.25G,GRES/gpu=2.0"
+
+# Default (when blank): 1 CPU-minute = 1 billing unit, all other TRES = 0</pre>
+
+          <p>
+            This determines how Slurm converts mixed resources into a single "billing" number.
+            The billing TRES is what <code>GrpTRESMins=billing=X</code> limits against.
+          </p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h6">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c6"
+                              aria-expanded="false">Slurm Account Hierarchy</button>
+                    </h5>
+                  </div>
+                  <div id="c6" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>Run <code>slurmtree</code> on a login node to see the live hierarchy. Example output:</p>
+          <pre class="bg-dark text-light p-3 rounded" style="font-family: monospace; font-size: 0.85rem;">
+root
+├── 🏛️ jhu   <span class="text-info">[Fairshare=20]</span>  <span class="text-muted">(organization)</span>
+│   ├── 🏫 wse   <span class="text-muted">(school)</span>
+│   │   └── 🏢 cs   <span class="text-muted">(department)</span>
+│   │       ├── 👤 rdesouz4   <span class="text-warning">[20000]</span>  <span class="text-muted">← PI default (QOS: scavenger)</span>
+│   │       │   └── <span class="text-success">👤 rdesouz4</span>
+│   │       │   └── 📁 rdesouz4_proj1   <span class="text-warning">[20000]</span>  <span class="text-muted">← custom project (QOS: normal,premium)</span>
+│   │       │       ├── 📄 rdesouz4_proj1_A   <span class="text-warning">[20000]</span>  <span class="text-muted">← subproject</span>
+│   │       │       │   └── <span class="text-success">👤 rdesouz4, 👤 arochab1</span>
+│   │       │       └── 📄 rdesouz4_proj1_B   <span class="text-warning">[20000]</span>
+│   │       │           └── <span class="text-success">👤 rdesouz4</span>
+│   │       └── 👤 arochab1   <span class="text-warning">[20000]</span>
+│   │           └── <span class="text-success">👤 arochab1</span>
+│   └── 🏫 it   <span class="text-muted">(school)</span>
+│       └── 🏢 arch   <span class="text-muted">(department)</span>
+│           └── 👤 bblanch6   <span class="text-warning">[20000]</span>
+│               └── <span class="text-success">👤 bblanch6</span>
+└── 🏛️ schmidt   <span class="text-info">[Fairshare=80]</span>  <span class="text-muted">(organization)</span>
+    └── 🏢 ss   <span class="text-muted">(Schmidt Sciences)</span>
+        ├── 👤 ssci-jdoe   <span class="text-warning">[20000]</span>  <span class="text-muted">← always free (ssci-* prefix)</span>
+        │   └── <span class="text-success">👤 ssci-jdoe</span>
+        └── 👤 ssci-gomes   <span class="text-warning">[20000]</span>
+            └── <span class="text-success">👤 ssci-gomes</span></pre>
+          <small class="text-muted">
+            🏛️ = organization &nbsp;|&nbsp; 🏫 = school &nbsp;|&nbsp; 🏢 = department &nbsp;|&nbsp;
+            👤 = PI account / user &nbsp;|&nbsp; 📁 = project &nbsp;|&nbsp; 📄 = subproject<br>
+            <span class="text-warning">[N]</span> = Core Usage (Hours) / Fairshare weight &nbsp;|&nbsp;
+            Use <code>slurmtree --full</code> to include users
+          </small>
+
+          <h6>Account Naming Convention</h6>
+          <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+              <tr><th>Project Type</th><th>Slurm Account Name</th><th>Example</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Default PI project</td><td><code>&lt;pi_username&gt;</code></td><td><code>rdesouz4</code></td></tr>
+              <tr><td>Custom project</td><td><code>&lt;pi&gt;_&lt;abbreviation&gt;</code></td><td><code>rdesouz4_proj1</code></td></tr>
+              <tr><td>SubProject</td><td><code>&lt;pi&gt;_&lt;abbr&gt;_&lt;seq&gt;</code></td><td><code>rdesouz4_proj1_A</code></td></tr>
+            </tbody>
+          </table>
+
+          <h6>Default Department Assignments</h6>
+          <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+              <tr><th>PI Type</th><th>Default Department</th><th>Code</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Schmidt PIs (<code>ssci-*</code>)</td><td>Schmidt Sciences</td><td><code>SS</code></td></tr>
+              <tr><td>JHU PIs without dept</td><td>No Department</td><td><code>NODEP</code></td></tr>
+              <tr><td>JHU admin/infra PIs</td><td>Advanced Research Computing at Hopkins</td><td><code>ARCH</code></td></tr>
+            </tbody>
+          </table>
+
+          <div class="alert alert-info">
+            <strong>Tip:</strong> Use <code>slurmtree</code> to view the hierarchy, <code>slurmtree --full</code> to include users.</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h7">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c7"
+                              aria-expanded="false">QOS Management</button>
+                    </h5>
+                  </div>
+                  <div id="c7" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>
+            <code>slurm_sync</code> bootstraps three QOS levels in Slurm (only <code>normal</code> exists by default):
+          </p>
+          <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+              <tr><th>QOS</th><th>Priority</th><th>Who Gets It</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>normal</code></td><td>Standard</td><td>All accounts (Slurm default)</td></tr>
+              <tr><td><code>premium</code></td><td>Higher</td><td>Custom-project accounts</td></tr>
+              <tr><td><code>scavenger</code></td><td>Lower (preemptable)</td><td>Default-project accounts</td></tr>
+            </tbody>
+          </table>
+
+          <h6>AllowQos on Partitions</h6>
+          <p>
+            Each <code>SlurmPartition</code> has an <code>allow_qos</code> field (comma-separated).
+            When set, it generates <code>AllowQos=...</code> in <code>slurm.conf</code>,
+            restricting which QOS levels can submit to that partition.
+          </p>
+          <pre class="bg-light p-3 rounded">
+# Example partition config in slurm.conf:
+PartitionName=batch Nodes=cn-01,cn-02 Default=YES MaxTime=1:00:00 State=UP AllowQos=normal,premium,scavenger</pre></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h9">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -549,6 +782,104 @@ if weekly_cap_dollars:
             <code>storage</code> (TB/month) and <code>backup</code> (TB/month).
             Configure rates in <strong>Billing Management &gt; Rate Management</strong>.
           </p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h11">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c11"
+                              aria-expanded="false">Department Hierarchy</button>
+                    </h5>
+                  </div>
+                  <div id="c11" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><h6>Source of Truth</h6>
+          <p>
+            The Slurm account hierarchy (<code>root &rarr; school &rarr; dept &rarr; PI &rarr; project</code>)
+            is driven by <strong><code>AllocationBilling.department</code></strong>, not <code>Project.department</code>.
+          </p>
+
+          <h6>Priority Order</h6>
+          <ol>
+            <li>Non-default allocation billing department</li>
+            <li>Default allocation billing department</li>
+            <li><code>Project.department</code></li>
+            <li>Fallback: <code>SS</code> for <code>ssci-*</code>, <code>NODEP</code> for JHU</li>
+          </ol>
+
+          <h6>Auto-Propagation Signals</h6>
+          <ul>
+            <li>Setting <code>AllocationBilling.department</code> on a default project &rarr; propagates to <code>Project.department</code></li>
+            <li>Setting <code>AllocationBilling.department</code> &rarr; adds department to PI's <code>UserProfile.departments</code></li>
+            <li>Adding a PI to a department &rarr; sets that department on their projects that lack one</li>
+          </ul></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h12">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c12"
+                              aria-expanded="false">System Accounts</button>
+                    </h5>
+                  </div>
+                  <div id="c12" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>
+            The following usernames are system accounts and are <strong>excluded everywhere</strong>:
+          </p>
+          <pre class="bg-light p-3 rounded">SYSTEM_USERNAMES = {'admin', 'coldfront', 'root'}</pre>
+          <p>Excluded from:</p>
+          <ul>
+            <li>Slurm sync (no Slurm accounts created)</li>
+            <li>LDAP home/PI group creation</li>
+            <li>Staff views (project lists, allocation lists)</li>
+            <li>Billing reports</li>
+            <li>User search results</li>
+          </ul></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h13">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c13"
+                              aria-expanded="false">Scheduled Tasks (django-q)</button>
+                    </h5>
+                  </div>
+                  <div id="c13" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><table class="table table-sm table-bordered">
+            <thead class="thead-light">
+              <tr><th>Task</th><th>Schedule</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>sync_ldap_all</code></td><td>Daily 2 AM</td><td>Sync LDAP users to Django</td></tr>
+              <tr><td><code>sync_slurm_all</code></td><td>Daily 3 AM</td><td>Sync all Slurm accounts and hierarchy</td></tr>
+              <tr><td><code>collect_sacct_task</code></td><td>Every 15 min</td><td>Collect completed job data from sacct</td></tr>
+              <tr><td><code>check_and_run_core_hours_reset</code></td><td>Daily 1 AM</td><td>Check if reset date reached, execute reset</td></tr>
+              <tr><td><code>cleanup_task_queue</code></td><td>Hourly :30</td><td>Purge stuck entries, remove old tasks</td></tr>
+              <tr><td><code>sync_weekly_cap_usage</code></td><td>Every 5 min</td><td>Poll Slurm for current weekly cap spend</td></tr>
+            </tbody>
+          </table>
+
+          <div class="alert alert-info">
+            <strong>Audit Trail:</strong> All tasks use <code>hook=TASK_HOOK</code> which creates a
+            Django Admin <code>LogEntry</code> on completion. View in
+            <strong>Admin &gt; Administration &gt; Log entries</strong>.
+          </div>
+
+          <h6>Manual Task Execution</h6>
+          <pre class="bg-light p-3 rounded">
+# Inside the coldfront container:
+python manage.py sync_ldap           # LDAP sync
+python manage.py sync_slurm          # Slurm sync
+python manage.py collect_sacct       # Collect job data
+python manage.py collect_billing     # Generate billing periods</pre></div>
                   </div>
                 </div>
                 
@@ -790,6 +1121,189 @@ Submitted batch job 43</pre>
                 
 
                 <div class="card">
+                  <div class="card-header" id="h16">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c16"
+                              aria-expanded="false">Service Health</button>
+                    </h5>
+                  </div>
+                  <div id="c16" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>Available at <a href="{% url 'service-health' %}">/user/service-health/</a>. Shows real-time status of all CLOACK services.</p>
+
+          <h6>Service Checks</h6>
+          <table class="table table-sm table-bordered">
+            <colgroup><col style="width:220px;"><col></colgroup>
+            <tbody>
+              <tr><td><strong>DB:default (postgresql)</strong></td><td>ColdFront database connectivity check</td></tr>
+              <tr><td><strong>DB:slurm (mariadb)</strong></td><td>Slurm accounting database (slurmdbd) connectivity</td></tr>
+              <tr><td><strong>Queue failures (24h)</strong></td><td>Django-Q tasks that failed in the last 24 hours</td></tr>
+              <tr><td><strong>Stuck queue tasks</strong></td><td>OrmQ entries locked for more than 10 minutes</td></tr>
+              <tr><td><strong>qcluster</strong></td><td>Django-Q task scheduler process status and last task time</td></tr>
+              <tr><td><strong>Keycloak</strong></td><td>OIDC identity provider reachability (port 8443/8080)</td></tr>
+              <tr><td><strong>LDAP</strong></td><td>OpenLDAP server connectivity (ldap://openldap:389)</td></tr>
+              <tr><td><strong>Slurm: slurmrestd</strong></td><td>REST API daemon status (container running + port 6820)</td></tr>
+              <tr><td><strong>Slurm: slurmctld</strong></td><td>Controller daemon (container running)</td></tr>
+              <tr><td><strong>Slurm: slurmdbd</strong></td><td>Accounting daemon (container running)</td></tr>
+              <tr><td><strong>Node: cn-01..03</strong></td><td>Compute node containers running + log tail</td></tr>
+              <tr><td><strong>Node: login01</strong></td><td>Login node container running + SSH/SSSD status</td></tr>
+            </tbody>
+          </table>
+
+          <h6>Features</h6>
+          <ul>
+            <li><strong>Log viewer:</strong> Click the log line count buttons (50/100/200) to expand recent logs for each service</li>
+            <li><strong>Live logs:</strong> Click "Live" for real-time streaming log output</li>
+            <li><strong>Restart:</strong> Staff can restart services directly from the page (requires Docker socket)</li>
+            <li><strong>Auto-refresh:</strong> The navbar health badge polls every 60 seconds automatically</li>
+          </ul>
+
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Docker socket required:</strong> Service restart and container log features require the Docker socket mounted in the ColdFront container.
+            Set <code>DOCKER_SOCK</code> in <code>.env</code> (macOS: <code>~/.docker/run/docker.sock</code>, Linux: <code>/var/run/docker.sock</code>).</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h17">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c17"
+                              aria-expanded="false">Cluster Management</button>
+                    </h5>
+                  </div>
+                  <div id="c17" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>Manage Slurm clusters from the ColdFront UI. Navigate to <strong>Clusters &gt; All Clusters</strong> in the sidebar.</p>
+
+<h6>Step 1 &mdash; Register a Cluster</h6>
+<p>Go to <strong>Clusters &gt; Register Cluster</strong> (Django Admin). The fastest way is to use the <strong>Load Preset</strong> dropdown at the top of the form:</p>
+<table class="table table-sm table-bordered">
+  <thead class="thead-light"><tr><th>Preset</th><th>Type</th><th>Root Account</th><th>slurmrestd URL</th></tr></thead>
+  <tbody>
+    <tr><td>Dev / Docker Compose</td><td>Docker</td><td><code>dev</code></td><td><code>http://slurmrestd:6820</code></td></tr>
+    <tr><td>Production &mdash; JHU</td><td>Bare Metal</td><td><code>jhu</code></td><td><code>http://slurmrestd.arch.jhu.edu:6820</code></td></tr>
+    <tr><td>Production &mdash; Schmidt</td><td>Bare Metal</td><td><code>schmidt</code></td><td><code>http://slurmrestd.schmidtsciences.jhu.edu:6820</code></td></tr>
+    <tr><td>Production &mdash; ARCH (combined)</td><td>Bare Metal</td><td><code>arch</code></td><td><code>http://slurmrestd.arch.jhu.edu:6820</code></td></tr>
+  </tbody>
+</table>
+<p><strong>Root Account</strong> determines the deployment model:</p>
+<ul>
+  <li><code>root</code> or <code>arch</code> &rarr; <strong>Model A/C</strong> &mdash; both JHU and Schmidt affiliations under one cluster</li>
+  <li><code>jhu</code> &rarr; <strong>Model B</strong> &mdash; JHU-only cluster (Schmidt allocations excluded)</li>
+  <li><code>schmidt</code> &rarr; <strong>Model B</strong> &mdash; Schmidt-only cluster (JHU allocations excluded)</li>
+</ul>
+<p>After filling in the form, click <strong>Save</strong>. A ColdFront Resource (type Cluster) is auto-created.</p>
+
+<h6>Step 2 &mdash; Build &amp; Deploy (Docker clusters)</h6>
+<p>After registering, go to <strong>Clusters &gt; All Clusters</strong> and click <strong>Dashboard</strong> on your cluster. Follow these buttons <em>in order</em>:</p>
+<ol>
+  <li><strong><i class="fas fa-hammer"></i> Build Images</strong> &mdash; Builds all 6 Docker images (base &rarr; munge &rarr; slurmdbd &rarr; slurmctld &rarr; slurmd &rarr; slurmrestd). Takes several minutes on first run.</li>
+  <li><strong><i class="fas fa-play"></i> Deploy</strong> &mdash; Generates <code>slurm.conf</code>, creates the Docker Compose overlay, and starts all containers. The Deploy button only appears after images are built.</li>
+  <li>Wait for all containers to show <span class="badge badge-success">running</span> in the dashboard.</li>
+  <li><strong><i class="fas fa-sync"></i> Sync Accounts</strong> &mdash; Creates QOS definitions and the Slurm account hierarchy from ColdFront allocations.</li>
+</ol>
+
+<div class="alert alert-warning mt-2">
+  <strong>Common errors on first setup:</strong>
+  <ul class="mb-0">
+    <li><code>pull access denied for arch/slurmctld</code> &mdash; Images have not been built yet. Click <strong>Build Images</strong> first.</li>
+    <li><code>No such container: slurmctld</code> &mdash; The cluster has not been deployed. Click <strong>Deploy</strong> after building images.</li>
+    <li><code>No docker-compose-slurm-*.yml found</code> &mdash; Deploy generates this file. Use the UI Dashboard to deploy, or run <code>./start.sh slurm start</code>.</li>
+  </ul>
+</div>
+
+<h6>Cluster List</h6>
+<p>Shows all registered clusters with: Name, Type (Docker/Bare Metal), slurmrestd URL, API Version, Root Account, Status.</p>
+
+<h6>Cluster Dashboard</h6>
+<p>Click <strong>Dashboard</strong> on a cluster to see the full management view:</p>
+<table class="table table-sm table-bordered">
+  <colgroup><col style="width:220px;"><col></colgroup>
+  <tbody>
+    <tr class="table-secondary"><td colspan="2"><strong>Summary Cards</strong></td></tr>
+    <tr><td>Total Nodes</td><td>Count of all registered nodes (compute + login)</td></tr>
+    <tr><td>Idle</td><td>Nodes available for jobs (green)</td></tr>
+    <tr><td>Allocated</td><td>Nodes currently running jobs (blue)</td></tr>
+    <tr><td>Down / Drain</td><td>Nodes offline or draining (red/yellow)</td></tr>
+    <tr class="table-secondary"><td colspan="2"><strong>Tabs</strong></td></tr>
+    <tr><td>Nodes</td><td>List of all nodes: hostname, state, CPUs, memory, partitions, actions (Drain/Resume)</td></tr>
+    <tr><td>Partitions</td><td>Partition config: name, nodes, default, state, MaxTime, AllowQos, TRESBillingWeights</td></tr>
+    <tr><td>Jobs</td><td>Live job queue from slurmctld (squeue output)</td></tr>
+    <tr><td>Config</td><td>Generated slurm.conf preview (read-only)</td></tr>
+  </tbody>
+</table>
+
+<h6>Action Buttons (Superuser Only)</h6>
+<table class="table table-sm table-bordered">
+  <colgroup><col style="width:220px;"><col></colgroup>
+  <tbody>
+    <tr><td><i class="fas fa-hammer"></i> <strong>Build Images</strong></td><td>Build all Slurm Docker images. Required before first Deploy.</td></tr>
+    <tr><td><i class="fas fa-play"></i> <strong>Deploy / Redeploy</strong></td><td>Generate docker-compose overlay and start all Slurm containers</td></tr>
+    <tr><td><i class="fas fa-redo"></i> <strong>Restart</strong></td><td>Restart Slurm in correct order: slurmdbd &rarr; slurmctld &rarr; slurmd &rarr; slurmrestd</td></tr>
+    <tr><td><i class="fas fa-stop"></i> <strong>Stop</strong></td><td>Stop all Slurm containers (preserves data volumes)</td></tr>
+    <tr><td><i class="fas fa-sync"></i> <strong>Sync Accounts</strong></td><td>Run full Slurm sync for this cluster (accounts, QOS, GrpTRESMins)</td></tr>
+    <tr><td><i class="fas fa-database"></i> <strong>Sync Jobs</strong></td><td>Import completed jobs from sacct into Job Metrics (last 7 days)</td></tr>
+  </tbody>
+</table>
+
+<h6>Node Management (Staff with Cluster Scope)</h6>
+<p>Staff members with cluster scope can view the dashboard and manage nodes:</p>
+<table class="table table-sm table-bordered">
+  <colgroup><col style="width:220px;"><col></colgroup>
+  <tbody>
+    <tr><td><strong>Drain</strong></td><td>Mark a node as draining &mdash; running jobs finish, no new jobs accepted</td></tr>
+    <tr><td><strong>Resume</strong></td><td>Return a drained node to service</td></tr>
+  </tbody>
+</table>
+
+<h6>Editing</h6>
+<p>Click <strong>Edit</strong> (superuser) to modify: cluster name, type, slurmrestd URL, root account, TRES types, account defaults. Add/remove nodes and partitions from the Django Admin.</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h19">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c19"
+                              aria-expanded="false">User Impersonation</button>
+                    </h5>
+                  </div>
+                  <div id="c19" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>Superusers can impersonate any user to see ColdFront exactly as they do — useful for debugging, verifying permissions, or assisting PIs.</p>
+
+          <h6>How to Impersonate</h6>
+          <ol>
+            <li>Go to <strong>Admin Tools &gt; Manage Users</strong></li>
+            <li>Find the user and click <strong>Impersonate</strong> button</li>
+            <li>Review the confirmation page showing user details (username, name, email, staff/superuser status)</li>
+            <li>Click <strong>Yes, Impersonate This User</strong></li>
+            <li>You now see ColdFront as that user — a yellow banner at the top shows you are impersonating</li>
+            <li>Click the <strong>Revert</strong> link in the banner to return to your own account</li>
+          </ol>
+
+          <h6>What You Can Do While Impersonating</h6>
+          <table class="table table-sm table-bordered">
+            <colgroup><col style="width:220px;"><col></colgroup>
+            <tbody>
+              <tr><td><strong>View projects</strong></td><td>See only the projects/allocations the user has access to</td></tr>
+              <tr><td><strong>Submit jobs</strong></td><td>See which accounts and partitions are available to the user</td></tr>
+              <tr><td><strong>Check billing</strong></td><td>See the user's My Usage &amp; Billing page</td></tr>
+              <tr><td><strong>Test permissions</strong></td><td>Verify what a PI vs regular user vs staff sees</td></tr>
+            </tbody>
+          </table>
+
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Security:</strong> All impersonation actions are logged. Only superusers can impersonate. You cannot impersonate another superuser.</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h20">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -835,6 +1349,87 @@ Submitted batch job 43</pre>
               <tr><td><i class="fas fa-users-cog fa-fw"></i> Manage Users</td><td>Staff user management — toggle PI status, view user details, exclude from staff views.</td></tr>
             </tbody>
           </table></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h22">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c22"
+                              aria-expanded="false">Architecture Overview</button>
+                    </h5>
+                  </div>
+                  <div id="c22" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>The CLOACK stack is a set of Docker services that together provide identity management, resource allocation, job scheduling, and billing for HPC clusters. See the interactive <a href="/docs/architecture/" target="_blank">Architecture Diagram</a> for a visual overview.</p>
+
+          <h6>Core Services (docker-compose.yml)</h6>
+          <table class="table table-sm table-bordered">
+            <thead><tr><th>Service</th><th>Image</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>coldfront</code></td><td>arch/coldfront</td><td>Django portal &mdash; resource allocation, billing, project management</td></tr>
+              <tr><td><code>qcluster</code></td><td>arch/coldfront</td><td>Django-Q async task worker (same image, different entrypoint)</td></tr>
+              <tr><td><code>openldap</code></td><td>arch/openldap</td><td>LDAP directory &mdash; user accounts, groups, PI mappings</td></tr>
+              <tr><td><code>keycloak</code></td><td>arch/keycloak</td><td>OIDC identity provider &mdash; JHU (Entra ID) + Schmidt realms</td></tr>
+              <tr><td><code>postgres</code></td><td>arch/postgres</td><td>PostgreSQL &mdash; ColdFront DB, Keycloak DB, slurm_jobs DB</td></tr>
+              <tr><td><code>phpldapadmin</code></td><td>arch/phpldapadmin</td><td>LDAP web UI (port 8081)</td></tr>
+            </tbody>
+          </table>
+
+          <h6>Slurm Cluster (docker-compose-slurm-*.yml)</h6>
+          <table class="table table-sm table-bordered">
+            <thead><tr><th>Service</th><th>Image</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>munge-init</code></td><td>arch/slurm-munge</td><td>One-shot: generates munge key</td></tr>
+              <tr><td><code>slurm-db</code></td><td>arch/mariadb</td><td>MariaDB for Slurm accounting</td></tr>
+              <tr><td><code>slurmdbd</code></td><td>arch/slurmdbd</td><td>Slurm database daemon</td></tr>
+              <tr><td><code>slurmctld</code></td><td>arch/slurmctld</td><td>Slurm controller</td></tr>
+              <tr><td><code>slurmrestd</code></td><td>arch/slurmrestd</td><td>Slurm REST API (port 6820)</td></tr>
+              <tr><td><code>login01</code></td><td>arch/slurmd</td><td>Login node (SSH port 2201)</td></tr>
+              <tr><td><code>cn-01..03</code></td><td>arch/slurmd</td><td>Compute nodes</td></tr>
+            </tbody>
+          </table>
+
+          <h6>Image Build Order</h6>
+          <p>All Slurm images inherit from <code>arch/cn-rockylinux</code> (Rocky 9 + Slurm 25.11). Build order:</p>
+          <ol>
+            <li><code>arch/cn-rockylinux</code> &mdash; base (Slurm + Munge + SSSD + SPANK plugins)</li>
+            <li><code>arch/slurm-munge</code> &mdash; munge key init</li>
+            <li><code>arch/slurmdbd</code> &mdash; accounting daemon</li>
+            <li><code>arch/slurmctld</code> &mdash; controller</li>
+            <li><code>arch/slurmd</code> &mdash; worker/login node</li>
+            <li><code>arch/slurmrestd</code> &mdash; REST API</li>
+          </ol>
+
+          <h6>Startup Dependencies</h6>
+          <p><code>munge-init</code> &rarr; <code>slurmdbd</code> (needs munge + MariaDB) &rarr; <code>slurmctld</code> &rarr; <code>slurmd</code> nodes &rarr; <code>slurmrestd</code> (needs JWT key)</p>
+
+          <h6>Compose Project Isolation</h6>
+          <p>Core services run under project <code>arch</code> (from <code>docker-compose.yml</code>). Slurm runs under project <code>arch-slurm</code> (from <code>docker-compose-slurm-*.yml</code>). This means <code>start.sh stop</code> only stops core services, and <code>start.sh slurm stop</code> only stops Slurm &mdash; they don't interfere with each other.</p>
+
+          <h6>Dev vs Prod</h6>
+          <table class="table table-sm table-bordered">
+            <thead><tr><th>Aspect</th><th>Dev</th><th>Prod</th></tr></thead>
+            <tbody>
+              <tr><td>Slurm</td><td>Docker-managed cluster (<code>docker-compose-slurm-arch-dev.yml</code>)</td><td>Bare metal with host path mounts</td></tr>
+              <tr><td>Overlay</td><td>Auto-generated by <code>start.sh slurm dev create</code></td><td>Deployed from ColdFront UI</td></tr>
+              <tr><td>Email</td><td>File backend (<code>coldfront/report/emails/</code>)</td><td>SMTP via mgmt01</td></tr>
+              <tr><td>SLURM_NOOP</td><td>Allowed (<code>=1</code> for testing)</td><td><code>=0</code> (real Slurm commands)</td></tr>
+            </tbody>
+          </table>
+
+          <h6>Key CLI Commands</h6>
+          <pre><code>./start.sh init dev           # Bootstrap dirs, generate .env
+./start.sh start dev          # Start core services
+./start.sh slurm dev create   # Generate Slurm compose overlay
+./start.sh slurm dev start    # Start Slurm cluster
+./start.sh slurm dev status   # Node status + job queue
+./start.sh test dev           # Run Django unit tests
+./start.sh clean-all dev      # Full cleanup (arch volumes only, safe for co-hosted services)</code></pre>
+
+          <div class="alert alert-info">
+            <strong>Tip:</strong> After <code>clean-all</code>, all data is lost (databases, LDAP, Slurm state). Use <code>init dev &amp;&amp; start dev &amp;&amp; slurm dev start</code> to rebuild from scratch. The seed auto-creates ToS v1.0, default partitions, QOS, and billing rates.</div></div>
                   </div>
                 </div>
                 
@@ -995,6 +1590,52 @@ Submitted batch job 43</pre>
   approved on a Schmidt-only cluster is silently skipped.
 </p>
 </div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h24">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c24"
+                              aria-expanded="false">Data Import (CSV)</button>
+                    </h5>
+                  </div>
+                  <div id="c24" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>Import departments and users in bulk via CSV upload. Navigate to <strong>Admin Tools</strong> in the sidebar.</p>
+
+<h6>Import Departments</h6>
+<p>Go to <strong>Admin Tools &gt; Import Departments</strong>. Upload a CSV file with the following columns:</p>
+<pre>name,code,school,school_code,affiliation</pre>
+<p>Example rows:</p>
+<pre>"Computer Science","CS","Whiting School of Engineering","wse","jhu"
+"Schmidt Sciences Institute","SS","Schmidt Sciences","ssci","schmidt"</pre>
+<ul>
+  <li><strong>affiliation</strong> must match an existing Affiliation code (<code>jhu</code> or <code>schmidt</code>)</li>
+  <li>Existing departments (matched by name) are skipped</li>
+  <li>A downloadable template is available on the import page</li>
+</ul>
+
+<h6>Import Users</h6>
+<p>Go to <strong>Admin Tools &gt; Import Users</strong>. Upload a CSV file with the following columns:</p>
+<pre>full_name,email,uid</pre>
+<p>Example rows:</p>
+<pre>"Jane Smith","jane.smith@jhu.edu","jsmith42"
+"John External","john@external.org","ext-john"
+"Maria Schmidt","maria@schmidtsciences.org","ssci-maria"</pre>
+<ul>
+  <li><strong>JHU users</strong>: Use JHED ID as username (email: @jhu.edu, @jh.edu, @jhmi.edu)</li>
+  <li><strong>External users</strong>: Prepend <code>ext-</code> prefix to username</li>
+  <li><strong>Schmidt users</strong>: Prepend <code>ssci-</code> prefix to username</li>
+  <li>Existing users (matched by uid) are skipped</li>
+  <li>New users get shell <code>/bin/false</code> in LDAP (activated when added to an allocation)</li>
+  <li>A downloadable template is available on the import page</li>
+</ul>
+
+<h6>Import Terms of Service</h6>
+<p>Go to <strong>Admin Tools &gt; Import ToS</strong>. Upload a semicolon-delimited CSV with sections:</p>
+<pre>"ARCH Cluster Usage Policy";"Section 1 content...";"Section 2 content..."</pre></div>
                   </div>
                 </div>
                 
