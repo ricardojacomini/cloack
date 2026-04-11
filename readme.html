@@ -342,37 +342,28 @@ SLURM_NOOP=0
 <p>Other password variables: <code>LDAP_ROOT_PASS</code> (LDAP <code>cn=root</code> — used internally by <code>replace_ldif.sh</code> for LDIF imports), <code>POSTGRESQL_PASSWORD</code>, <code>COLDFRONT_DB_PASSWORD</code>, <code>KEYCLOAK_DB_PASSWORD</code>.</p>
 <h3>Deploy flows</h3>
 <h4>A. Fresh deploy (no migration)</h4>
-<pre><code class="language-bash">./start.sh clean-all dev &amp;&amp; rm .env
+<pre><code class="language-bash">./start.sh clean-all dev
 ./start.sh init dev
 ./start.sh start dev
-./start.sh populate dev --partitions premium,scavenger,gpu
+# Slurm cluster — CLI or UI (Admin → Clusters → Add → Build → Deploy)
+./start.sh slurm create arch-dev
+./start.sh slurm start arch-dev
 </code></pre>
 <h4>B. Deploy + migrate from production</h4>
-<pre><code class="language-bash"># 1. Generate backup on prod:
-base/bin/cloack_ldap_coldfront_migration.sh
-
-# 2. Copy backups to dev:
-cp /coldfront_backups/ldap-*.cat migration/
-cp /coldfront_backups/coldfront-*.sql.gz migration/   # optional
-
-# 3. Fresh deploy (clean stack, all healthy):
-./start.sh clean-all dev &amp;&amp; rm .env
+<p><strong>Option 1: CLI</strong></p>
+<pre><code class="language-bash">./start.sh clean-all dev
 ./start.sh init dev
 ./start.sh start dev
-
-# 4. Restore LDAP from backup (patches passwords from .env automatically):
-./start.sh ldap-reinit dev
-
-# 5. (Optional) Restore PostgreSQL (projects, allocations, billing history):
-source .env
-docker stop coldfront qcluster
-gunzip -c migration/coldfront-*.sql.gz | \
-  docker exec -i -e PGPASSWORD=&quot;${COLDFRONT_DB_PASSWORD}&quot; postgres \
-  psql -U coldfront coldfront
-docker start coldfront qcluster
+./start.sh ldap-reinit dev           # restore LDAP from migration/ldap-*.cat
+./start.sh slurm create arch-dev
+./start.sh slurm start arch-dev
 </code></pre>
+<p><strong>Option 2: UI</strong> (after <code>init + start</code>)
+1. <strong>Import Users → Migration</strong> — upload slapcat <code>.cat</code> file (creates LDAP structure + users + groups + projects)
+2. <strong>Admin → Clusters → Add → Deploy</strong> — create and start Slurm cluster
+3. <strong>Sync Slurm</strong> — from cluster detail page (creates Slurm accounts)</p>
 <h4>C. Reinitialize LDAP (no migration backup)</h4>
-<pre><code class="language-bash"># Runs install.sh to create base LDAP structure, then re-seeds ColdFront
+<pre><code class="language-bash"># Runs install.sh to create minimal LDAP structure (root + munge + slurm)
 ./start.sh ldap-reinit dev
 </code></pre>
 <p><strong>How <code>ldap-reinit</code> works:</strong>
@@ -1471,25 +1462,19 @@ sacctmgr modify account where name=rdesouz4 set parent=nodep -i
 <p><strong>Note:</strong> <code>sacctmgr list account format=ParentName</code> returns empty. Use <code>list associations where user=</code> to get parent info.</p>
 </blockquote>
 <h3>start.sh slurm — Cluster Management</h3>
-<pre><code class="language-bash"># Generate compose overlay (arch-dev in dev, arch in prod)
-./start.sh slurm create             # uses default name for current mode
-./start.sh slurm create my-cluster  # custom name → docker-compose-slurm-my-cluster.yml
-
-# Start the Slurm cluster (auto-creates overlay if missing)
-./start.sh slurm start
-
-# Check status (node state + job queue)
-./start.sh slurm status
-
-# Stop Slurm services
-./start.sh slurm stop
-
-# Restart in correct order (slurmdbd → slurmctld → nodes)
-./start.sh slurm restart
-
-# Destroy: stop + remove containers, volumes, overlay (optionally DB record)
-./start.sh slurm destroy
+<p><strong>Option A: CLI</strong></p>
+<pre><code class="language-bash">./start.sh slurm create             # Generate compose overlay + DB record
+./start.sh slurm start              # Build images (if needed) + compose up
+./start.sh slurm status             # Node state + job queue
+./start.sh slurm stop               # Stop Slurm services
+./start.sh slurm restart            # Restart (slurmdbd → slurmctld → nodes)
+./start.sh slurm destroy            # Stop + remove containers, volumes, overlay
 </code></pre>
+<p><strong>Option B: UI</strong> (Admin → Clusters)
+1. <strong>Add Cluster</strong> — register cluster with name, type, and deployment model preset
+2. <strong>Build Images</strong> — compile Slurm base + service images
+3. <strong>Deploy</strong> — generate slurm.conf + compose overlay + start containers
+4. <strong>Stop / Restart</strong> — manage running cluster from detail page</p>
 <p><strong>Troubleshooting:</strong>
 - <strong>Nodes showing "down" after restart?</strong> → Wait 10 seconds (auto-resume runs in background). If still down: <code>scontrol update nodename=cn-01 state=resume</code>
 - <strong>"No docker-compose-slurm-*.yml found"?</strong> → Deploy the cluster from the ColdFront UI first (Clusters → Build Images → Deploy)
