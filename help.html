@@ -1449,7 +1449,7 @@ Submitted batch job 43</pre>
 <p>Each ToS version has a <strong>User Required</strong> checkbox (Admin &rarr; Terms of Service):</p>
 <ul>
   <li><strong>Disabled</strong> (default): Only PIs must accept ToS. Regular users are added to Slurm accounts without ToS acceptance.</li>
-  <li><strong>Enabled</strong>: Both PIs and regular users must accept ToS before being added to Slurm accounts. Users see a ToS acceptance card on the <strong>Project Detail</strong> page.</li>
+  <li><strong>Enabled</strong>: Both PIs and regular users must accept ToS before being added to Slurm accounts. Users see a ToS acceptance card on the <strong>User Profile</strong> page and the <strong>Project Detail</strong> page.</li>
 </ul>
 
 <h6>Acceptance Flow</h6>
@@ -1458,7 +1458,7 @@ Submitted batch job 43</pre>
     <tr><th>Step</th><th>PI</th><th>Regular User (when User Required)</th></tr>
   </thead>
   <tbody>
-    <tr><td>1. Accept ToS</td><td>Project creation, allocation request, or Project Detail</td><td>Project Detail page</td></tr>
+    <tr><td>1. Accept ToS</td><td>User Profile, project creation, allocation request, or Project Detail</td><td>User Profile or Project Detail page</td></tr>
     <tr><td>2. Signal fires</td><td colspan="2"><code>on_tos_accepted</code> &rarr; provisions Slurm user association immediately via REST API</td></tr>
     <tr><td>3. Safety net</td><td colspan="2"><code>sync_slurm</code> (every 3h) catches any missed associations</td></tr>
   </tbody>
@@ -1493,7 +1493,7 @@ Submitted batch job 43</pre>
 </ul>
 
 <h6>Forcing Re-acceptance</h6>
-<p>Create a new ToS version (e.g. "1.1") and set it as active. All PIs will be required to accept the new version on their next project creation or allocation request. PIs with existing projects can also accept directly from their <strong>Project Detail</strong> page. If <strong>User Required</strong> is enabled, regular users will also see a ToS acceptance card on the Project Detail page.</p>
+<p>Create a new ToS version (e.g. "1.1") and set it as active. All PIs will be required to accept the new version on their next project creation or allocation request. PIs can also accept from their <strong>User Profile</strong> or <strong>Project Detail</strong> page. If <strong>User Required</strong> is enabled, regular users will also see a ToS acceptance card on the User Profile and Project Detail pages.</p>
 
 <h6>Users Who Haven't Accepted</h6>
 <ul>

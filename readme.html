@@ -150,6 +150,7 @@ Use `start.sh` to manage the full CLOACK stack. It wraps `docker compose` with i
 | `./start.sh log [SERVICE]` | Tail logs for a service (default: `coldfront`) |
 | `./start.sh reconf` | Push updated `slurm.conf` to all nodes (`scontrol reconfigure`) |
 | `./start.sh test [dev] [MODULE]` | Run Django unit tests (default: all arch_sync tests). Example: `./start.sh test coldfront.plugins.arch_sync.tests.test_billing` |
+| `./start.sh helpdesk {start\|stop\|restart\|status\|destroy\|log\|populate}` | Manage the Helpdesk service. `populate` creates sample queues and tickets (idempotent) |
 | `./start.sh help` | Show usage |
 
 ### Quick start
