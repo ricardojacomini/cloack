@@ -1475,11 +1475,44 @@ sacctmgr modify account where name=rdesouz4 set parent=nodep -i
 2. <strong>Build Images</strong> — compile Slurm base + service images
 3. <strong>Deploy</strong> — generate slurm.conf + compose overlay + start containers
 4. <strong>Stop / Restart</strong> — manage running cluster from detail page</p>
+<p><strong>Design: Docker exec vs local binaries</strong></p>
+<p>All Slurm CLI commands (<code>sacctmgr</code>, <code>sinfo</code>, <code>sreport</code>, etc.) run via <code>docker exec {cluster}-slurmctld</code> rather than local binaries:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Docker exec</th>
+<th>Local binaries + volumes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Simplicity</strong></td>
+<td>1 function, no extra volumes</td>
+<td>3 init containers + 2 volumes</td>
+</tr>
+<tr>
+<td><strong>Multi-cluster</strong></td>
+<td>Routes to correct slurmctld</td>
+<td>Local binary can't resolve cluster hostname</td>
+</tr>
+<tr>
+<td><strong>Dependencies</strong></td>
+<td>Zero — only Docker SDK</td>
+<td>Needs munge key, slurm libs, ldconfig</td>
+</tr>
+<tr>
+<td><strong>Maintenance</strong></td>
+<td>None</td>
+<td>Slurm upgrade requires rebuild of init container</td>
+</tr>
+</tbody>
+</table>
+<p>Bare-metal (prod) uses local binaries directly — handled by the <code>else</code> branch in <code>slurm_command()</code>.</p>
 <p><strong>Troubleshooting:</strong>
 - <strong>Nodes showing "down" after restart?</strong> → Wait 10 seconds (auto-resume runs in background). If still down: <code>scontrol update nodename=cn-01 state=resume</code>
 - <strong>"No docker-compose-slurm-*.yml found"?</strong> → Deploy the cluster from the ColdFront UI first (Clusters → Build Images → Deploy)
-- <strong>qcluster Exited(1)?</strong> → Check <code>docker logs qcluster</code>. If SQLite error: the compose overlay is missing DB env vars — redeploy from ColdFront UI
-- <strong>Init containers showing "Exited (0)" in red?</strong> → This is normal. <code>munge-init</code> and <code>slurm-bin-init</code> are one-shot containers that run at startup and exit. They cannot be removed from docker-compose.yml — Docker recreates them on the next <code>up</code>. They are needed because: <code>munge-init</code> generates the shared munge key in the <code>munge-key</code> volume, and <code>slurm-bin-init</code> copies <code>sacctmgr</code>/<code>scontrol</code> binaries to the volume that coldfront uses. They consume zero CPU/memory after exit.</p>
+- <strong>Init containers showing "Exited (0)" in red?</strong> → Normal. <code>munge-init</code> is a one-shot container that generates the shared munge key. It consumes zero CPU/memory after exit.</p>
 <hr />
 <h2>Testing</h2>
 <h3>Commands</h3>
