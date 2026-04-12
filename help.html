@@ -1659,7 +1659,101 @@ Submitted batch job 43</pre>
       <li><strong>SLA &amp; Metrics</strong> &mdash; First Quality Response (FQR), SLA windows
           per priority, <code>my-performance</code> dashboard with PDF export, and
           satisfaction surveys (<code>/extensions/survey/&lt;ticket&gt;/&lt;token&gt;/</code>).</li>
+      <li><strong>Onboarding</strong> &mdash; <code>/extensions/onboard-staff/</code> searches
+          OpenLDAP for users and provisions them as <code>StaffMember</code> (creates Django
+          User + assigns to SSE / SSE Senior / SE policy).</li>
+      <li><strong>Staff Help</strong> &mdash; <code>/extensions/staff-help/</code> in-app
+          reference for staff: FQR checklist, escalation chain, skill levels, 3-strike rule,
+          and response templates (content mirrored below).</li>
     </ul>
+
+    <h4 id="staff-help" style="color:#4a9eff; margin-top:24px;">Staff Help (In-App Reference)</h4>
+    <p>The following sections are available to every helpdesk staff user at
+       <code>/extensions/staff-help/</code>. They summarise the Standard Operating
+       Procedures (SOPs) enforced by the helpdesk automation.</p>
+
+    <h5 style="color:#f39c12; margin-top:20px;">1. First Quality Response (FQR)</h5>
+    <p>FQR is the quality standard for every first interaction. A good FQR is
+       <strong>prompt, complete, and effective</strong> &mdash; addressing the user&rsquo;s
+       concern meaningfully and moving toward resolution on first contact.</p>
+    <p><strong>Pre-Work Checklist</strong> (before responding):</p>
+    <ul>
+      <li><strong>Research the issue</strong> &mdash; review error codes, logs, documentation</li>
+      <li><strong>Know the user</strong> &mdash; check RT history, environment, previous cases, severity/SLA</li>
+      <li><strong>Know the offerings</strong> &mdash; scientific software vs system, support boundaries, mission-critical</li>
+      <li><strong>Identify resources</strong> &mdash; workflows, KB articles, SMEs, swarming guidance</li>
+    </ul>
+    <p><strong>Core Elements of an FQR:</strong></p>
+    <ul>
+      <li>Clearly Defined Scope &mdash; ask clarifying questions</li>
+      <li>Progress Toward Resolution &mdash; move it forward on first contact</li>
+      <li>Empathy &amp; Human Communication &mdash; no robotic phrasing</li>
+      <li>Alignment on Urgency &mdash; match the user&rsquo;s sense of priority</li>
+      <li>Minimal User Effort &mdash; reduce back-and-forth</li>
+      <li>Timely Response &mdash; meet SLA while preparing</li>
+      <li>Leadership and Guidance &mdash; communicate the resolution plan</li>
+    </ul>
+
+    <h5 style="color:#e74c3c; margin-top:20px;">2. Escalation Chain</h5>
+    <p>Tickets escalate automatically along the tier chain when aged beyond the policy&rsquo;s
+       threshold. SSEs can also escalate manually by reassigning. When escalated, the previous
+       assignee becomes a collaborator (role <code>escalated_from</code>) to preserve context.</p>
+    <table class="table table-sm table-bordered">
+      <thead class="thead-light">
+        <tr><th>Tier</th><th>Escalates To</th><th>After Days</th><th>Strategy</th><th>Cooldown</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>sse</strong></td><td>sse-senior</td><td>3</td><td>Skill Match</td><td>30 min</td></tr>
+        <tr><td><strong>sse-senior</strong></td><td>system-engineers</td><td>5</td><td>Least Loaded</td><td>0 min</td></tr>
+        <tr><td><strong>system-engineers</strong></td><td><em>(end of chain)</em></td><td>&mdash;</td><td>Least Loaded</td><td>0 min</td></tr>
+      </tbody>
+    </table>
+
+    <h5 style="color:#4a9eff; margin-top:20px;">3. Skill Levels (Bloom&rsquo;s Taxonomy)</h5>
+    <p>Each staff member&rsquo;s comfort (0&ndash;100%) combined with skill level determines
+       routing scores when new tickets arrive.</p>
+    <table class="table table-sm table-bordered">
+      <thead class="thead-light">
+        <tr><th>Level</th><th>Name</th><th>Description</th><th>Bloom&rsquo;s Cognitive</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>I</strong></td><td>Basic</td><td>Foundational knowledge and tool awareness</td><td>Knowledge / Comprehension (1-2)</td></tr>
+        <tr><td><strong>II</strong></td><td>Intermediate</td><td>Hands-on experience and partial autonomy</td><td>Application (3)</td></tr>
+        <tr><td><strong>III</strong></td><td>Advanced</td><td>Confident execution and troubleshooting</td><td>Analysis / Synthesis (4-5)</td></tr>
+        <tr><td><strong>IV</strong></td><td>Specialized</td><td>Deep expertise and innovation-driven approach</td><td>Evaluation / Creation (6)</td></tr>
+      </tbody>
+    </table>
+
+    <h5 style="color:#00cec9; margin-top:20px;">4. 3-Strike Follow-Up Process</h5>
+    <p>When a user doesn&rsquo;t reply to a staff message, the system sends automatic follow-up
+       emails at fixed business-day intervals. A user reply at any point resets the strike counter.</p>
+    <ol>
+      <li><strong>Strike 1</strong> (after 2 business days) &mdash; gentle reminder</li>
+      <li><strong>Strike 2</strong> (3 business days after Strike 1) &mdash; checking in, encouraging engagement</li>
+      <li><strong>Strike 3</strong> (3 business days after Strike 2) &mdash; case archiving notice; ticket closes</li>
+    </ol>
+
+    <h5 style="color:#55efc4; margin-top:20px;">5. Response Templates</h5>
+    <p>Default templates are seeded and available from the ticket composer. Placeholders:
+       <code>{name}</code>, <code>{your_name}</code>, <code>{ticket_number}</code>,
+       <code>{issue}</code>, <code>{signature}</code>, <code>{survey_url}</code>.</p>
+    <ul>
+      <li><strong>FQR &mdash; Standard First Response</strong>: introduction, scoping questions, user survey link</li>
+      <li><strong>FQR &mdash; SLA Escalation</strong>: triage + hand-off to Systems Team via <code>rt-triage</code></li>
+      <li><strong>Strike 1 &mdash; Standard Follow-Up</strong></li>
+      <li><strong>Strike 1 &mdash; Tutorial Follow-Up</strong> (after sending tutorial content)</li>
+      <li><strong>Strike 2 &mdash; Encouraging Engagement</strong></li>
+      <li><strong>Strike 3 &mdash; Case Archiving Notice</strong></li>
+    </ul>
+
+    <h5 style="color:#c8d6e5; margin-top:20px;">6. External Documentation</h5>
+    <ul>
+      <li><a href="https://docs.arch.jhu.edu" target="_blank" rel="noopener">docs.arch.jhu.edu</a> &mdash; official ARCH documentation</li>
+      <li><a href="https://www.arch.jhu.edu" target="_blank" rel="noopener">arch.jhu.edu</a> &mdash; ARCH website</li>
+      <li><code>rt-triage</code> Slack channel &mdash; for escalations to Systems Team</li>
+      <li>User survey: <a href="https://t.jh.edu/SvUnTE" target="_blank" rel="noopener">https://t.jh.edu/SvUnTE</a></li>
+    </ul>
+
     <p><em>Login:</em> SSO via Keycloak (JHU and Schmidt realms). Username/password fallback
        is disabled in production. Admin access requires <code>is_superuser</code>; staff access
        requires <code>is_staff</code>.</p>
