@@ -1639,6 +1639,134 @@ Submitted batch job 43</pre>
                   </div>
                 </div>
                 
+
+                <div class="card">
+                  <div class="card-header" id="h25">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c25"
+                              aria-expanded="false">Slurm Sync: REST API + CLI Fallback</button>
+                    </h5>
+                  </div>
+                  <div id="c25" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>All ColdFront &rarr; Slurm sync paths (<code>coldfront2slurm</code>,
+<code>collect_slurm_acc_info</code>, real-time account provisioning) use the
+<strong>slurmrestd REST API</strong> as the primary channel and
+<strong>fall back to <code>sacctmgr</code> CLI</strong> automatically when the
+REST call fails.</p>
+
+<h6>Why the fallback exists</h6>
+<ul>
+  <li>Resilience during slurmrestd restarts, JWT rotation, or Slurm upgrades
+      that change the REST API version.</li>
+  <li>Dev environments where <code>slurmrestd</code> is not configured still
+      work via <code>sacctmgr</code>.</li>
+  <li>Failure is transparent: the sync run completes; the next run retries
+      REST.</li>
+</ul>
+
+<h6>What to expect in logs</h6>
+<p>When the fallback engages you will see a single <code>INFO</code> line per
+call like:</p>
+<pre>coldfront2slurm: REST API unavailable (Connection refused), using sacctmgr CLI
+collect_slurm_acc_info: REST failed (...), falling back to CLI</pre>
+<p>This is <strong>not</strong> an error — sync completed successfully via
+<code>sacctmgr</code>. Investigate only if the fallback is happening
+repeatedly in production.</p>
+
+<h6>Monitoring — Slurm Sync Metrics</h6>
+<p>Each sync call increments a counter per <em>(cluster, hour, path,
+operation)</em>. Open <strong>Django Admin &rarr; Slurm Sync Metrics</strong>
+to see, for each hour bucket:</p>
+<table class="table table-sm table-bordered">
+  <colgroup><col style="width:220px;"><col></colgroup>
+  <tbody>
+    <tr><td><strong>Path</strong></td><td><code>rest</code> (REST succeeded) or <code>cli</code> (fell back to <code>sacctmgr</code>)</td></tr>
+    <tr><td><strong>Operation</strong></td><td>Which sync function: <code>coldfront2slurm</code>, <code>collect_slurm_acc_info</code>, &hellip;</td></tr>
+    <tr><td><strong>Count</strong></td><td>Number of times that path ran in the hour</td></tr>
+    <tr><td><strong>Last error</strong></td><td>Most recent REST failure reason (only populated for <code>cli</code> rows)</td></tr>
+  </tbody>
+</table>
+<p>Healthy cluster: <code>rest</code> rows accumulate, <code>cli</code> rows
+are absent or rare. When the hourly <code>cli</code> count reaches
+<strong>5</strong> a <code>WARNING</code> log line is emitted once per bucket
+so it shows up in Service Logs without flooding.</p>
+
+<h6>Forcing a specific path (debugging only)</h6>
+<ul>
+  <li><strong>Force CLI</strong>: stop <code>slurmrestd</code> or set an
+      invalid <code>slurmrestd_url</code> on the cluster; all operations will
+      fall back to <code>sacctmgr</code>.</li>
+  <li><strong>Force REST</strong>: there is no override — REST is always
+      tried first. If it fails the CLI fallback will run. Unit tests
+      (<code>test_sync_metrics</code>) exercise both branches explicitly.</li>
+</ul></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h26">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c26"
+                              aria-expanded="false">Slurm JWT Authentication</button>
+                    </h5>
+                  </div>
+                  <div id="c26" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>Both dev and prod Slurm clusters run <strong>Slurm 25.11.2</strong> with
+JWT authentication enabled on <code>slurmrestd</code>. This is what allows
+ColdFront &rarr; Slurm REST calls (the fast path in
+<em>Slurm Sync: REST API + CLI Fallback</em>).</p>
+
+<h6>How it is wired</h6>
+<ul>
+  <li><code>slurm.conf</code> &rarr; <code>AuthAltTypes=auth/jwt</code>,
+      <code>AuthAltParameters=jwt_key=/var/spool/slurm/jwt_hs256.key</code></li>
+  <li><code>slurmrestd</code> started with <code>-a local,jwt</code>
+      (accepts UNIX-socket local auth <em>and</em> TCP JWT)</li>
+  <li>Token file: <code>${BASE_ETC}/slurm/slurm_jwt.token</code> on the host,
+      bind-mounted into <code>coldfront</code> and <code>slurmrestd</code> at
+      <code>/etc/slurm/slurm_jwt.token</code></li>
+  <li>Renewed daily at <strong>03:00</strong> via crontab
+      (30-day lifespan, <code>scontrol token lifespan=2592000</code>)</li>
+  <li><code>./start.sh slurm start</code> and <code>slurm restart</code>
+      regenerate the token on the way up (5 retries &times; 2 s backoff)</li>
+</ul>
+
+<h6>Symptom: REST falls back to sacctmgr CLI</h6>
+<p>If <strong>Slurm Sync Metrics</strong> show persistent <code>cli</code>
+rows and the logs say <em>"UNIX socket not available and no JWT token
+configured"</em>, the token file is likely empty or stale.</p>
+<ol>
+  <li>Check on host: <code>wc -c base/slurm/slurm_jwt.token</code> (should be
+      ~140+ bytes, not 0).</li>
+  <li>Check in container: <code>docker exec coldfront wc -c
+      /etc/slurm/slurm_jwt.token</code>. If 0 despite the host having
+      content, it's the <em>virtiofs cache</em> pitfall &mdash; restart
+      coldfront: <code>docker restart coldfront</code>.</li>
+  <li>Regenerate manually:
+      <pre>docker exec arch-dev-slurmctld scontrol token lifespan=2592000 \
+  | grep SLURM_JWT | cut -d= -f2 &gt; base/slurm/slurm_jwt.token
+docker restart coldfront</pre></li>
+  <li>Smoke-test from inside coldfront:
+      <pre>docker exec coldfront python -c "
+from coldfront.plugins.arch_sync.models import SlurmCluster
+from coldfront.plugins.arch_sync.slurm_client import SlurmClient
+c = SlurmCluster.objects.first()
+SlurmClient.from_cluster(c).ping()
+print('REST ping OK')
+"</pre></li>
+</ol>
+
+<h6>Why the CLI fallback still matters</h6>
+<p>JWT tokens expire (30 days). The cron job at 03:00 refreshes them, but if
+that fails, the next sync run should still succeed via
+<code>sacctmgr</code>. Watch <strong>Slurm Sync Metrics</strong> &mdash; a
+sudden spike in <code>cli</code> rows is the signal to regenerate the token.</p></div>
+                  </div>
+                </div>
+                
     </div>
 
     <h3 id="helpdesk-extensions" style="color:#e056fd; margin-top:36px; border-bottom:1px solid #2d4a6f; padding-bottom:8px;">Helpdesk Extensions</h3>
