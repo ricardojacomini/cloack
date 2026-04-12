@@ -1777,13 +1777,18 @@ Submitted batch job 43</pre>
     .accordion .card-body .badge { font-size: 0.75rem; }
     .accordion .card-body .badge-warning { background: #f39c12; color: #000; }
 
-    /* Dark-theme tables (used in Helpdesk Extensions section, outside accordion) */
+    /* Dark-theme tables (Helpdesk Extensions section + anywhere on page) */
+    .page-content table.table,
+    main table,
     .container table.table,
     .accordion .card-body table.table {
         color: #c8d6e5 !important;
         background: #0d1525 !important;
         border-color: #1a2d4a !important;
     }
+    .page-content table.table th,
+    .page-content table.table .thead-light th,
+    main table th,
     .container table.table th,
     .container table.table .thead-light th,
     .accordion .card-body table.table th,
@@ -1793,19 +1798,27 @@ Submitted batch job 43</pre>
         border-color: #2d4a6f !important;
         font-weight: 600;
     }
+    .page-content table.table td,
+    main table td,
     .container table.table td,
     .accordion .card-body table.table td {
         background: #0d1525 !important;
         color: #c8d6e5 !important;
         border-color: #1a2d4a !important;
     }
+    .page-content table.table tbody tr:hover td,
+    main table tbody tr:hover td,
     .container table.table tbody tr:hover td,
     .accordion .card-body table.table tbody tr:hover td {
         background: #112240 !important;
     }
+    .page-content table.table strong,
+    .page-content table.table em,
+    main table strong,
+    main table em,
     .container table.table strong,
     .accordion .card-body table.table strong {
-        color: #c8d6e5;
+        color: #c8d6e5 !important;
     }
     .container code,
     .container p code,
