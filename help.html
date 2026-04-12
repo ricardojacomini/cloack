@@ -1771,17 +1771,50 @@ Submitted batch job 43</pre>
     .accordion .card-header button:hover { color: #fff; text-decoration: none; }
     .accordion .card-body { color: #c8d6e5; }
     .accordion .card-body h5, .accordion .card-body h6, .card-body h6, .card-body h5 { color: #c8d6e5 !important; }
-    .accordion .card-body table { color: #c8d6e5; }
-    .accordion .card-body .table { background: transparent; }
-    .accordion .card-body .table th { background: #1a2d4a; color: #c8d6e5; border-color: #1a2d4a; }
-    .accordion .card-body .table .thead-light th { background: #1a2d4a !important; color: #c8d6e5 !important; }
-    .accordion .card-body .table td { border-color: #1a2d4a; }
-    .accordion .card-body .table .table-secondary td { background: #1a2d4a; color: #c8d6e5; }
     .accordion .card-body code { color: #00cec9; background: #1a2d4a; padding: 1px 4px; border-radius: 3px; }
     .accordion .card-body pre { background: #0a0e17 !important; color: #c8d6e5; border: 1px solid #1a2d4a; }
     .accordion .card-body .alert { background: #1a2d4a; border-color: #2d4a6f; color: #c8d6e5; }
     .accordion .card-body .badge { font-size: 0.75rem; }
     .accordion .card-body .badge-warning { background: #f39c12; color: #000; }
+
+    /* Dark-theme tables (used in Helpdesk Extensions section, outside accordion) */
+    .container table.table,
+    .accordion .card-body table.table {
+        color: #c8d6e5 !important;
+        background: #0d1525 !important;
+        border-color: #1a2d4a !important;
+    }
+    .container table.table th,
+    .container table.table .thead-light th,
+    .accordion .card-body table.table th,
+    .accordion .card-body table.table .thead-light th {
+        background: #1a2d4a !important;
+        color: #ffffff !important;
+        border-color: #2d4a6f !important;
+        font-weight: 600;
+    }
+    .container table.table td,
+    .accordion .card-body table.table td {
+        background: #0d1525 !important;
+        color: #c8d6e5 !important;
+        border-color: #1a2d4a !important;
+    }
+    .container table.table tbody tr:hover td,
+    .accordion .card-body table.table tbody tr:hover td {
+        background: #112240 !important;
+    }
+    .container table.table strong,
+    .accordion .card-body table.table strong {
+        color: #ffffff;
+    }
+    .container code,
+    .container p code,
+    .container li code {
+        color: #00cec9;
+        background: #1a2d4a;
+        padding: 1px 5px;
+        border-radius: 3px;
+    }
     </style>
     
 </body>
