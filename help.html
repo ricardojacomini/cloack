@@ -45,7 +45,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     <aside class="site-sidebar">
       <div class="sidebar-brand">ARCH Portal</div>
       <div class="sidebar-links">
-        <a href="index.html">Home</a><a href="readme.html">README</a><a href="cloack.html">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html" class="active">Help</a>
+        <a href="index.html">Home</a><a href="readme.html">README</a><a href="cloack.html">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html" class="active">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a>
       </div>
     </aside>
     
@@ -1640,6 +1640,29 @@ Submitted batch job 43</pre>
                 </div>
                 
     </div>
+
+    <h3 id="helpdesk-extensions" style="color:#e056fd; margin-top:36px; border-bottom:1px solid #2d4a6f; padding-bottom:8px;">Helpdesk Extensions</h3>
+    <p>Custom add-ons layered on django-helpdesk, exposed under <code>/helpdesk/extensions/</code>.
+       Admin links are surfaced in the ColdFront sidebar (Admin Tools) for superusers only.</p>
+    <ul>
+      <li><strong>Skills-Based Assignment</strong> &mdash; <code>StaffSkill</code> matrix at
+          <code>/extensions/skill-matrix/</code>. Excel import/export of staff competencies
+          (Bloom&rsquo;s taxonomy levels) per <code>TechnologyDomain</code> and
+          <code>TicketCategory</code>; auto-routes new tickets to the best-matched staff member.</li>
+      <li><strong>Escalation</strong> &mdash; 3-strike rule, escalation policy per
+          <code>StaffMember.policy</code>, and triggers on FQR/SLA breach. Tickets are
+          re-assigned or escalated to the policy&rsquo;s next tier automatically.</li>
+      <li><strong>Collaboration</strong> &mdash; workload calendar at
+          <code>/extensions/calendar/</code>, ticket collaborators
+          (<code>add_collaborator</code> / <code>remove_collaborator</code>), and shared
+          queue visibility for cross-team work.</li>
+      <li><strong>SLA &amp; Metrics</strong> &mdash; First Quality Response (FQR), SLA windows
+          per priority, <code>my-performance</code> dashboard with PDF export, and
+          satisfaction surveys (<code>/extensions/survey/&lt;ticket&gt;/&lt;token&gt;/</code>).</li>
+    </ul>
+    <p><em>Login:</em> SSO via Keycloak (JHU and Schmidt realms). Username/password fallback
+       is disabled in production. Admin access requires <code>is_superuser</code>; staff access
+       requires <code>is_staff</code>.</p>
     
     </main>
   </div>
