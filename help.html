@@ -1773,43 +1773,10 @@ sudden spike in <code>cli</code> rows is the signal to regenerate the token.</p>
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
                               data-toggle="collapse" data-target="#c27"
-                              aria-expanded="false">Partitions & QoS</button>
-                    </h5>
-                  </div>
-                  <div id="c27" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>ARCH clusters expose Slurm <strong>partitions</strong> by purpose and <strong>QoS</strong> by use case.
-Pick the partition that matches your workload, and the QoS that matches the priority you need.</p>
-
-<h6>Partition naming convention</h6>
-<ul>
-  <li><strong>CPU partitions by billing tier</strong>: <code>low</code>, <code>med</code>, <code>high</code> &mdash; differ in TRES billing weight (cost per core-hour).</li>
-  <li><strong>GPU partitions by hardware</strong>: <code>a100</code>, <code>l40s</code>, <code>h100</code>, <code>h200</code> &mdash; submit to the partition matching the GPU type your job needs.</li>
-</ul>
-
-<h6>QoS</h6>
-<ul>
-  <li><code>scavenger</code> &mdash; free, <em>preemptible</em>. Long max wall, no cost. Your job may be killed if a paid job needs the resources.</li>
-  <li><code>interactive</code> &mdash; higher priority, short max wall (4h), capped resources per user. Use for tuning, debugging, or working in a notebook.</li>
-  <li><code>normal</code>/<code>premium</code> &mdash; standard paid QoS for batch work (where enabled by your allocation).</li>
-</ul>
-
-<h6>Example submissions</h6>
-<pre>sbatch --partition=med --qos=normal job.sh         # paid CPU work
-sbatch --partition=scavenger --qos=scavenger run.sh  # free, preemptible
-srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100</pre></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h29">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c29"
                               aria-expanded="false">Partitions & Allocation Tiers</button>
                     </h5>
                   </div>
-                  <div id="c29" class="collapse " data-parent="#helpAccordion">
+                  <div id="c27" class="collapse " data-parent="#helpAccordion">
                     <div class="card-body"><p>ARCH clusters expose Slurm <strong>partitions</strong> by purpose and <strong>QoS</strong> by use case.
 Pick the partition that matches your workload, and the QoS that matches the priority you need.</p>
 
@@ -1839,7 +1806,7 @@ srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100</p
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
                               data-toggle="collapse" data-target="#c28"
-                              aria-expanded="false">Partition & QoS Administration</button>
+                              aria-expanded="false">Partitions & Allocation Tiers — Administration</button>
                     </h5>
                   </div>
                   <div id="c28" class="collapse " data-parent="#helpAccordion">
@@ -1857,40 +1824,9 @@ The same naming convention is used for all clusters so users can submit jobs the
 </ul>
 
 <h6>Seeding (idempotent)</h6>
-<pre>./start.sh populate dev --partitions standard --qos standard</pre>
-
-<h6>Multi-cluster</h6>
-<p>Each <code>SlurmCluster</code> gets its own copy of the partition/QoS set.
-Run the populate command after creating a new cluster, or use the admin to add per-cluster.
-<code>slurm_sync</code> writes the resulting <code>slurm.conf</code> and bootstraps QoS in <code>slurmdbd</code>.</p></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h30">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c30"
-                              aria-expanded="false">Partitions & Allocation Tiers — Administration</button>
-                    </h5>
-                  </div>
-                  <div id="c30" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>Partitions and QoS are seeded <em>per <code>SlurmCluster</code></em> and managed in Django Admin.
-The same naming convention is used for all clusters so users can submit jobs the same way regardless of cluster.</p>
-
-<h6>Convention</h6>
-<ul>
-  <li><strong>CPU partitions</strong>: <code>low</code> / <code>med</code> / <code>high</code> &mdash; one per billing tier.
-      Tier code on <code>BillingRate</code> joins to the partition.</li>
-  <li><strong>GPU partitions</strong>: named after the hardware (<code>a100</code>, <code>l40s</code>, <code>h100</code>, <code>h200</code>).
-      Set <code>kind=gpu</code> and <code>hardware=&lt;model&gt;</code> on the partition.</li>
-  <li><strong>QoS</strong>: <code>scavenger</code> (free, preemptible) and <code>interactive</code> (priority=1000, max_wall=04:00:00, resource cap)
-      seeded on every cluster. <code>normal</code>/<code>premium</code> remain for backward compat.</li>
-</ul>
-
-<h6>Seeding (idempotent)</h6>
-<pre>./start.sh populate dev --partitions standard --qos standard</pre>
+<pre>./start.sh populate dev --partitions a100,l40s,h100,h200,low,med,high,scavenger</pre>
+<p><code>--partitions</code> takes a comma-separated list of partition names (no preset).
+QoS records (<code>scavenger</code>, <code>interactive</code>, <code>normal</code>, <code>premium</code>) are bootstrapped automatically by <code>slurm_sync</code> from the <code>SlurmQOS</code> model &mdash; no <code>--qos</code> flag is required.</p>
 
 <h6>Multi-cluster</h6>
 <p>Each <code>SlurmCluster</code> gets its own copy of the partition/QoS set.

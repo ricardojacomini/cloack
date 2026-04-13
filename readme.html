@@ -391,13 +391,19 @@ SLURM_NOOP=0
 <p>Other password variables: <code>LDAP_ROOT_PASS</code> (LDAP <code>cn=root</code> — used internally by <code>replace_ldif.sh</code> for LDIF imports), <code>POSTGRESQL_PASSWORD</code>, <code>COLDFRONT_DB_PASSWORD</code>, <code>KEYCLOAK_DB_PASSWORD</code>.</p>
 <h3>Deploy flows</h3>
 <h4>A. Fresh deploy (no migration)</h4>
-<pre><code class="language-bash">./start.sh clean-all dev
-./start.sh init dev
-./start.sh start dev
-# Slurm cluster — CLI or UI (Admin → Clusters → Add → Build → Deploy)
-./start.sh slurm create arch-dev
-./start.sh slurm start arch-dev
+<p>Full ordered sequence:</p>
+<pre><code class="language-bash">./start.sh clean-all                                                # wipe arch volumes/images
+./start.sh init dev                                                 # write .env, prep dirs
+./start.sh start dev                                                # bring up coldfront + ldap + keycloak + postgres
+./start.sh slurm create arch-dev                                    # generate Slurm overlay
+./start.sh slurm start arch-dev                                     # start slurmctld + slurmd + slurmdbd + slurmrestd
+./start.sh ldap-reinit dev                                          # seed minimal LDAP + sync to ColdFront
+./start.sh populate dev --partitions a100,l40s,h100,h200            # import depts + seed partitions (no billing)
+./start.sh helpdesk start                                           # build + start helpdesk
+./start.sh helpdesk populate                                        # sample queues + tickets
 </code></pre>
+<p>Add <code>--with-billing</code> to <code>populate</code> if you want fake BillingRate/AllocationBilling records.</p>
+<p><strong>About the <code>dev</code> token:</strong> it is an <em>environment modifier</em> (not a cluster name). When present as the first arg after the subcommand, it switches the compose overlay from <code>docker-compose.yml</code> (prod) to <code>docker-compose-dev.yml</code>. <code>clean-all</code>, <code>slurm</code>, and <code>helpdesk</code> ignore it (for <code>slurm create &lt;name&gt;</code>, the second arg is the cluster name).</p>
 <h4>B. Deploy + migrate from production</h4>
 <p><strong>Option 1: CLI</strong></p>
 <pre><code class="language-bash">./start.sh clean-all dev
@@ -667,9 +673,9 @@ sbatch --partition=scavenger --qos=scavenger run.sh  # free, preemptible
 srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
 </code></pre>
 <h3>Seeding (per cluster, idempotent)</h3>
-<pre><code class="language-bash">./start.sh populate dev --partitions standard --qos standard
+<pre><code class="language-bash">./start.sh populate dev --partitions a100,l40s,h100,h200,low,med,high,scavenger
 </code></pre>
-<p><code>SlurmPartition</code> + <code>SlurmQOS</code> records are created per <code>SlurmCluster</code>. Multi-cluster federation: each <code>SlurmCluster</code> gets its own copy.</p>
+<p><code>SlurmPartition</code> records are created per <code>SlurmCluster</code> from the <code>--partitions</code> CSV. <code>SlurmQOS</code> records (scavenger / interactive / normal / premium) are seeded automatically by <code>slurm_sync</code> and do not require a CLI flag. Multi-cluster federation: each <code>SlurmCluster</code> gets its own copy.</p>
 <hr />
 <h2>Billing &amp; Invoicing System</h2>
 <p>ARCH includes a comprehensive billing system built into ColdFront to track resource usage (compute, GPU, storage, backup) and manage invoicing for JHU and Schmidt Sciences allocations.</p>
