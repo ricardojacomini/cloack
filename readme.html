@@ -228,13 +228,14 @@ FORCE_BUILD=1 FORCE_REDEPLOY=1 ./start.sh start dev
 ./start.sh ldap-reinit       # prod
 
 # Default: departments + billing rates/configs + SlurmJob
-./start.sh populate dev --partitions premium,scavenger,gpu
+# Naming convention: low/med/high (CPU by tier), a100/l40s/h100/h200 (GPU by hardware)
+./start.sh populate dev --partitions low,med,high,a100
 
 # Skip billing rates/AllocationBilling; keep SlurmJob
-./start.sh populate dev --partitions premium,scavenger,gpu --skip-billing
+./start.sh populate dev --partitions low,med,high,a100 --skip-billing
 
 # Include SlurmAccountUsagePeriod (billing/usage pages)
-./start.sh populate dev --partitions premium,scavenger,gpu --with-usage
+./start.sh populate dev --partitions low,med,high,a100 --with-usage
 
 # Stop / remove containers (keeps volumes)
 ./start.sh stop dev
@@ -612,6 +613,63 @@ docker exec openldap ldapsearch -H ldapi:/// -x \
 </tr>
 </tbody>
 </table>
+<hr />
+<h2>Partitions &amp; Allocation Tiers</h2>
+<p>ARCH standardizes partition and QoS naming across all clusters so users submit jobs the same way regardless of which cluster they target.</p>
+<h3>Partition naming convention</h3>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Names</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU (by billing tier)</strong></td>
+<td><code>low</code>, <code>med</code>, <code>high</code></td>
+<td>Differ in <code>TRESBillingWeights</code> (cost per core-hour). Tier code on <code>BillingRate</code> joins to the partition.</td>
+</tr>
+<tr>
+<td><strong>GPU (by hardware)</strong></td>
+<td><code>a100</code>, <code>l40s</code>, <code>h100</code>, <code>h200</code></td>
+<td>Submit to the partition matching the GPU type the job needs. <code>kind=gpu</code>, <code>hardware=&lt;model&gt;</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>QoS</h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scavenger</code></td>
+<td>Free, <strong>preemptible</strong>. Long max wall, no cost. May be killed if a paid job needs the resources.</td>
+</tr>
+<tr>
+<td><code>interactive</code></td>
+<td>Higher priority (1000), short max wall (4h), capped resources per user. For tuning, debugging, notebooks.</td>
+</tr>
+<tr>
+<td><code>normal</code> / <code>premium</code></td>
+<td>Standard paid QoS for batch work — retained for backward compat where allocations require them.</td>
+</tr>
+</tbody>
+</table>
+<h3>Submission examples</h3>
+<pre><code class="language-bash">sbatch --partition=med --qos=normal job.sh           # paid CPU work
+sbatch --partition=scavenger --qos=scavenger run.sh  # free, preemptible
+srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
+</code></pre>
+<h3>Seeding (per cluster, idempotent)</h3>
+<pre><code class="language-bash">./start.sh populate dev --partitions standard --qos standard
+</code></pre>
+<p><code>SlurmPartition</code> + <code>SlurmQOS</code> records are created per <code>SlurmCluster</code>. Multi-cluster federation: each <code>SlurmCluster</code> gets its own copy.</p>
 <hr />
 <h2>Billing &amp; Invoicing System</h2>
 <p>ARCH includes a comprehensive billing system built into ColdFront to track resource usage (compute, GPU, storage, backup) and manage invoicing for JHU and Schmidt Sciences allocations.</p>

@@ -261,25 +261,29 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <div class="ca-layer">
   <div class="ca-layer-title">Partitions &amp; Allocation Tiers</div>
   <div class="ca-grid">
-    <div class="ca-block b-green" data-toggle="modal" data-target="#modal-dev-scavenger">
-      <span class="ca-badge bg-green">FREE</span>
-      <h6>scavenger</h6>
-      <small>Default &middot; Preemptible</small>
+    <div class="ca-block b-green" data-toggle="modal" data-target="#modal-dev-low">
+      <span class="ca-badge bg-green">CPU</span>
+      <h6>low</h6>
+      <small>Tier 1 &middot; CPU=1.0</small>
     </div>
-    <div class="ca-block b-orange" data-toggle="modal" data-target="#modal-dev-premium">
-      <span class="ca-badge bg-orange">PAID</span>
-      <h6>premium</h6>
-      <small>High-priority</small>
+    <div class="ca-block b-orange" data-toggle="modal" data-target="#modal-dev-med">
+      <span class="ca-badge bg-orange">CPU</span>
+      <h6>med</h6>
+      <small>Tier 2 &middot; CPU=2.0</small>
     </div>
-    <div class="ca-block b-purple" data-toggle="modal" data-target="#modal-dev-gpu">
+    <div class="ca-block b-red" data-toggle="modal" data-target="#modal-dev-high">
+      <span class="ca-badge bg-red">CPU</span>
+      <h6>high</h6>
+      <small>Tier 3 &middot; CPU=4.0</small>
+    </div>
+    <div class="ca-block b-purple" data-toggle="modal" data-target="#modal-dev-a100">
       <span class="ca-badge bg-purple">GPU</span>
-      <h6>gpu-a100</h6>
-      <small>TRESBillingWeights</small>
+      <h6>a100 / l40s / h100 / h200</h6>
+      <small>One per hardware</small>
     </div>
-    <div class="ca-block b-muted" data-toggle="modal" data-target="#modal-dev-dev">
-      <h6>dev</h6>
-      <small>Testing</small>
-    </div>
+  </div>
+  <div style="font-size: 0.8rem; color: #c8d6e5; padding: 8px 12px;">
+    QoS: <code>scavenger</code> (free, preemptible) &middot; <code>interactive</code> (priority=1000, max_wall=4h, capped) &middot; <code>normal</code>/<code>premium</code> (legacy paid)
   </div>
 </div>
 
@@ -596,56 +600,56 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
   </div>
 </div></div></div>
 
-<!-- Scavenger -->
-<div class="modal fade" id="modal-dev-scavenger" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-  <div class="modal-header"><h5 class="modal-title" style="color:#27ae60;">scavenger Partition</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+<!-- low (CPU tier 1) -->
+<div class="modal fade" id="modal-dev-low" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#27ae60;">low &mdash; CPU Tier 1</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
   <div class="modal-body">
     <ul>
-      <li>Default partition for all PIs</li>
-      <li>Preemptible &mdash; jobs can be interrupted by premium</li>
-      <li><strong>Never billed</strong> (QOS: scavenger, is_free=True)</li>
-      <li>Default allocation uses this partition</li>
-      <li>ssci-* accounts also always free</li>
+      <li><strong>Default partition</strong> for entry-level CPU work</li>
+      <li>TRESBillingWeights: <code>CPU=1.0,Mem=0.25G</code></li>
+      <li>AllowQos: <code>scavenger,interactive</code></li>
+      <li>Dev mapping: <code>cn-01</code></li>
+      <li>BillingRate <code>tier_code=low</code> joins to this partition</li>
     </ul>
   </div>
 </div></div></div>
 
-<!-- Premium -->
-<div class="modal fade" id="modal-dev-premium" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-  <div class="modal-header"><h5 class="modal-title" style="color:#f39c12;">premium Partition &mdash; PAID</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+<!-- med (CPU tier 2) -->
+<div class="modal fade" id="modal-dev-med" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#f39c12;">med &mdash; CPU Tier 2</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
   <div class="modal-body">
     <ul>
-      <li>High-priority, non-preemptible</li>
-      <li>Full billing rate ($0.35/SU CPU, $1.20/GPU-hour)</li>
-      <li>Requires paid allocation (project with abbreviation + IO number)</li>
-      <li>Weekly spend cap support via <code>GrpTRESMins=billing=</code></li>
-      <li>QOS: premium (priority=20) or normal (priority=0)</li>
+      <li>Mid-tier CPU work (2&times; cost of <code>low</code>)</li>
+      <li>TRESBillingWeights: <code>CPU=2.0,Mem=0.25G</code></li>
+      <li>AllowQos: <code>scavenger,interactive</code></li>
+      <li>Dev mapping: <code>cn-02</code></li>
     </ul>
   </div>
 </div></div></div>
 
-<!-- GPU -->
-<div class="modal fade" id="modal-dev-gpu" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-  <div class="modal-header"><h5 class="modal-title" style="color:#9b59b6;">gpu-a100 Partition &mdash; PAID</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+<!-- high (CPU tier 3) -->
+<div class="modal fade" id="modal-dev-high" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#e74c3c;">high &mdash; CPU Tier 3</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
   <div class="modal-body">
     <ul>
-      <li>GPU workloads (A100, H100)</li>
-      <li>TRESBillingWeights: <code>CPU=1.0,GRES/gpu=2.0</code></li>
-      <li>Billing rate per GPU-hour</li>
-      <li>Requires TRES types: <code>cpu,gres/gpu,billing</code></li>
+      <li>High-priority CPU work (4&times; cost of <code>low</code>)</li>
+      <li>TRESBillingWeights: <code>CPU=4.0,Mem=0.25G</code></li>
+      <li>AllowQos: <code>scavenger,interactive</code></li>
+      <li>Dev mapping: <code>cn-03</code></li>
     </ul>
   </div>
 </div></div></div>
 
-<!-- Dev -->
-<div class="modal fade" id="modal-dev-dev" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-  <div class="modal-header"><h5 class="modal-title" style="color:#8a9bb0;">dev Partition</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+<!-- a100 (GPU partition) -->
+<div class="modal fade" id="modal-dev-a100" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title" style="color:#9b59b6;">GPU Partitions (a100 / l40s / h100 / h200)</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
   <div class="modal-body">
     <ul>
-      <li>Development and testing</li>
-      <li>Short time limits</li>
-      <li>Free (scavenger QOS)</li>
-      <li>Isolated from production workloads</li>
+      <li>One partition per GPU model &mdash; submit with <code>--partition=&lt;model&gt;</code></li>
+      <li><code>kind=gpu</code>, <code>hardware=&lt;model&gt;</code> on <code>SlurmPartition</code></li>
+      <li>Example TRESBillingWeights (a100): <code>CPU=1.0,Mem=0.25G,GRES/gpu=2.0</code></li>
+      <li>Requires cluster TRES types: <code>cpu,gres/gpu,billing</code></li>
+      <li>Dev mapping: a100 &rarr; <code>gpu-01</code></li>
     </ul>
   </div>
 </div></div></div>
