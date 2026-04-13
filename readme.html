@@ -126,6 +126,53 @@ Additional recommendations:
 - Keycloak: configure the LDAP group mapper to search the shared group container and to honor DN-based membership (works well with `groupOfNames` / `groupOfUniqueNames`).
 - Configure Keycloak per-realm to point at the appropriate suffix (or add multiple LDAP providers per realm) so each realm sees the right subtree(s).
 
+## Cross-app SSO (ColdFront ↔ Helpdesk)
+
+Both apps share the same Keycloak realms (`jhu`, `schmidt`). Silent SSO
+between them works when the second app's sidebar link routes to the
+realm the user is already authenticated in.
+
+| From → To | Sidebar link | Behaviour |
+|---|---|---|
+| ColdFront ↔ Helpdesk (both logged in) | any icon | Silent login on the correct realm |
+| ColdFront (Schmidt) → Helpdesk | Help icon → `/schmidt/login/` | Schmidt SSO → `/tickets/my-tickets/` |
+| ColdFront (JHU) → Helpdesk | Help icon → `/jhu/login/` | JHU SSO → `/dashboard/` (staff) |
+| Helpdesk (Schmidt) → ColdFront | Portal icon → `/schmidt/login/` | Schmidt SSO → home |
+| Helpdesk (JHU) → ColdFront | Portal icon → `/jhu/login/` | JHU SSO → home |
+
+**URLs available on both apps:**
+
+| URL | Purpose |
+|---|---|
+| `/` | `home_or_sso` — authenticated users go to home; anonymous → JHU OIDC (default) |
+| `/login/` | Picker (JHU + Schmidt buttons) |
+| `/user/login/` | Same picker (alias) |
+| `/jhu/login/` | Direct to JHU OIDC |
+| `/schmidt/login/` | Direct to Schmidt OIDC |
+| `/oidc/jhu/authenticate/` | mozilla_django_oidc view for JHU |
+| `/oidc/schmidt/authenticate/` | mozilla_django_oidc view for Schmidt |
+| `/oidc/callback/` | Realm-aware callback (backend skips wrong realm) |
+
+**Post-login destinations on helpdesk:**
+- `is_staff=True` → `/dashboard/` (ticket management)
+- regular user → `/tickets/my-tickets/` (own tickets only)
+
+**Routing logic:**
+- ColdFront sidebar `Help` link uses `UserProfile.affiliation.code` →
+  [context_processors.py](coldfront/custom/plugins/arch_sync/context_processors.py)
+  appends `/jhu/login/` or `/schmidt/login/` to `SiteConfiguration.help_url`.
+- Helpdesk sidebar `Portal` link uses `session['helpdesk_oidc_realm']`
+  (or falls back to `ssci-*` username prefix) —
+  [helpdesk_extensions/context_processors.py](helpdesk/config/helpdesk_extensions/context_processors.py)
+  appends the same shortcut to `COLDFRONT_URL`.
+
+**Cross-realm token exchange:** both apps' OIDC backends
+(`JHU*Backend`, `Schmidt*Backend`) check `session[SESSION_REALM_KEY]`
+and return `None` when the code came from a different realm. Without
+this guard, the first backend in `AUTHENTICATION_BACKENDS` would try
+to exchange a Schmidt code at the JHU token endpoint and raise
+`HTTPError 400` before the Schmidt backend got a chance to handle it.
+
 ## start.sh — Stack Lifecycle Management
 
 Use `start.sh` to manage the full CLOACK stack. It wraps `docker compose` with idempotency checks, host bootstrapping, and service scoping.

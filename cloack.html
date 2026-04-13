@@ -790,6 +790,34 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">Yes</td>
 <td><code>JHU_ENTRA_ENABLED</code> flag for Azure AD federation</td>
 </tr>
+<tr>
+<td>Cross-app SSO (ColdFront ↔ Helpdesk)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Sidebar links route to correct realm; <code>home_or_sso</code> view + realm-skip guard in OIDC backends</td>
+</tr>
+<tr>
+<td>SSH OTP via Keycloak</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Per-login-node <code>otp_enabled</code>; ROPC for ext-<em>/ssci-</em>, Device Flow for JHU; <code>ssh-client-jhu</code>/<code>ssh-client-schmidt</code> clients</td>
+</tr>
+<tr>
+<td>Fake GPU support (dev)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>SlurmNode.gres</code> → <code>gres.conf</code> + <code>AccountingStorageTRES</code> + <code>TRESBillingWeights</code></td>
+</tr>
+<tr>
+<td>entra.env secrets pattern</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Gitignored file auto-sourced by <code>start.sh init</code> — persists Azure secrets across <code>clean-all</code></td>
+</tr>
 </tbody>
 </table>
 <h3>Scheduled Tasks (django-q)</h3>
