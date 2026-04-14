@@ -1203,17 +1203,11 @@ SLURM_NOOP=0
 </tbody>
 </table>
 <h3>Quick Start</h3>
-<pre><code class="language-bash"># Default: departments + BillingRate/AllocationBilling + SlurmJob
-./start.sh populate dev --partitions premium,scavenger,gpu
+<pre><code class="language-bash"># Default: departments only (billing data SKIPPED)
+./start.sh populate dev --partitions a100,l40s,h100,h200,low,med,high,scavenger
 
-# Só jobs, sem billing
-./start.sh populate dev --partitions premium,scavenger,gpu --skip-billing
-
-# Tudo incluindo SlurmAccountUsagePeriod
-./start.sh populate dev --partitions premium,scavenger,gpu --with-usage
-
-# Só departamentos + SlurmAccountUsagePeriod + SlurmJob (sem billing rates/configs)
-./start.sh populate dev --partitions premium,scavenger,gpu --skip-billing --with-usage
+# Generate fake BillingRate / AllocationBilling / credit pools too
+./start.sh populate dev --partitions a100,l40s,h100,h200,low,med,high,scavenger --with-billing
 </code></pre>
 <h3>What <code>populate</code> does (in order)</h3>
 <table>
@@ -1238,57 +1232,149 @@ SLURM_NOOP=0
 <tr>
 <td>3</td>
 <td><code>populate_fake_billing_data --no-usage</code></td>
-<td><code>BillingRate</code>, <code>AllocationBilling</code>, <code>HardwareCreditPool</code> (skipped with <code>--skip-billing</code>)</td>
-</tr>
-<tr>
-<td>4</td>
-<td><code>generate_sacct_dump.py</code> + <code>collect_sacct --clear</code></td>
-<td><code>SlurmJob</code> records (always runs)</td>
-</tr>
-<tr>
-<td>5</td>
-<td><code>generate_slurm_usage_data</code></td>
-<td><code>SlurmAccountUsagePeriod</code> (only with <code>--with-usage</code>)</td>
+<td><code>BillingRate</code>, <code>AllocationBilling</code>, <code>HardwareCreditPool</code> — <strong>only with <code>--with-billing</code></strong></td>
 </tr>
 </tbody>
 </table>
-<h3>Flags</h3>
+<h3>Defining billing manually (Admin)</h3>
+<p>For real (non-fake) data, use Django Admin (<code>/admin/arch_sync/...</code>). The full pricing pipeline:</p>
+<h4>1. <code>BillingRate</code> — <code>/admin/arch_sync/billingrate/</code></h4>
+<p>Catalog of rates with effective-date history. One row per rate type per cluster/partition.</p>
 <table>
 <thead>
 <tr>
-<th>Flag</th>
-<th><code>BillingRate</code>/<code>AllocationBilling</code></th>
-<th><code>SlurmAccountUsagePeriod</code></th>
-<th><code>SlurmJob</code></th>
+<th>Field</th>
+<th>Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><em>(default)</em></td>
-<td>✓</td>
-<td>✗</td>
-<td>✓</td>
+<td><code>cluster</code></td>
+<td>Apply to one cluster (blank = all clusters)</td>
 </tr>
 <tr>
-<td><code>--skip-billing</code></td>
-<td>✗</td>
-<td>✗</td>
-<td>✓</td>
+<td><code>partition_name</code></td>
+<td>Apply to one partition (blank = all partitions)</td>
 </tr>
 <tr>
-<td><code>--with-usage</code></td>
-<td>✓</td>
-<td>✓</td>
-<td>✓</td>
+<td><code>rate_type</code></td>
+<td><code>cpu_full</code>, <code>cpu_om</code>, <code>gpu_full</code>, <code>gpu_om</code>, <code>storage</code>, <code>backup</code></td>
 </tr>
 <tr>
-<td><code>--skip-billing --with-usage</code></td>
-<td>✗</td>
-<td>✓</td>
-<td>✓</td>
+<td><code>rate_per_unit</code></td>
+<td>Decimal $ per SU (CPU), GPU-hour, or TB-month</td>
+</tr>
+<tr>
+<td><code>effective_from</code> / <code>effective_to</code></td>
+<td>Date range — leave <code>effective_to</code> blank for current rate</td>
 </tr>
 </tbody>
 </table>
+<p>Two-track pricing: <code>*_full</code> for pay-per-use PIs, <code>*_om</code> (O&amp;M only, lower) for hardware-credit holders.</p>
+<h4>2. <code>AllocationBilling</code> — <code>/admin/arch_sync/allocationbilling/</code> (one per Allocation)</h4>
+<p>Per-allocation billing config. Auto-created by signal <code>_ensure_allocation_billing</code> on allocation save.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>io_number</code></td>
+<td>JHU service-center cost code (no IO → <code>is_billable=False</code>)</td>
+</tr>
+<tr>
+<td><code>department</code></td>
+<td>FK to Department — drives the Slurm account hierarchy</td>
+</tr>
+<tr>
+<td><code>billing_type</code></td>
+<td><code>pay_per_use</code> / <code>credit_holder</code> / <code>no_charge</code></td>
+</tr>
+<tr>
+<td><code>is_billable</code></td>
+<td>Single source of truth — <code>False</code> excludes from charges (still tracked)</td>
+</tr>
+<tr>
+<td><code>storage_tb</code> / <code>backup_tb</code></td>
+<td>Provisioned storage/backup in TB (multiplied by <code>storage</code>/<code>backup</code> rate per month)</td>
+</tr>
+<tr>
+<td><code>qos</code></td>
+<td>FK to SlurmQOS — overrides cluster default (e.g. <code>interactive</code>)</td>
+</tr>
+</tbody>
+</table>
+<h4>3. <code>HardwareCreditPool</code> — <code>/admin/arch_sync/hardwarecreditpool/</code></h4>
+<p>When a PI buys hardware, the dollar value is converted into prepaid compute credits. Credits cover compute hours only; O&amp;M is billed in cash via <code>*_om</code> rates.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>allocation</code></td>
+<td>FK to the Allocation receiving the credits</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>Free text (e.g. "4× H200 GPU purchase FY2026")</td>
+</tr>
+<tr>
+<td><code>hardware_value</code></td>
+<td>Dollar value of the hardware</td>
+</tr>
+<tr>
+<td><code>total_credits</code></td>
+<td>Compute hours granted (e.g. 87600 GPU-hours)</td>
+</tr>
+<tr>
+<td><code>credit_type</code></td>
+<td><code>cpu</code> / <code>gpu</code> / <code>storage</code> / <code>memory</code> (matches <code>BillingRate.rate_type</code> prefix)</td>
+</tr>
+<tr>
+<td><code>granted_date</code> / <code>expiry_date</code></td>
+<td>Validity window</td>
+</tr>
+</tbody>
+</table>
+<h4>4. <code>SlurmPartition.tres_billing_weights</code> — <code>/admin/arch_sync/slurmpartition/</code></h4>
+<p>Per-partition multiplier injected as <code>TRESBillingWeights=</code> in <code>slurm.conf</code>. Combined with <code>BillingRate</code> to compute the actual charge. Example: <code>CPU=1.0,Mem=0.25G,GRES/gpu=2.0</code> → 1 GPU-hour = 2 billing units.</p>
+<h4>5. <code>SlurmAccountUsagePeriod</code> — <code>/billing/report/</code>, <code>/billing/my-usage/</code></h4>
+<p>Auto-populated monthly aggregation: CPU hours, GPU hours, job count per (account, period). Drives invoices and PI dashboards. Generated by <code>collect_billing</code> (cron, daily).</p>
+<h4>Conversion formulas</h4>
+<table>
+<thead>
+<tr>
+<th>From</th>
+<th>To</th>
+<th>Formula</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dollars</td>
+<td>Slurm <code>GrpTRESMins=billing=</code></td>
+<td><code>$ × 1000 × 60</code> (1 SU = $0.001)</td>
+</tr>
+<tr>
+<td>Slurm SU</td>
+<td>Dollars</td>
+<td><code>SU × 0.001</code></td>
+</tr>
+<tr>
+<td>Hours</td>
+<td>Dollars</td>
+<td><code>hours × rate_per_unit</code> (looked up by <code>rate_type</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Helpers: <code>coldfront/custom/plugins/arch_sync/billing_queries.py</code> exports <code>dollars_to_grptres_mins</code>, <code>grptres_mins_to_dollars</code>, <code>hours_to_dollars</code>.</p>
 <h3>Individual commands (via docker exec)</h3>
 <p><strong>Import departments only:</strong></p>
 <pre><code class="language-bash"># From default CSV

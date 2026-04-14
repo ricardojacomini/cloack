@@ -818,6 +818,55 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">Yes</td>
 <td>Gitignored file auto-sourced by <code>start.sh init</code> — persists Azure secrets across <code>clean-all</code></td>
 </tr>
+<tr>
+<td>trello.env + Trello Browser</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Read-only Kanban/Cards/Lists/Gantt at <code>/extensions/trello/</code> (Frappe Gantt MIT); workspace/board discovery; <code>TrelloMemberMap</code> links Trello handles to helpdesk users for fairness routing</td>
+</tr>
+<tr>
+<td>Level 2 ticket UI</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>2-col layout, urgency banner (SLA/FQR/strike/overdue), summary bar, context sidebar with past tickets by user+resource, suggested collaborators, similar open tickets, skill match</td>
+</tr>
+<tr>
+<td>Note categorization + email classification</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>FollowUpMeta</code>: note kind (tech/RCA/internal/decision/customer_reply) + email class (FQR/strike 1-3/LQR); auto-paste <code>ResponseTemplate.body</code>; advances <code>TicketFollowUpTracker</code></td>
+</tr>
+<tr>
+<td>Delete approval queue</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>TicketDeletionRequest</code>: engineer must justify (min 10 chars); superuser-only queue at <code>/extensions/deletion-requests/</code> approves or rejects</td>
+</tr>
+<tr>
+<td>Queue pool</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>QueuePool(queue, members)</code>: Owner dropdown filtered to pool members; permission checks allow pool members to work tickets</td>
+</tr>
+<tr>
+<td>Collaborator permissions</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Non-owner/non-collab/non-pool staff blocked from adding comments; collaborators forced <code>public=False</code> (internal notes only); owners send customer emails</td>
+</tr>
+<tr>
+<td>Django admin save-at-top</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Sticky save bar injected via <code>{% block form_top %}</code> override — no scroll on long change forms</td>
+</tr>
 </tbody>
 </table>
 <h3>Scheduled Tasks (django-q)</h3>

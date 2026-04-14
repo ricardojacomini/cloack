@@ -306,7 +306,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
           <table class="table table-sm table-bordered">
             <colgroup><col style="width:220px;"><col></colgroup>
             <tbody>
-              <tr><td><strong>URL</strong></td><td><a href="{% url 'billing-report' %}">/billing/report/</a></td></tr>
+              <tr><td><strong>URL</strong></td><td><a href="/billing/report/">/billing/report/</a></td></tr>
               <tr><td><strong>Purpose</strong></td><td>Per-PI monthly usage reports showing CPU hours, GPU hours, job count, costs</td></tr>
               <tr><td><strong>Filters</strong></td><td>PI, project, user, affiliation, school, department, billing type, month</td></tr>
               <tr><td><strong>Actions per row</strong></td><td>Admin (Django Admin link), PDF (invoice download), TXT (text invoice), Detail (per-job breakdown)</td></tr>
@@ -318,7 +318,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
           <table class="table table-sm table-bordered">
             <colgroup><col style="width:220px;"><col></colgroup>
             <tbody>
-              <tr><td><strong>URL</strong></td><td><a href="{% url 'billing-rates' %}">/billing/rates/</a></td></tr>
+              <tr><td><strong>URL</strong></td><td><a href="/billing/rates/">/billing/rates/</a></td></tr>
               <tr><td><strong>Rate types</strong></td><td>cpu_full, cpu_om, gpu_full, gpu_om, storage, backup</td></tr>
               <tr><td><strong>Effective dates</strong></td><td>Each rate has an effective date for versioning (new rates don't affect past invoices)</td></tr>
               <tr><td><strong>Used by</strong></td><td>Job Metrics cost calculations, Submit Job estimates, CLI cost filter, invoices</td></tr>
@@ -329,7 +329,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
           <table class="table table-sm table-bordered">
             <colgroup><col style="width:220px;"><col></colgroup>
             <tbody>
-              <tr><td><strong>URL</strong></td><td><a href="{% url 'billing-credits' %}">/billing/credits/</a></td></tr>
+              <tr><td><strong>URL</strong></td><td><a href="/billing/credits/">/billing/credits/</a></td></tr>
               <tr><td><strong>Purpose</strong></td><td>Track hardware purchases converted to compute credits. Credits offset compute charges, not O&amp;M.</td></tr>
               <tr><td><strong>Fields</strong></td><td>PI, amount ($), purchase date, expiration, hardware description, notes</td></tr>
             </tbody>
@@ -1093,7 +1093,7 @@ Submitted batch job 43</pre>
 <span class="text-warning">[BILLING]</span> Job cancelled.</pre>
 
           <h6>Web UI — Submit Job</h6>
-          <p>Available at <a href="{% url 'submit-job' %}">/billing/submit/</a> for all authenticated users.</p>
+          <p>Available at <a href="/jobs/submit/">/jobs/submit/</a> for all authenticated users.</p>
           <table class="table table-sm table-bordered">
             <tbody>
               <tr><td><strong>Free partition</strong></td><td>Submits immediately with <span class="badge badge-info">No charge</span> badge — no confirmation modal</td></tr>
@@ -1115,7 +1115,24 @@ Submitted batch job 43</pre>
               <tr><td>3. Accept</td><td><code>job_submit.lua</code> (controller)</td><td>Enforces ACCEPT_COST=1 for batch jobs</td><td>Yes (rejects)</td></tr>
               <tr><td>4. Cap check</td><td>Slurm native</td><td><code>GrpTRESMins=billing</code> on account blocks when cap reached</td><td>Yes (queues/rejects)</td></tr>
             </tbody>
-          </table></div>
+          </table>
+<hr>
+<h6><i class="fas fa-plug"></i> Submit jobs programmatically (REST API)</h6>
+<p>Instead of SSH + <code>sbatch</code>, you can submit jobs via the ColdFront REST
+proxy using your personal API token. The proxy validates your allocation and
+forwards the job to slurmrestd with the cluster JWT — you never see the
+Slurm secret.</p>
+<ul>
+  <li>Generate your token on the <a href="/user/user-profile/">User Profile</a> page.</li>
+  <li>Full shell &amp; Python examples (estimate + submit with cost confirmation):
+      <a href="/user/api-token/help/"><strong>REST API Token — How to use</strong></a>.</li>
+  <li>Endpoints: <code>POST /api/v1/jobs/estimate/</code> (dry-run) and
+      <code>POST /api/v1/jobs/submit/</code> (real submission).</li>
+  <li>Paid allocations require <code>"accept_cost": true</code> +
+      <code>"estimated_cost_usd"</code> matching the server within ±5%.
+      Free allocations (scavenger, Schmidt, no IO Number) skip the confirmation.</li>
+</ul>
+</div>
                   </div>
                 </div>
                 
@@ -1129,7 +1146,7 @@ Submitted batch job 43</pre>
                     </h5>
                   </div>
                   <div id="c16" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>Available at <a href="{% url 'service-health' %}">/user/service-health/</a>. Shows real-time status of all CLOACK services.</p>
+                    <div class="card-body"><p>Available at <a href="/user/service-health/">/user/service-health/</a>. Shows real-time status of all CLOACK services.</p>
 
           <h6>Service Checks</h6>
           <table class="table table-sm table-bordered">
@@ -1832,6 +1849,73 @@ QoS records (<code>scavenger</code>, <code>interactive</code>, <code>normal</cod
 <p>Each <code>SlurmCluster</code> gets its own copy of the partition/QoS set.
 Run the populate command after creating a new cluster, or use the admin to add per-cluster.
 <code>slurm_sync</code> writes the resulting <code>slurm.conf</code> and bootstraps QoS in <code>slurmdbd</code>.</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h29">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c29"
+                              aria-expanded="false">Billing Models — BillingRate, AllocationBilling, HardwareCreditPool</button>
+                    </h5>
+                  </div>
+                  <div id="c29" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>End-to-end billing pipeline. Each link in the chain is editable from Django Admin.</p>
+
+<h6>1. <code>BillingRate</code> — rate catalog</h6>
+<p><a href="/admin/arch_sync/billingrate/">/admin/arch_sync/billingrate/</a></p>
+<ul>
+  <li><strong>cluster / partition_name</strong> — scope (blank = all clusters / all partitions)</li>
+  <li><strong>rate_type</strong> — <code>cpu_full</code>, <code>cpu_om</code>, <code>gpu_full</code>, <code>gpu_om</code>, <code>storage</code>, <code>backup</code></li>
+  <li><strong>rate_per_unit</strong> — $ per SU (CPU), GPU-hour, or TB-month</li>
+  <li><strong>effective_from / effective_to</strong> — date-versioned. Leave <code>effective_to</code> blank for active rate.</li>
+</ul>
+<p>Two-track pricing: <code>*_full</code> for pay-per-use PIs (compute + O&amp;M bundled). <code>*_om</code> for hardware-credit holders (lower — O&amp;M only).</p>
+
+<h6>2. <code>AllocationBilling</code> — per-allocation config (one per Allocation)</h6>
+<p><a href="/admin/arch_sync/allocationbilling/">/admin/arch_sync/allocationbilling/</a> — auto-created by signal <code>_ensure_allocation_billing</code> on allocation save.</p>
+<ul>
+  <li><strong>io_number</strong> — JHU service-center cost code. No IO &rarr; <code>is_billable=False</code> automatically.</li>
+  <li><strong>department</strong> — drives the Slurm account hierarchy (root &rarr; school &rarr; dept &rarr; PI &rarr; project)</li>
+  <li><strong>billing_type</strong> — <code>pay_per_use</code> / <code>credit_holder</code> / <code>no_charge</code></li>
+  <li><strong>is_billable</strong> — single source of truth for whether the allocation is charged. <code>False</code> = tracked but $0.</li>
+  <li><strong>storage_tb / backup_tb</strong> — provisioned TB (multiplied by <code>storage</code>/<code>backup</code> rate per month)</li>
+  <li><strong>qos</strong> — FK to SlurmQOS; overrides cluster default (e.g. <code>interactive</code>)</li>
+</ul>
+<p>Auto-flags <code>is_billable=False</code> + <code>billing_type=no_charge</code> for: default allocations, Schmidt PIs (<code>ssci-*</code>), allocations without IO Number.</p>
+
+<h6>3. <code>HardwareCreditPool</code> — prepaid credits from hardware purchase</h6>
+<p><a href="/admin/arch_sync/hardwarecreditpool/">/admin/arch_sync/hardwarecreditpool/</a></p>
+<ul>
+  <li><strong>allocation</strong> — FK to the Allocation receiving the credits</li>
+  <li><strong>hardware_value</strong> — dollar value of the hardware</li>
+  <li><strong>total_credits</strong> — compute hours granted (e.g. 87600 GPU-hours)</li>
+  <li><strong>credit_type</strong> — <code>cpu</code>, <code>gpu</code>, <code>storage</code>, <code>memory</code> (matches <code>BillingRate.rate_type</code> prefix)</li>
+  <li><strong>granted_date / expiry_date</strong> — validity window</li>
+</ul>
+<p>Credits cover <strong>compute only</strong>. O&amp;M is always billed in cash via <code>*_om</code> rates.</p>
+
+<h6>4. <code>SlurmPartition.tres_billing_weights</code> — per-partition multiplier</h6>
+<p><a href="/admin/arch_sync/slurmpartition/">/admin/arch_sync/slurmpartition/</a></p>
+<p>Injected as <code>TRESBillingWeights=</code> in <code>slurm.conf</code>. Example: <code>CPU=1.0,Mem=0.25G,GRES/gpu=2.0</code> &rarr; 1 GPU-hour = 2 billing units. Combined with <code>BillingRate</code> at sreport time.</p>
+
+<h6>5. <code>SlurmAccountUsagePeriod</code> — monthly usage aggregate</h6>
+<p><a href="/billing/report/">/billing/report/</a> &middot; <a href="/billing/my-usage/">/billing/my-usage/</a></p>
+<p>Auto-generated by <code>collect_billing</code> (cron, daily). Drives invoices and the PI Usage &amp; Billing dashboard.</p>
+
+<h6>Conversion formulas</h6>
+<table class="table table-sm">
+  <tr><th>From</th><th>To</th><th>Formula</th></tr>
+  <tr><td>Dollars</td><td>Slurm <code>GrpTRESMins=billing=</code></td><td><code>$ &times; 1000 &times; 60</code> (1 SU = $0.001)</td></tr>
+  <tr><td>Slurm SU</td><td>Dollars</td><td><code>SU &times; 0.001</code></td></tr>
+  <tr><td>Hours</td><td>Dollars</td><td><code>hours &times; rate_per_unit</code> (by <code>rate_type</code>)</td></tr>
+</table>
+<p>Helpers in <code>billing_queries.py</code>: <code>dollars_to_grptres_mins()</code>, <code>grptres_mins_to_dollars()</code>, <code>hours_to_dollars()</code>.</p>
+
+<h6>Dev quick start</h6>
+<pre>./start.sh populate dev --partitions a100,l40s,h100,h200,low,med,high,scavenger --with-billing</pre></div>
                   </div>
                 </div>
                 
