@@ -1786,6 +1786,100 @@ sudden spike in <code>cli</code> rows is the signal to regenerate the token.</p>
                 
 
                 <div class="card">
+                  <div class="card-header" id="h30">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c30"
+                              aria-expanded="false">Troubleshooting: Node shows down* / NOT_RESPONDING</button>
+                    </h5>
+                  </div>
+                  <div id="c30" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>A node appearing as <code>down*</code> or <code>idle*</code> in
+<code>sinfo</code> (asterisk suffix) means <strong>slurmctld is not receiving
+a heartbeat from slurmd</strong>. This is independent from the container
+state — <code>docker ps</code> can still show the node container as
+<code>Up</code> while Slurm considers it unreachable, because the
+<code>slurmd</code> process can hang while its TCP socket (port 6818) remains
+open.</p>
+
+<h6>Symptoms</h6>
+<ul>
+  <li><code>sinfo</code> shows <code>node-XX down*</code> or
+      <code>idle*</code>.</li>
+  <li><code>scontrol show node &lt;name&gt;</code> reports
+      <code>State=... NOT_RESPONDING</code> with
+      <code>Reason=Not responding [root@...]</code>.</li>
+  <li><code>docker ps</code> shows the node container as
+      <code>Up</code>.</li>
+</ul>
+
+<h6>Diagnostic flow</h6>
+<ol>
+  <li><strong>Inspect Slurm state</strong>:
+      <pre>docker exec dev-slurmctld scontrol show node &lt;name&gt;</pre></li>
+  <li><strong>TCP reachability from the controller</strong> (port 6818):
+      <pre>docker exec dev-slurmctld bash -c "&lt;/dev/tcp/&lt;name&gt;/6818" &amp;&amp; echo OK</pre></li>
+  <li><strong>Is slurmd process actually alive?</strong> Compare the last
+      log line timestamp with <code>date -u</code> inside the node:
+      <pre>docker exec dev-&lt;name&gt; date -u
+docker exec dev-&lt;name&gt; tail -5 /var/log/slurm/slurmd.log</pre>
+      A log "frozen" several hours behind the current UTC time means
+      <code>slurmd</code> has hung even though the socket is still
+      listening.</li>
+  <li><strong>Munge sanity</strong> (only if TCP is OK but auth might be
+      broken):
+      <pre>docker exec dev-slurmctld bash -c "echo hi | munge | unmunge"</pre></li>
+</ol>
+
+<h6>Resolution matrix</h6>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr><th>Symptom</th><th>Fix</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>slurmd log is <em>live</em> (recent timestamps), node just stuck
+          in <code>DOWN</code> after a previous container recreate.</td>
+      <td><pre>docker exec dev-slurmctld scontrol update \
+  NodeName=&lt;name&gt; State=RESUME Reason=""</pre></td>
+    </tr>
+    <tr>
+      <td>slurmd log is <em>frozen</em> (no new entries for hours) but the
+          TCP port is still open — the daemon hung.</td>
+      <td><pre>docker restart dev-&lt;name&gt;</pre>
+          Verify with <code>sinfo -N</code> that the asterisk is gone.</td>
+    </tr>
+    <tr>
+      <td>TCP fails (<code>Connection refused</code>) or DNS fails.</td>
+      <td>Check the Docker network
+          (<code>docker network inspect arch_default</code>) and recreate
+          the node container.</td>
+    </tr>
+    <tr>
+      <td>Munge auth fails on either side.</td>
+      <td>Re-sync the munge key: restart <code>munge-key</code> init
+          container, then restart <code>slurmctld</code> and all
+          <code>dev-&lt;node&gt;</code> containers.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h6>Why this happens</h6>
+<p>On container recreate, slurmctld marks disconnected nodes as
+<code>DOWN</code>. The <code>slurmd</code> entrypoint attempts a background
+<code>scontrol update state=resume</code> on startup — if that hook is
+missing from the image or was skipped, the node stays <code>down*</code>
+until manually resumed. Separately, a long-lived <code>slurmd</code> can
+hang (rare) without exiting; the listening socket persists, so the only
+reliable signal is a stale log file timestamp.</p>
+
+<p><strong>Reference:</strong> CLAUDE.md &rarr; <em>Known Pitfalls</em>
+&rarr; "Nodes go down after container recreate".</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h27">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
