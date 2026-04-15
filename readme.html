@@ -390,6 +390,137 @@ SLURM_NOOP=0
 <p><strong>Why they must stay separate:</strong> if both use the same password, anyone who knows the ColdFront admin login also has full LDAP admin access (create/delete users, modify ACLs, read all attributes). In production this is a security risk.</p>
 <p>Other password variables: <code>LDAP_ROOT_PASS</code> (LDAP <code>cn=root</code> — used internally by <code>replace_ldif.sh</code> for LDIF imports), <code>POSTGRESQL_PASSWORD</code>, <code>COLDFRONT_DB_PASSWORD</code>, <code>KEYCLOAK_DB_PASSWORD</code>.</p>
 <h3>Deploy flows</h3>
+<h4><code>update</code> vs <code>deploy</code> — quick reference</h4>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>When</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>./start.sh update</code></td>
+<td><strong>Dia-a-dia em prod</strong></td>
+<td>Git pull + restart. ~15s downtime do coldfront, nenhum dado é perdido. Hot-reload via bind mounts cobre mudanças de código Python.</td>
+</tr>
+<tr>
+<td><code>./start.sh deploy dev -y</code></td>
+<td>Bootstrap inicial, reset completo pra dev/test, ou fresh install em máquina nova</td>
+<td><strong>Destrutivo por design.</strong> Wipes containers/volumes/BASE_DATA/BASE_ETC and rebuilds everything. ~5–10 min.</td>
+</tr>
+<tr>
+<td><code>./start.sh rebuild [dev]</code></td>
+<td>Quando <code>requirements.txt</code> ou <code>Dockerfile</code> mudam</td>
+<td>Rebuild das imagens sem apagar DB/LDAP/volumes.</td>
+</tr>
+</tbody>
+</table>
+<h4>What <code>update</code> preserves (no data loss)</h4>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Where it lives</th>
+<th>Touched by <code>update</code>?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tickets</strong> (helpdesk)</td>
+<td><code>${BASE_DATA}/helpdesk/...</code> + PostgreSQL volume</td>
+<td>❌ No</td>
+</tr>
+<tr>
+<td><strong>Allocations / Projects / Users</strong> (ColdFront)</td>
+<td>PostgreSQL volume (DB <code>coldfront</code>)</td>
+<td>❌ No — <code>migrate</code> applies schema changes, data intact</td>
+</tr>
+<tr>
+<td><strong>Usuários LDAP</strong></td>
+<td><code>${BASE_DATA}/openldap/ldap/</code> + <code>slapd.d/</code></td>
+<td>❌ No</td>
+</tr>
+<tr>
+<td><strong>Keycloak realms/users</strong></td>
+<td>PostgreSQL (DB <code>keycloak</code>)</td>
+<td>❌ No</td>
+</tr>
+<tr>
+<td><strong>Slurm jobs history</strong></td>
+<td>PostgreSQL (DB <code>slurm_jobs</code>) + MariaDB (slurmdbd)</td>
+<td>❌ No</td>
+</tr>
+<tr>
+<td><strong>Home/Scratch filesystem</strong></td>
+<td><code>${HOME_DATA}</code> / <code>${SCRATCH_DATA}</code></td>
+<td>❌ No</td>
+</tr>
+<tr>
+<td><strong>Slurm config</strong></td>
+<td><code>${BASE_DATA}/slurm/...</code></td>
+<td>❌ No</td>
+</tr>
+<tr>
+<td><strong>JWT tokens</strong></td>
+<td><code>${BASE_ETC}/slurm/slurm_jwt.token</code></td>
+<td>❌ No</td>
+</tr>
+</tbody>
+</table>
+<p><code>update</code> only restarts the application containers (coldfront, qcluster, helpdesk). All named volumes and bind mounts stay untouched — the restart is a stop/start, not a recreate. Only the Python process is restarted to load the new code from the bind mount.</p>
+<p><strong>Single exception:</strong> if a Django migration intentionally drops data (<code>RunPython(drop_old_table)</code>), it runs. Review the diff before large updates. In contrast, <code>deploy dev -y</code> wipes <strong>all</strong> of the above — that's why the name "deploy" is for initial setup, not routine updates.</p>
+<h4>Is <code>.env</code> preserved across commands?</h4>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th><code>.env</code> preserved?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>./start.sh update</code></td>
+<td>✅ <strong>Yes, 100%</strong> — the file is never touched (only <code>git pull</code> + <code>docker restart</code>).</td>
+</tr>
+<tr>
+<td><code>./start.sh start [dev]</code></td>
+<td>✅ <strong>Yes</strong> — <code>write_env()</code> only <strong>appends missing keys</strong> (<a href="start.sh#L367-L369">start.sh:367-369</a>). Existing values are intact.</td>
+</tr>
+<tr>
+<td><code>./start.sh init [dev]</code></td>
+<td>⚠️ <strong>Regenerated</strong> — but the previous <code>.env</code> is auto-backed up to <code>.env.YYYYMMDDHHMMSS</code> first (<a href="start.sh#L973-L977">start.sh:973-977</a>). Every <code>deploy</code> runs <code>init</code>, so you always have the backup.</td>
+</tr>
+<tr>
+<td><code>./start.sh deploy [dev] -y</code></td>
+<td>⚠️ Same as <code>init</code> — <code>.env</code> is regenerated; <code>.env.&lt;timestamp&gt;</code> saved.</td>
+</tr>
+<tr>
+<td><code>./start.sh clean-all</code></td>
+<td>✅ <strong>Not touched</strong> — wipes <code>$BASE_DATA</code>/<code>$BASE_ETC</code> but leaves <code>.env</code> at the repo root (it's gitignored).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>For custom secrets</strong> (Entra/Azure credentials, Trello API keys, OIDC client secrets), use separate files:</p>
+<ul>
+<li><code>entra.env</code> (gitignored, chmod 600) — auto-sourced by <code>init</code> <strong>before</strong> <code>write_env</code>, so values there override any defaults generated.</li>
+<li><code>trello.env</code> (gitignored, chmod 600) — same pattern.</li>
+</ul>
+<p>This way your secrets survive every <code>init</code> / <code>deploy</code> — the generated <code>.env</code> picks them up automatically. The <code>.env</code> itself is considered regenerable; secrets sensitive enough to survive a wipe belong in <code>entra.env</code> / <code>trello.env</code>.</p>
+<p><strong>Automatic pre-update backup.</strong> <code>./start.sh update</code> now snapshots postgres + openldap to <code>${BASE_DATA}/backup/</code> before running migrations:</p>
+<pre><code>${BASE_DATA}/backup/postgres_YYYY-MM-DD_HHMMSS.sql   # pg_dumpall (all DBs)
+${BASE_DATA}/backup/ldap_YYYY-MM-DD_HHMMSS.ldif     # slapcat -n 1
+</code></pre>
+<p>Retention is manual — delete older files as needed. To restore a bad update:</p>
+<pre><code class="language-bash"># Postgres
+docker exec -i postgres psql -U postgres &lt; ${BASE_DATA}/backup/postgres_*.sql
+
+# OpenLDAP (offline restore)
+docker stop openldap
+docker exec openldap slapadd -n 1 -l /var/backups/ldap_*.ldif
+docker start openldap
+</code></pre>
 <h4>A. Fresh deploy (no migration)</h4>
 <p>Full ordered sequence:</p>
 <pre><code class="language-bash">./start.sh clean-all                                                # wipe arch volumes/images
