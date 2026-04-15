@@ -867,6 +867,27 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">Yes</td>
 <td>Sticky save bar injected via <code>{% block form_top %}</code> override — no scroll on long change forms</td>
 </tr>
+<tr>
+<td>Ticket Analytics inline</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Collapsible <code>&lt;details&gt;</code> section on <code>/dashboard/</code> lazy-loaded via <code>fetch(?partial=1)</code>; pie chart (top 10) + sortable table grouped by Department/PI/Resource with <strong>GPU_HRS</strong> + <strong>JOBS</strong> columns from ColdFront REST API (<code>GET /api/v1/stats/slurm/</code>). Window selector (7/30/90/365d), hide-unassigned toggle, <code>HelpdeskAnalyticsConfig</code> staff-access toggle. Graceful degradation: GPU/JOBS columns show <code>—</code> when ColdFront offline. Standalone page at <code>/extensions/analytics/</code> still available.</td>
+</tr>
+<tr>
+<td>GPU auto-link on new tickets</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>auto_link.py</code>: regex <code>\b(a100\|h100\|h200\|l40s)\b</code> scanned on <code>new_ticket_done</code> signal; creates <code>TicketResourceLink(kind=resource, source=auto)</code> — populates GPU columns in Analytics without manual linking. Idempotent.</td>
+</tr>
+<tr>
+<td>Password change delegation</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>HELPDESK_SHOW_CHANGE_PASSWORD=True</code> keeps the dropdown item; clicking it shows a banner page (no form) with a button to <code>${COLDFRONT_URL}/user/user-profile/</code>. Password management stays in ColdFront/identity providers.</td>
+</tr>
 </tbody>
 </table>
 <h3>Scheduled Tasks (django-q)</h3>
