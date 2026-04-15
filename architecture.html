@@ -228,9 +228,9 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 
 <div class="ca-flow">&darr;</div>
 
-<!-- ══════ SLURM LAYER ══════ -->
+<!-- ══════ CONTROLLER PLANE ══════ -->
 <div class="ca-layer">
-  <div class="ca-layer-title">Slurm Cluster</div>
+  <div class="ca-layer-title">Slurm Controller Plane</div>
   <div class="ca-grid">
     <div class="ca-block b-teal" data-toggle="modal" data-target="#modal-dev-slurmctld">
       <h6>slurmctld</h6>
@@ -244,46 +244,75 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
       <h6>slurmrestd</h6>
       <small>REST API<br>:6820</small>
     </div>
-    <div class="ca-block b-green" data-toggle="modal" data-target="#modal-dev-compute">
-      <h6>Compute Nodes</h6>
-      <small>cn-01..N &middot; SSSD<br>Munge + SPANK</small>
-    </div>
+  </div>
+</div>
+
+<div class="ca-flow">&darr;</div>
+
+<!-- ══════ HEAD / LOGIN NODES ══════ -->
+<div class="ca-layer">
+  <div class="ca-layer-title">Head / Login Nodes</div>
+  <div class="ca-grid">
     <div class="ca-block b-blue" data-toggle="modal" data-target="#modal-dev-login">
-      <h6>Login Node</h6>
-      <small>SSH &middot; sbatch<br>cli_filter.lua</small>
+      <h6>login01</h6>
+      <small>SSH &middot; sbatch &middot; OTP<br>cli_filter.lua</small>
     </div>
   </div>
 </div>
 
 <div class="ca-flow">&darr;</div>
 
-<!-- ══════ PARTITIONS ══════ -->
+<!-- ══════ WORKER NODES (grouped by partition) ══════ -->
 <div class="ca-layer">
-  <div class="ca-layer-title">Partitions &amp; Allocation Tiers</div>
+  <div class="ca-layer-title">Worker Nodes &mdash; grouped by partition</div>
+
+  <div style="font-size: 0.8rem; color: #c8d6e5; padding: 4px 12px 8px;">CPU tiers (differ in <code>TRESBillingWeights</code>)</div>
   <div class="ca-grid">
     <div class="ca-block b-green" data-toggle="modal" data-target="#modal-dev-low">
       <span class="ca-badge bg-green">CPU</span>
       <h6>low</h6>
-      <small>Tier 1 &middot; CPU=1.0</small>
+      <small>Tier 1 &middot; CPU=1.0<br>cn-01, cn-02</small>
     </div>
     <div class="ca-block b-orange" data-toggle="modal" data-target="#modal-dev-med">
       <span class="ca-badge bg-orange">CPU</span>
       <h6>med</h6>
-      <small>Tier 2 &middot; CPU=2.0</small>
+      <small>Tier 2 &middot; CPU=2.0<br>cn-03</small>
     </div>
     <div class="ca-block b-red" data-toggle="modal" data-target="#modal-dev-high">
       <span class="ca-badge bg-red">CPU</span>
       <h6>high</h6>
-      <small>Tier 3 &middot; CPU=4.0</small>
+      <small>Tier 3 &middot; CPU=4.0<br>cn-04</small>
+    </div>
+  </div>
+
+  <div style="font-size: 0.8rem; color: #c8d6e5; padding: 8px 12px 4px;">GPU partitions (one per hardware type)</div>
+  <div class="ca-grid">
+    <div class="ca-block b-purple" data-toggle="modal" data-target="#modal-dev-a100">
+      <span class="ca-badge bg-purple">GPU</span>
+      <h6>a100</h6>
+      <small>NVIDIA A100</small>
     </div>
     <div class="ca-block b-purple" data-toggle="modal" data-target="#modal-dev-a100">
       <span class="ca-badge bg-purple">GPU</span>
-      <h6>a100 / l40s / h100 / h200</h6>
-      <small>One per hardware</small>
+      <h6>l40s</h6>
+      <small>NVIDIA L40S</small>
+    </div>
+    <div class="ca-block b-purple" data-toggle="modal" data-target="#modal-dev-a100">
+      <span class="ca-badge bg-purple">GPU</span>
+      <h6>h100</h6>
+      <small>NVIDIA H100</small>
+    </div>
+    <div class="ca-block b-purple" data-toggle="modal" data-target="#modal-dev-a100">
+      <span class="ca-badge bg-purple">GPU</span>
+      <h6>h200</h6>
+      <small>NVIDIA H200</small>
     </div>
   </div>
+
   <div style="font-size: 0.8rem; color: #c8d6e5; padding: 8px 12px;">
-    QoS: <code>scavenger</code> (free, preemptible) &middot; <code>interactive</code> (priority=1000, max_wall=4h, capped) &middot; <code>normal</code>/<code>premium</code> (legacy paid)
+    Workers run <code>slurmd</code> + SSSD + Munge + SPANK. QoS: <code>scavenger</code> (free, preemptible) &middot;
+    <code>interactive</code> (priority=1000, max_wall=4h, capped) &middot;
+    <code>normal</code>/<code>premium</code> (legacy paid).
   </div>
 </div>
 

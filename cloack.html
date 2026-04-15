@@ -802,7 +802,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Per-login-node <code>otp_enabled</code>; ROPC for ext-<em>/ssci-</em>, Device Flow for JHU; <code>ssh-client-jhu</code>/<code>ssh-client-schmidt</code> clients</td>
+<td>Per-login-node <code>otp_mode</code> (disabled/mixed/device_only/ropc_only); <code>mixed</code>: ssci-<em>/ext-</em>/JHU admins (cn=admin group) via ROPC terminal (senha + OTP), JHED via Device Flow browser; 2-prompt PAM via <code>pam_kc_ssh.so</code>; Keycloak Direct Grant + OTP Form automated in <code>configure-keycloak.sh</code></td>
 </tr>
 <tr>
 <td>Fake GPU support (dev)</td>
