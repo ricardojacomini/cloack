@@ -252,6 +252,16 @@ FORCE_BUILD=1 FORCE_REDEPLOY=1 ./start.sh start dev
 <li>Wait for all services to become healthy</li>
 </ol>
 <p><strong>Note:</strong> LDAP migration from <code>migration/ldap-*.cat</code> is <strong>not</strong> done during <code>start</code>. Use <code>./start.sh ldap-reinit [dev]</code> after the stack is healthy (see Deploy flows below).</p>
+<p>Generate an LDIF dump from the source cluster:</p>
+<pre><code class="language-bash">docker exec openldap slapcat &gt; migration/ldap-$(date +%F).cat
+</code></pre>
+<p>Copy <code>migration/ldap-*.cat</code> to the target repo and run <code>./start.sh ldap-reinit</code>. The restore preserves:</p>
+<ul>
+<li>UIDs and GIDs</li>
+<li>Password hashes (SSHA)</li>
+<li>PI groups and memberships</li>
+<li>Affiliation counters are auto-calibrated</li>
+</ul>
 <h3>Native docker compose diagnostics</h3>
 <p>The script intentionally omits status/log/stats commands — use <code>docker compose</code> directly:</p>
 <pre><code class="language-bash">docker compose ps                   # service status + health
