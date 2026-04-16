@@ -775,13 +775,13 @@ docker exec openldap ldapsearch -H ldapi:/// -x \
 <tbody>
 <tr>
 <td><strong>CPU (by billing tier)</strong></td>
-<td><code>low</code>, <code>med</code>, <code>high</code></td>
-<td>Differ in <code>TRESBillingWeights</code> (cost per core-hour). Tier code on <code>BillingRate</code> joins to the partition.</td>
+<td><code>low</code>, <code>med</code>, <code>high</code>, <code>premium</code></td>
+<td>Differ in <code>TRESBillingWeights</code> (cost per core-hour). Tier code on <code>BillingRate</code> joins to the partition. <code>premium</code> spans all CPU nodes with a 7-day wall and excludes <code>interactive</code> QoS.</td>
 </tr>
 <tr>
 <td><strong>GPU (by hardware)</strong></td>
 <td><code>a100</code>, <code>l40s</code>, <code>h100</code>, <code>h200</code></td>
-<td>Submit to the partition matching the GPU type the job needs. <code>kind=gpu</code>, <code>hardware=&lt;model&gt;</code>.</td>
+<td>Submit to the partition matching the GPU type the job needs. <code>kind=gpu</code>, <code>hardware=&lt;model&gt;</code>. Default <code>a100</code> uses <code>gpu-01</code> with <code>Gres=gpu:2</code> and <code>TRESBillingWeights="GRES/gpu=2.0"</code>.</td>
 </tr>
 </tbody>
 </table>
