@@ -2101,6 +2101,44 @@ OK
 <h2>Multi-Cluster Architecture</h2>
 <p>CLOACK supports two deployment models for scaling beyond a single cluster. Both use the same ColdFront codebase — the <code>SlurmCluster</code> model and <code>-M</code> flag routing are already implemented.</p>
 <p><strong>Docker Multi-Cluster:</strong> Each cluster gets its own prefixed containers (<code>{name}-slurmctld</code>, <code>{name}-cn-01</code>) and volumes (<code>{name}_slurm_state</code>). Shared services (<code>slurmdbd</code>, <code>slurmrestd</code>, <code>slurm-db</code>) run as single instances supporting federation. Multiple clusters can run simultaneously.</p>
+<p><strong>Topology matrix (<code>cluster_type</code> × <code>core_services</code>):</strong> <code>SlurmCluster</code> carries two independent enums that together describe all four federation layouts. <code>cluster_type</code> says where <code>slurmctld</code> + compute nodes live; <code>core_services</code> says where <code>slurmdbd</code> + <code>slurmrestd</code> live. For dedicated-core clusters, <code>slurmdbd_host</code> (host:port) is used by the Service Health TCP probe.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>cluster_type</th>
+<th>core_services</th>
+<th>Scenario</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>container</td>
+<td>shared_container</td>
+<td>Dev docker default</td>
+</tr>
+<tr>
+<td>B</td>
+<td>bare_metal</td>
+<td>dedicated</td>
+<td>Prod bare-metal (own slurmdbd/slurmrestd)</td>
+</tr>
+<tr>
+<td>C</td>
+<td>container</td>
+<td>dedicated</td>
+<td>Docker compute + external DBD</td>
+</tr>
+<tr>
+<td>D</td>
+<td>bare_metal</td>
+<td>shared_container</td>
+<td>Hybrid: bare-metal compute + shared Docker core</td>
+</tr>
+</tbody>
+</table>
+<p>The Admin &gt; Slurm Clusters page ships a <strong>Hybrid</strong> preset that pre-fills topology D (<code>bare_metal</code> + <code>shared_container</code>, <code>slurmrestd_url=http://slurmrestd:6820</code>). Existing records migrated via <code>0086_slurmcluster_core_services</code> default to <code>shared_container</code> for container clusters and <code>dedicated</code> for bare-metal.</p>
 <h3>Model A — Single Cluster (Recommended for Start)</h3>
 <p>One slurmctld manages all nodes. Different hardware is separated by partitions.</p>
 <pre><code>                    ┌─────────────┐
