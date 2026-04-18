@@ -840,6 +840,27 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td>Sidebar links route to correct realm; <code>home_or_sso</code> view + realm-skip guard in OIDC backends</td>
 </tr>
 <tr>
+<td>Portal landing page</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>/</code> redirects anonymous users to <code>/portal/</code> (JHU + Schmidt + ARCH Helpdesk cards); legacy <code>/user/login/</code> picker kept for tests; logout lands on <code>/</code></td>
+</tr>
+<tr>
+<td>OIDC username normalization (portal+helpdesk)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Both backends strip <code>@domain</code> from claims and dedupe JHU alias domains (<code>jhu.edu</code> ↔ <code>jhmi.edu</code> ↔ <code>jh.edu</code>); <code>normalize_oidc_usernames</code> Django command collapses legacy <code>user@domain</code> rows on every <code>start.sh helpdesk start</code></td>
+</tr>
+<tr>
+<td>LDAP cn=admin → Keycloak master console</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>OIDC brokering from JHU realm into master; composite role <code>limited-admin</code> (45 sub-roles across master/jhu/schmidt <code>*-realm</code> clients, no super-admin/create-realm/impersonation); <code>admin-only-gate</code> IdP mapper gates on inbound JHU <code>realm_access.roles</code> containing <code>admin</code>; non-admin JHU users get zero master roles → Forbidden; unconditional amber policy banner on the admin console</td>
+</tr>
+<tr>
 <td>SSH OTP via Keycloak</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>

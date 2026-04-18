@@ -150,14 +150,19 @@ realm the user is already authenticated in.
 
 | URL | Purpose |
 |---|---|
-| `/` | `home_or_sso` — authenticated users go to home; anonymous → JHU OIDC (default) |
-| `/login/` | Picker (JHU + Schmidt buttons) |
-| `/user/login/` | Same picker (alias) |
+| `/` | `home_or_sso` — authenticated users go to home; anonymous → `/portal/` |
+| `/portal/` | Branded landing (JHU + Schmidt + ARCH Helpdesk cards) — default front door |
+| `/login/` | Legacy picker (JHU + Schmidt buttons) — kept for tests |
+| `/user/login/` | Same picker (alias) — kept for tests |
 | `/jhu/login/` | Direct to JHU OIDC |
 | `/schmidt/login/` | Direct to Schmidt OIDC |
 | `/oidc/jhu/authenticate/` | mozilla_django_oidc view for JHU |
 | `/oidc/schmidt/authenticate/` | mozilla_django_oidc view for Schmidt |
 | `/oidc/callback/` | Realm-aware callback (backend skips wrong realm) |
+
+Logout path (`oidc_logout_view`) drops the user back on `/`, which forwards
+to `/portal/` when they arrive anonymous. `LOGOUT_REDIRECT_URL` defaults to
+`/` in [coldfront/custom/config/auth.py](coldfront/custom/config/auth.py).
 
 **Post-login destinations on helpdesk:**
 - `is_staff=True` → `/dashboard/` (ticket management)
