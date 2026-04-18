@@ -418,18 +418,18 @@ SLURM_NOOP=0
 <tbody>
 <tr>
 <td><code>./start.sh update</code></td>
-<td><strong>Dia-a-dia em prod</strong></td>
-<td>Git pull + restart. ~15s downtime do coldfront, nenhum dado é perdido. Hot-reload via bind mounts cobre mudanças de código Python.</td>
+<td><strong>Day-to-day in prod</strong></td>
+<td>Git pull + restart. ~15s coldfront downtime, no data lost. Hot-reload via bind mounts covers Python code changes.</td>
 </tr>
 <tr>
 <td><code>./start.sh deploy dev -y</code></td>
-<td>Bootstrap inicial, reset completo pra dev/test, ou fresh install em máquina nova</td>
-<td><strong>Destrutivo por design.</strong> Wipes containers/volumes/BASE_DATA/BASE_ETC and rebuilds everything. ~5–10 min.</td>
+<td>Initial bootstrap, full reset for dev/test, or fresh install on a new machine</td>
+<td><strong>Destructive by design.</strong> Wipes containers/volumes/BASE_DATA/BASE_ETC and rebuilds everything. ~5–10 min.</td>
 </tr>
 <tr>
 <td><code>./start.sh rebuild [dev]</code></td>
-<td>Quando <code>requirements.txt</code> ou <code>Dockerfile</code> mudam</td>
-<td>Rebuild das imagens sem apagar DB/LDAP/volumes.</td>
+<td>When <code>requirements.txt</code> or <code>Dockerfile</code> change</td>
+<td>Rebuild images without wiping DB/LDAP/volumes.</td>
 </tr>
 </tbody>
 </table>
@@ -454,7 +454,7 @@ SLURM_NOOP=0
 <td>❌ No — <code>migrate</code> applies schema changes, data intact</td>
 </tr>
 <tr>
-<td><strong>Usuários LDAP</strong></td>
+<td><strong>LDAP Users</strong></td>
 <td><code>${BASE_DATA}/openldap/ldap/</code> + <code>slapd.d/</code></td>
 <td>❌ No</td>
 </tr>
