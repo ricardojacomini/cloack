@@ -555,7 +555,7 @@ docker start openldap
 ./start.sh helpdesk populate                                        # sample queues + tickets
 </code></pre>
 <p>Add <code>--with-billing</code> to <code>populate</code> if you want fake BillingRate/AllocationBilling records.</p>
-<p><strong>About the <code>dev</code> token:</strong> it is an <em>environment modifier</em> (not a cluster name). When present as the first arg after the subcommand, it switches the compose overlay from <code>docker-compose.yml</code> (prod) to <code>docker-compose-dev.yml</code>. <code>clean-all</code>, <code>slurm</code>, and <code>helpdesk</code> ignore it (for <code>slurm create &lt;name&gt;</code>, the second arg is the cluster name).</p>
+<p><strong>About the <code>dev</code> token:</strong> it is an <em>environment modifier</em> (not a cluster name). When present as the first arg after the subcommand, it switches the compose overlay from <code>docker-compose.yml</code> (prod) to <code>docker-compose-dev.yml</code>. <code>clean-all</code> and <code>slurm</code> ignore it (for <code>slurm create &lt;name&gt;</code>, the second arg is the cluster name). <code>helpdesk</code> <strong>respects</strong> it — <code>./start.sh helpdesk dev &lt;action&gt;</code> uses the dev compose file (needed so the container's compose hash matches the rest of the dev stack; otherwise <code>./start.sh start dev</code> flags helpdesk as an orphan).</p>
 <h4>B. Deploy + migrate from production</h4>
 <p><strong>Option 1: CLI</strong></p>
 <pre><code class="language-bash">./start.sh clean-all dev

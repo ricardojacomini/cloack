@@ -1210,7 +1210,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </tr>
 <tr>
 <td>docker-compose-dev.yml</td>
-<td>Dev overlay for local development without host Slurm mounts</td>
+<td>Standalone dev compose for local development — redefines all services (not an overlay), uses named volumes for /home and /scratch to bypass macOS virtiofs UID remap, mirrors helpdesk: so compose-hash stays consistent across commands</td>
 </tr>
 </tbody>
 </table>
