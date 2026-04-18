@@ -900,7 +900,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>FollowUpMeta</code>: note kind (tech/RCA/internal/decision/customer_reply) + email class (FQR/strike 1-3/LQR); auto-paste <code>ResponseTemplate.body</code>; advances <code>TicketFollowUpTracker</code></td>
+<td><code>FollowUpMeta</code>: note kind (tech/RCA/internal/decision/customer_reply) + email class (FQR/strike 1-3/LQR); picking a classification pastes <code>ResponseTemplate.body</code> with <code>{name}</code>/<code>{your_name}</code>/<code>{issue}</code>/<code>{ticket_number}</code>/<code>{survey_url}</code>/<code>{signature}</code> already substituted (pre_save scrub safety net catches bypassed tokens); advances <code>TicketFollowUpTracker</code></td>
 </tr>
 <tr>
 <td>Delete approval queue</td>
@@ -921,7 +921,14 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Non-owner/non-collab/non-pool staff blocked from adding comments; collaborators forced <code>public=False</code> (internal notes only); owners send customer emails</td>
+<td>Non-owner/non-collab/non-pool staff blocked from adding comments; collaborators forced <code>public=False</code> (internal notes only); owners send customer emails; permission failures on collaborator request/approve/deny/remove show dismissible banners via <code>messages.error</code> + redirect to ticket (no more dead-end HTTP 403 pages)</td>
+</tr>
+<tr>
+<td>Public feedback categories</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>TicketCategory.show_on_submit</code> renders opt-in "Feature feedback?" dropdown on the public submit form; <code>TicketCategory.default_assignee</code> auto-routes the ticket directly to the product owner, skipping the AssignmentPolicy/strategy chain. Seeded: "ColdFront Feature Feedback" + "Helpdesk Feature Feedback" → <code>rdesouz4</code> (migration 0028)</td>
 </tr>
 <tr>
 <td>Django admin save-at-top</td>

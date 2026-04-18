@@ -2197,10 +2197,35 @@ or via Django Admin &rarr; <a href="/admin/arch_sync/costcenter/">/admin/arch_sy
       <li><strong>Strike 3</strong> (3 business days after Strike 2) &mdash; case archiving notice; ticket closes</li>
     </ol>
 
-    <h5 style="color:#55efc4; margin-top:20px;">5. Response Templates</h5>
-    <p>Default templates are seeded and available from the ticket composer. Placeholders:
-       <code>{name}</code>, <code>{your_name}</code>, <code>{ticket_number}</code>,
-       <code>{issue}</code>, <code>{signature}</code>, <code>{survey_url}</code>.</p>
+    <h5 style="color:#55efc4; margin-top:20px;">5. Public Feedback Categories</h5>
+    <p>Categories flagged <code>show_on_submit=True</code> in Django Admin
+       (<em>Helpdesk Extensions &rarr; Ticket categories</em>) appear as an
+       opt-in <em>Feature feedback?</em> dropdown on the public submit form.
+       When a user picks one, the ticket is auto-assigned to the
+       category&rsquo;s <code>default_assignee</code>, bypassing the tier /
+       AssignmentPolicy chain entirely.</p>
+    <p>Seeded by migration <code>0028_ticket_category_feedback</code> under
+       the &ldquo;Product Feedback&rdquo; domain:</p>
+    <ul>
+      <li><strong>ColdFront Feature Feedback</strong> &rarr; <code>rdesouz4</code></li>
+      <li><strong>Helpdesk Feature Feedback</strong> &rarr; <code>rdesouz4</code></li>
+    </ul>
+    <p>Product owners can be changed per-category in Django Admin; new
+       feedback channels can be added by creating another category with
+       <code>show_on_submit</code> checked and an assignee set &mdash; no
+       code change required.</p>
+
+    <h5 style="color:#55efc4; margin-top:20px;">6. Response Templates</h5>
+    <p>Default templates are seeded and available from the ticket composer.
+       Picking a value in <em>Send email as</em> auto-substitutes these
+       placeholders in the Comment box &mdash; staff can still edit before
+       submitting, and a server-side safety net scrubs any leftover tokens on
+       save:
+       <code>{name}</code> (submitter), <code>{your_name}</code> (assigned
+       staff), <code>{ticket_number}</code>, <code>{issue}</code> (ticket
+       title), <code>{signature}</code> (<em>Staff Members &rarr; Signature</em>
+       field in Django admin, falls back to the user&rsquo;s full name),
+       <code>{survey_url}</code> (per-ticket satisfaction-survey link).</p>
     <ul>
       <li><strong>FQR &mdash; Standard First Response</strong>: introduction, scoping questions, user survey link</li>
       <li><strong>FQR &mdash; SLA Escalation</strong>: triage + hand-off to Systems Team via <code>rt-triage</code></li>
@@ -2210,7 +2235,7 @@ or via Django Admin &rarr; <a href="/admin/arch_sync/costcenter/">/admin/arch_sy
       <li><strong>Strike 3 &mdash; Case Archiving Notice</strong></li>
     </ul>
 
-    <h5 style="color:#c8d6e5; margin-top:20px;">6. External Documentation</h5>
+    <h5 style="color:#c8d6e5; margin-top:20px;">7. External Documentation</h5>
     <ul>
       <li><a href="https://docs.arch.jhu.edu" target="_blank" rel="noopener">docs.arch.jhu.edu</a> &mdash; official ARCH documentation</li>
       <li><a href="https://www.arch.jhu.edu" target="_blank" rel="noopener">arch.jhu.edu</a> &mdash; ARCH website</li>
