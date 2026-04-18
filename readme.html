@@ -1810,11 +1810,13 @@ sacctmgr modify account where name=rdesouz4 set parent=nodep -i
 <p><strong>Option A: CLI</strong></p>
 <pre><code class="language-bash">./start.sh slurm create             # Generate compose overlay + DB record
 ./start.sh slurm start              # Build images (if needed) + compose up
-./start.sh slurm status             # Node state + job queue
+./start.sh slurm status             # Lists all clusters from DB (container + bare-metal), then Docker ps + sinfo/squeue for current container cluster
 ./start.sh slurm stop               # Stop Slurm services
 ./start.sh slurm restart            # Restart (slurmdbd → slurmctld → nodes)
 ./start.sh slurm destroy            # Stop + remove containers, volumes, overlay
 ./start.sh slurm test-jobs          # Seed real sbatch jobs for every user×account×partition
+./start.sh slurm ansible [name|all] # Regenerate ansible/clusters/&lt;name&gt;/ bundle from DB
+./start.sh slurm prod-sim [name]    # Bare-metal simulation: ansible-playbook --check --diff against per-cluster inventory (read-only pre-flight)
 </code></pre>
 <p><strong>Option B: UI</strong> (Admin → Clusters)
 1. <strong>Add Cluster</strong> — register cluster with name, type, and deployment model preset

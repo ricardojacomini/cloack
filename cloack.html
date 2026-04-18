@@ -588,11 +588,53 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td>"Sync Accounts" button triggers <code>scontrol reconfigure</code></td>
 </tr>
 <tr>
+<td>Defensive scontrol reconfigure post-sync</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>_refresh_ctld_cache</code> runs <code>scontrol reconfigure</code> at the end of each <code>_run_sync_for_cluster</code> — prevents stale assoc cache rejecting submissions</td>
+</tr>
+<tr>
 <td>TRES types configuration</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
 <td><code>SlurmCluster.tres_types</code> — configurable per cluster</td>
+</tr>
+<tr>
+<td>ClusterReservation model</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>PI-requested node reservation; status pending/active/expired/denied/cancelled; admin-only (CRUD UI pending)</td>
+</tr>
+<tr>
+<td>JobTemplate model</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Reusable sbatch script with <code>{placeholders}</code>; per-owner uniqueness; <code>is_public</code> shares with lab</td>
+</tr>
+<tr>
+<td>DeploymentLog model</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Audit trail for deploy/stop/restart/drain/resume/reserve/ansible events</td>
+</tr>
+<tr>
+<td><code>slurm prod-sim</code> CLI</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>./start.sh slurm prod-sim [name]</code> runs ansible-playbook <code>--check --diff</code> against per-cluster inventory (read-only pre-flight)</td>
+</tr>
+<tr>
+<td><code>slurm status</code> from DB</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Lists all clusters (container + bare-metal) from SlurmCluster with type/root/nodes/parts/REST</td>
 </tr>
 </tbody>
 </table>
