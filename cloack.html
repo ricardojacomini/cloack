@@ -924,11 +924,11 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td>Non-owner/non-collab/non-pool staff blocked from adding comments; collaborators forced <code>public=False</code> (internal notes only); owners send customer emails; permission failures on collaborator request/approve/deny/remove show dismissible banners via <code>messages.error</code> + redirect to ticket (no more dead-end HTTP 403 pages)</td>
 </tr>
 <tr>
-<td>Public feedback categories</td>
+<td>Public feedback categories + dedicated queue</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>TicketCategory.show_on_submit</code> renders opt-in "Feature feedback?" dropdown on the public submit form; <code>TicketCategory.default_assignee</code> auto-routes the ticket directly to the product owner, skipping the AssignmentPolicy/strategy chain. Seeded: "ColdFront Feature Feedback" + "Helpdesk Feature Feedback" → <code>rdesouz4</code> (migration 0028)</td>
+<td><code>TicketCategory.show_on_submit</code> renders opt-in "Feature feedback?" dropdown on the public submit form; <code>TicketCategory.default_assignee</code> auto-routes the ticket to the product owner. <code>TicketCategory.default_queue</code> (FK) moves the ticket to a dedicated <strong>Feedback &amp; Suggestions</strong> queue (slug <code>feedback</code>, owner=<code>ARCH_SUPERUSERS[0]</code>) regardless of the queue the submitter picked. Seeded by migration 0029; ColdFront + Helpdesk feedback categories both routed to the feedback queue.</td>
 </tr>
 <tr>
 <td>Django admin save-at-top</td>
@@ -938,18 +938,32 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td>Sticky save bar injected via <code>{% block form_top %}</code> override — no scroll on long change forms</td>
 </tr>
 <tr>
-<td>Ticket Analytics inline</td>
+<td>Ticket Analytics — dynamic Resource combo</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Collapsible <code>&lt;details&gt;</code> section on <code>/dashboard/</code> lazy-loaded via <code>fetch(?partial=1)</code>; pie chart (top 10) + sortable table grouped by Department/PI/Resource with <strong>GPU_HRS</strong> + <strong>JOBS</strong> columns from ColdFront REST API (<code>GET /api/v1/stats/slurm/</code>). Window selector (7/30/90/365d), hide-unassigned toggle, <code>HelpdeskAnalyticsConfig</code> staff-access toggle. Graceful degradation: GPU/JOBS columns show <code>—</code> when ColdFront offline. Standalone page at <code>/extensions/analytics/</code> still available.</td>
+<td>Three tabs on <code>/dashboard/</code>: <strong>Department/Project</strong>, <strong>PI</strong>, <strong>Resource</strong>. Resource tab carries a combo (GPU/CPU/Storage/Backup) populated dynamically from ColdFront <code>GET /api/v1/resources/catalog/</code> — GPU items from <code>SlurmPartition.hardware</code> distinct, CPU items from partition names, Storage/Backup from <code>AllocationBilling</code>. Per-item columns + the matching usage metric (<code>gpu_hours</code>/<code>cpu_hours</code>/<code>storage_tb</code>/<code>backup_tb</code>) merged from <code>GET /api/v1/stats/slurm/?metric=...</code>. Graceful degradation to a GPU-only view when ColdFront is offline.</td>
 </tr>
 <tr>
-<td>GPU auto-link on new tickets</td>
+<td>Resource + PI/Project auto-link on new tickets</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>auto_link.py</code>: regex <code>\b(a100\|h100\|h200\|l40s)\b</code> scanned on <code>new_ticket_done</code> signal; creates <code>TicketResourceLink(kind=resource, source=auto)</code> — populates GPU columns in Analytics without manual linking. Idempotent.</td>
+<td>Two passes on <code>new_ticket_done</code>: <strong>(a)</strong> regex scan of title+description against the dynamic ColdFront catalog creates <code>TicketResourceLink(kind='resource')</code> rows (GPU unprefixed, others namespaced like <code>cpu:high</code>); <strong>(b)</strong> submitter-email lookup against ColdFront <code>/api/v1/allocations/by_submitter/</code> creates <code>kind='pi'</code>, <code>kind='project'</code>, <code>kind='allocation'</code> (department) links so the PI / Department tabs render automatically. Backfill command: <code>python manage.py backfill_ticket_links [--window-days N]</code>.</td>
+</tr>
+<tr>
+<td>Engineer Schedule Grid + Time Allocations</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>/extensions/schedule/</code>: per-engineer × day × 30-min-slot grid. <strong>Time Allocations</strong> (model <code>StaffBlockedPeriod</code>) group unavailability (holiday/vacation/sick/OOF) and committed work (project/tickets/learning/on-call) with color-coded cells. Admin drag-select + change-request flow for non-admin staff; denied requests surface red dashed cells with reason on hover. "Next N days" summary panel with configurable window (3/7/14).</td>
+</tr>
+<tr>
+<td>Project Assignment Request follow-up</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Staff submit weekly allocation requests at <code>/extensions/schedule/request/</code>. <strong><code>/extensions/schedule/my-requests/</code></strong> lists the staff's own history with status badges and links to generated blocks. <strong><code>/extensions/schedule/admin/requests/</code></strong> (admin) groups all requests by <code>StaffMember</code> with follow-up flags for pending &gt; 7 days or approved-without-block. Grid cells generated from an approved request carry a blue inset border + tooltip linking back to the origin request.</td>
 </tr>
 <tr>
 <td>Password change delegation</td>
