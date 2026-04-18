@@ -104,6 +104,12 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 - <strong>Option A:</strong> Import Users → Migration (LDIF upload via UI) — replays structural entries + users + groups + creates projects/allocations
 - <strong>Option B:</strong> <code>./start.sh ldap-reinit</code> (CLI) — restores full slapcat dump
 - <strong>Option C:</strong> <code>sync_ldap</code> — pushes users/groups from ColdFront DB to LDAP</p>
+<p><strong>LDAP admin → Django privilege mapping.</strong> Membership in LDAP <code>cn=admin</code> is mirrored into Django by <code>seed_initial_data.sync_admin_group_to_is_staff</code>:</p>
+<ul>
+<li>Everyone in the group gets <code>User.is_staff=True</code> (sidebar Administration) and is added to the <code>Helpdesk Staff (LDAP helpdesk-staff)</code> Django group (which the signal mirrors back as LDAP <code>cn=helpdesk-staff</code> membership).</li>
+<li>Only usernames listed in the <code>ARCH_SUPERUSERS</code> env var (comma-separated, seeded into <code>.env</code> by <code>start.sh init</code> — dev default: <code>rdesouz4,jbiondo2,mprotzm2,jasonw</code>) additionally receive <code>is_superuser=True</code>. This gates the "Delete User" button and every other permission bypass to an explicit allow-list, so putting a PI in LDAP <code>cn=admin</code> does not silently grant full Django Admin power.</li>
+<li>System accounts (<code>SYSTEM_USERNAMES</code> = <code>admin</code>, <code>coldfront</code>, <code>root</code>) are never promoted by this helper, and <code>utils/ldap_sync._scrub_system_accounts_from_privilege_groups</code> runs at the tail of every <code>run_ldap_sync()</code> to <code>MODIFY_DELETE</code> them from <code>cn=admin</code>, <code>cn=helpdesk-admin</code>, <code>cn=helpdesk-staff</code>. The migration LDIF can safely list <code>coldfront</code> in <code>cn=admin</code>; the scrub neutralizes it on every sync.</li>
+</ul>
 <p>Put the cross-domain admin group (e.g., <code>PI_XX</code>) as a DN-based group (for example <code>groupOfNames</code> or <code>groupOfUniqueNames</code>) and include member DNs from any suffix so membership is unambiguous.</p>
 <p>Why this is safe / best-practice
 - Disjoint numeric ranges prevent collisions for NSS/PAM and NFS.
