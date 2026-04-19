@@ -104,11 +104,12 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 - <strong>Option A:</strong> Import Users → Migration (LDIF upload via UI) — replays structural entries + users + groups + creates projects/allocations
 - <strong>Option B:</strong> <code>./start.sh ldap-reinit</code> (CLI) — restores full slapcat dump
 - <strong>Option C:</strong> <code>sync_ldap</code> — pushes users/groups from ColdFront DB to LDAP</p>
-<p><strong>LDAP admin → Django privilege mapping.</strong> Membership in LDAP <code>cn=admin</code> is mirrored into Django by <code>seed_initial_data.sync_admin_group_to_is_staff</code>:</p>
+<p><strong>LDAP admin → Django privilege mapping.</strong> Cluster admin (<code>cn=admin</code>) and ColdFront portal admin (<code>User.is_staff</code> / <code>User.is_superuser</code>) are <strong>decoupled</strong> — they're different roles.</p>
 <ul>
-<li>Everyone in the group gets <code>User.is_staff=True</code> (sidebar Administration) and is added to the <code>Helpdesk Staff (LDAP helpdesk-staff)</code> Django group (which the signal mirrors back as LDAP <code>cn=helpdesk-staff</code> membership).</li>
+<li><strong>Cluster admin (<code>cn=admin</code>)</strong> is driven by the Django group <code>Cluster (LDAP admin)</code> (seeded by migration <code>0089_admin_django_group</code>). Staff manage membership at <code>/admin/auth/group/</code> — same UX as the helpdesk groups. <code>signals._sync_helpdesk_ldap_groups</code> publishes adds/removes into <code>cn=admin,ou=Groups,ou=&lt;aff&gt;</code> via <code>m2m_changed</code> on <code>auth.User_groups</code>; <code>utils/ldap_sync._sync_cluster_admin_members()</code> runs an additive reconciliation during every <code>run_ldap_sync</code> to self-heal any missed signal. <code>User.is_staff</code> no longer affects <code>cn=admin</code>.</li>
+<li><strong>ColdFront portal admin</strong> is <code>User.is_staff=True</code> (sidebar Administration + Django Admin access). <code>seed_initial_data.sync_admin_group_to_is_staff</code> still promotes every LDAP <code>cn=admin</code> member to <code>is_staff=True</code> at boot (and adds them to the <code>Helpdesk Staff (LDAP helpdesk-staff)</code> Django group), so LDIF-imported admins keep portal access on first deploy. Going forward the two can be toggled independently.</li>
 <li>Only usernames listed in the <code>ARCH_SUPERUSERS</code> env var (comma-separated, seeded into <code>.env</code> by <code>start.sh init</code> — dev default: <code>rdesouz4,jbiondo2,mprotzm2,jasonw</code>) additionally receive <code>is_superuser=True</code>. This gates the "Delete User" button and every other permission bypass to an explicit allow-list, so putting a PI in LDAP <code>cn=admin</code> does not silently grant full Django Admin power.</li>
-<li>System accounts (<code>SYSTEM_USERNAMES</code> = <code>admin</code>, <code>coldfront</code>, <code>root</code>) are never promoted by this helper, and <code>utils/ldap_sync._scrub_system_accounts_from_privilege_groups</code> runs at the tail of every <code>run_ldap_sync()</code> to <code>MODIFY_DELETE</code> them from <code>cn=admin</code>, <code>cn=helpdesk-admin</code>, <code>cn=helpdesk-staff</code>. The migration LDIF can safely list <code>coldfront</code> in <code>cn=admin</code>; the scrub neutralizes it on every sync.</li>
+<li>System accounts (<code>SYSTEM_USERNAMES</code> = <code>admin</code>, <code>coldfront</code>, <code>root</code>) are never promoted by these helpers, and <code>utils/ldap_sync._scrub_system_accounts_from_privilege_groups</code> runs at the tail of every <code>run_ldap_sync()</code> to <code>MODIFY_DELETE</code> them from <code>cn=admin</code>, <code>cn=helpdesk-admin</code>, <code>cn=helpdesk-staff</code>. The migration LDIF can safely list <code>coldfront</code> in <code>cn=admin</code>; the scrub neutralizes it on every sync.</li>
 </ul>
 <p>Put the cross-domain admin group (e.g., <code>PI_XX</code>) as a DN-based group (for example <code>groupOfNames</code> or <code>groupOfUniqueNames</code>) and include member DNs from any suffix so membership is unambiguous.</p>
 <p>Why this is safe / best-practice
@@ -988,40 +989,37 @@ shown to PIs or managers.</p>
 <tbody>
 <tr>
 <td><code>SlurmJob</code></td>
-<td><code>collect_sacct</code> (from <code>sacct</code>)</td>
+<td><code>collect_sacct</code> (from <code>sacct</code>) — runs every 15 min</td>
 <td>Per-job records — source of truth for Job Metrics dashboard</td>
 </tr>
 <tr>
 <td><code>SlurmAccountUsagePeriod</code></td>
-<td><code>slurm2coldfront()</code> (aggregates from <code>SlurmJob</code>)</td>
+<td><code>sync_job_usage</code> — <strong>manual only</strong>, fired by <strong>Compute Billing</strong> on <code>/billing/report/</code></td>
 <td>Per-period usage snapshots — source of truth for billing</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Job data collection</strong> (<code>collect_sacct</code>):</p>
+<p><strong>Job data collection</strong> (<code>collect_sacct</code>, every 15 min):</p>
 <pre><code class="language-bash"># Collect last 7 days of per-job data from sacct
-python manage.py collect_sacct --current-week
+coldfront collect_sacct --current-week
 
 # Collect current month
-python manage.py collect_sacct --current-month
+coldfront collect_sacct --current-month
 
 # Import from a pipe-delimited sacct dump file (for dev/testing)
-python manage.py collect_sacct --from-file coldfront/templates/jobs_usage.csv
+coldfront collect_sacct --from-file coldfront/templates/jobs_usage.csv
 
 # Dry-run (parse and log, no DB writes)
-python manage.py collect_sacct --dry-run
+coldfront collect_sacct --dry-run
 </code></pre>
-<p><strong>Billing aggregation</strong> (<code>slurm2coldfront</code>):</p>
-<pre><code class="language-bash"># Aggregates SlurmJob data into SlurmAccountUsagePeriod per allocation
-# Called automatically by run_slurm_sync (--direction both)
-python manage.py sync_slurm --direction both
+<p><strong>Billing aggregation — manual only.</strong> <code>SlurmAccountUsagePeriod</code> rows (the "Usage &amp; Charges" table on <code>/billing/report/</code>) are <strong>never</strong> written by a scheduled task or by the <code>./start.sh deploy</code> seeding flow. Staff must press <strong>Compute Billing</strong> on <code>/billing/report/</code>, which internally runs:</p>
+<pre><code class="language-bash"># Recompute the is_billable classification on all AllocationBilling rows
+coldfront recalculate_billing --all
+
+# Aggregate SlurmJob → SlurmAccountUsagePeriod (per allocation × day)
+coldfront sync_job_usage
 </code></pre>
-<p><strong>Automatic scheduling</strong>: A cron job in the Slurm entrypoint runs <code>sync_slurm --direction both</code> daily at 3:30 AM (configurable via <code>SLURM_SYNC_CRON_EXPR</code>). This calls <code>collect_sacct --current-week</code> at the end, so job data stays fresh.</p>
-<p><strong>Legacy billing collection</strong> (still available):</p>
-<pre><code class="language-bash">python manage.py collect_billing --current-period
-python manage.py collect_billing --current-period --dry-run
-python manage.py collect_billing --current-period --pi rdesouz4
-</code></pre>
+<p>Rationale: staff wanted a predictable, explicit compute step so the ledger never advances on its own (see <code>project_billing_manual_only</code> memory). The 15-min <code>sync_slurm_all</code> task keeps the Core Usage (Hours) gauge and per-user snapshots fresh, but it leaves the billing ledger untouched.</p>
 <h4><strong>Printable Invoices</strong></h4>
 <p>PIs can view and print invoices from their dashboard:
 - Access: <code>/billing/my-invoice/&lt;allocation-id&gt;/</code>
@@ -1424,7 +1422,7 @@ SLURM_NOOP=0
 </table>
 <p>Two-track pricing: <code>*_full</code> for pay-per-use PIs, <code>*_om</code> (O&amp;M only, lower) for hardware-credit holders.</p>
 <h4>2. <code>AllocationBilling</code> — <code>/admin/arch_sync/allocationbilling/</code> (one per Allocation)</h4>
-<p>Per-allocation billing config. Auto-created by signal <code>_ensure_allocation_billing</code> on allocation save.</p>
+<p>Per-allocation billing config. Created/updated only when staff runs <strong>Compute Billing</strong> on <code>/billing/report/</code> or the <code>coldfront recalculate_billing</code> management command — no signal auto-creates these rows.</p>
 <table>
 <thead>
 <tr>
@@ -1498,7 +1496,7 @@ SLURM_NOOP=0
 <h4>4. <code>SlurmPartition.tres_billing_weights</code> — <code>/admin/arch_sync/slurmpartition/</code></h4>
 <p>Per-partition multiplier injected as <code>TRESBillingWeights=</code> in <code>slurm.conf</code>. Combined with <code>BillingRate</code> to compute the actual charge. Example: <code>CPU=1.0,Mem=0.25G,GRES/gpu=2.0</code> → 1 GPU-hour = 2 billing units.</p>
 <h4>5. <code>SlurmAccountUsagePeriod</code> — <code>/billing/report/</code>, <code>/billing/my-usage/</code></h4>
-<p>Auto-populated monthly aggregation: CPU hours, GPU hours, job count per (account, period). Drives invoices and PI dashboards. Generated by <code>collect_billing</code> (cron, daily).</p>
+<p>Per-day aggregation (allocation × account × date) of CPU hours, GPU hours, and job count. Drives invoices and PI dashboards. <strong>Not auto-populated.</strong> Rows appear only after staff presses <strong>Compute Billing</strong> on <code>/billing/report/</code>, which runs <code>coldfront sync_job_usage</code> internally.</p>
 <h4>Conversion formulas</h4>
 <table>
 <thead>

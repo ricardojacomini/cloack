@@ -482,7 +482,32 @@ Slurm Account "jsmith_proj1"
             <code>Resource</code>. The sync filters allocations by resource, so each cluster
             only gets accounts for its own allocations. The link is
             <code>Allocation &harr; Resource &harr; SlurmCluster</code> (no direct FK).
-          </div></div>
+          </div>
+
+          <h6>Computing Billing (manual)</h6>
+          <div class="alert alert-warning">
+            No scheduled task writes to the billing ledger. Both
+            <code>AllocationBilling</code> rows (the "Billing Rules" grid) and
+            <code>SlurmAccountUsagePeriod</code> rows (the "Usage &amp; Charges"
+            table) are created <strong>only</strong> when staff clicks the
+            <strong>Compute Billing</strong> button on
+            <code>/billing/report/</code>.
+          </div>
+
+          <p>The button runs two management commands in sequence:</p>
+
+          <pre class="bg-light p-3 rounded">docker exec coldfront coldfront recalculate_billing --all   # billing rules
+docker exec coldfront coldfront sync_job_usage              # usage periods</pre>
+
+          <p>Until the button (or the CLI above) is invoked, the report
+          stays frozen on whatever was last computed. The 15-min
+          <code>sync_slurm_all</code> task keeps updating the Core Usage gauge
+          and per-user snapshots, but never touches billing rows.</p>
+
+          <p><strong>Why manual:</strong> staff asked for a predictable,
+          explicit compute step so the report never grows new rows on its
+          own. Prevents accidental double-counting mid-month and makes the
+          ledger reproducible.</p></div>
                   </div>
                 </div>
                 
@@ -858,28 +883,42 @@ PartitionName=batch Nodes=cn-01,cn-02 Default=YES MaxTime=1:00:00 State=UP Allow
               <tr><th>Task</th><th>Schedule</th><th>Purpose</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>sync_ldap_all</code></td><td>Daily 2 AM</td><td>Sync LDAP users to Django</td></tr>
-              <tr><td><code>sync_slurm_all</code></td><td>Daily 3 AM</td><td>Sync all Slurm accounts and hierarchy</td></tr>
-              <tr><td><code>collect_sacct_task</code></td><td>Every 15 min</td><td>Collect completed job data from sacct</td></tr>
-              <tr><td><code>check_and_run_core_hours_reset</code></td><td>Daily 1 AM</td><td>Check if reset date reached, execute reset</td></tr>
-              <tr><td><code>cleanup_task_queue</code></td><td>Hourly :30</td><td>Purge stuck entries, remove old tasks</td></tr>
-              <tr><td><code>sync_weekly_cap_usage</code></td><td>Every 5 min</td><td>Poll Slurm for current weekly cap spend</td></tr>
+              <tr><td><code>sync_ldap_all</code></td><td>Daily 2 AM</td><td>ColdFront &rarr; LDAP (users, groups, home dirs, scratch symlinks)</td></tr>
+              <tr><td><code>sync_slurm_all</code></td><td>Every 15 min</td><td>ColdFront &rarr; Slurm (accounts, users, QOS, hierarchy). Safety net behind real-time signals.</td></tr>
+              <tr><td><code>collect_sacct_task</code></td><td>Every 15 min</td><td>Slurm &rarr; <code>SlurmJob</code> table (last 7 days window). Raw job history.</td></tr>
+              <tr><td><code>check_and_run_core_hours_reset</code></td><td>Daily 1 AM</td><td>Reset Core Usage gauges when scheduled date reached</td></tr>
+              <tr><td><code>cleanup_task_queue</code></td><td>Hourly :30</td><td>Purge stuck OrmQ entries, remove old Task rows</td></tr>
+              <tr><td><code>sync_weekly_cap_usage</code></td><td>Every 5 min</td><td>Poll Slurm <code>sreport</code> for current weekly spend (gauge update only)</td></tr>
             </tbody>
           </table>
 
+          <div class="alert alert-warning">
+            <strong>NOT on the schedule:</strong> Billing computation
+            (<code>AllocationBilling</code> and <code>SlurmAccountUsagePeriod</code>
+            rows) is <strong>manual only</strong>. New billing rows appear only
+            when staff presses <strong>Compute Billing</strong> on
+            <code>/billing/report/</code>, or via the CLI below. The 15-min
+            <code>sync_slurm_all</code> task never writes to the billing ledger.
+            Rationale: staff asked for a predictable, explicit compute action so
+            the report never gains new rows on its own.
+          </div>
+
           <div class="alert alert-info">
-            <strong>Audit Trail:</strong> All tasks use <code>hook=TASK_HOOK</code> which creates a
-            Django Admin <code>LogEntry</code> on completion. View in
-            <strong>Admin &gt; Administration &gt; Log entries</strong>.
+            <strong>Audit Trail:</strong> Every task uses <code>hook=TASK_HOOK</code>
+            which creates a Django Admin <code>LogEntry</code> on completion.
+            View in <strong>Admin &gt; Administration &gt; Log entries</strong>.
           </div>
 
           <h6>Manual Task Execution</h6>
           <pre class="bg-light p-3 rounded">
-# Inside the coldfront container:
-python manage.py sync_ldap           # LDAP sync
-python manage.py sync_slurm          # Slurm sync
-python manage.py collect_sacct       # Collect job data
-python manage.py collect_billing     # Generate billing periods</pre></div>
+# Inside the coldfront container (note: use `coldfront`, not manage.py):
+docker exec coldfront coldfront sync_ldap             # LDAP sync
+docker exec coldfront coldfront sync_slurm            # Slurm sync
+docker exec coldfront coldfront collect_sacct         # Import jobs from sacct
+
+# Billing computation (manual only, matches UI button):
+docker exec coldfront coldfront recalculate_billing --all   # &rarr; AllocationBilling rows
+docker exec coldfront coldfront sync_job_usage              # &rarr; SlurmAccountUsagePeriod rows</pre></div>
                   </div>
                 </div>
                 
