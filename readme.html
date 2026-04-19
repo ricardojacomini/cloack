@@ -430,7 +430,12 @@ SLURM_NOOP=0
 <tr>
 <td><code>./start.sh deploy dev -y</code></td>
 <td>Initial bootstrap, full reset for dev/test, or fresh install on a new machine</td>
-<td><strong>Destructive by design.</strong> Wipes containers/volumes/BASE_DATA/BASE_ETC and rebuilds everything. ~5–10 min.</td>
+<td><strong>Destructive by design.</strong> Wipes containers/volumes/BASE_DATA/BASE_ETC and rebuilds everything. ~5–10 min. Scavenger-only test-jobs (billing manual).</td>
+</tr>
+<tr>
+<td><code>./start.sh deploy dev -y --paid-accounts</code></td>
+<td>Full-coverage validation including paid partitions (low/med/high/premium/a100)</td>
+<td>Same as above PLUS seeds paid SlurmAccounts via <code>billing populate --paid-allocs</code> before test-jobs. ~8–12 min. Does NOT write billing output rows.</td>
 </tr>
 <tr>
 <td><code>./start.sh rebuild [dev]</code></td>
@@ -595,6 +600,35 @@ docker exec openldap ldapsearch -H ldapi:/// -x \
 # Force LDAP → ColdFront re-sync
 ./start.sh ldap-reinit dev
 </code></pre>
+<hr />
+<h2>Bare-metal install — <code>cloack-deploy</code> RPM</h2>
+<p>For bare-metal Slurm deployments the production artefact is the
+<code>cloack-deploy</code> RPM (Rocky 9). It ships the Ansible tree plus a
+<code>cloack-deploy</code> CLI wrapper, all under <code>/opt/cloack/</code>, with
+<code>/usr/bin/cloack-deploy</code> as a PATH symlink so cron and systemd find it
+without touching <code>/etc/profile.d/</code>.</p>
+<pre><code class="language-bash"># 1. Install on a deploy workstation (Rocky 9)
+dnf install cloack-deploy
+
+# 2. Point at your ARCH Portal and get a DRF token
+export CLOACK_API_URL=https://coldfront.jhu.edu
+export CLOACK_API_TOKEN=&lt;token from /api/v1/auth/token/&gt;
+
+# 3. Fetch the per-cluster inventory + run the read-only pre-flight
+cloack-deploy fetch &lt;cluster&gt;          # → /opt/cloack/etc/inventory.d/&lt;cluster&gt;/
+cloack-deploy verify &lt;cluster&gt;         # ansible-playbook slurm-verify (no changes)
+cloack-deploy prod-sim &lt;cluster&gt;       # ansible-playbook --check --diff
+cloack-deploy server &lt;cluster&gt;         # real: slurmctld/slurmdbd/slurmrestd
+cloack-deploy client &lt;cluster&gt;         # real: slurmd on compute + login nodes
+</code></pre>
+<p>The bundle endpoint lives at
+<code>GET /api/v1/clusters/&lt;name&gt;/ansible-bundle.tar.gz</code> (DRF token auth;
+superuser or staff with the cluster's <code>Resource</code> in their
+<code>StaffResourceAssignment</code> scope). Build the RPM locally with
+<code>make rpm</code> (requires <code>rpm-build</code>) or via
+<a href=".github/workflows/rpm.yml">.github/workflows/rpm.yml</a> on tag push.</p>
+<p>Spec + CLI wrapper: <a href="packaging/rpm/">packaging/rpm/</a>.
+Source-tarball assembler: <a href="scripts/build_rpm_source.py">scripts/build_rpm_source.py</a>.</p>
 <hr />
 <h2>Docker Images</h2>
 <p>All images use the <code>arch/</code> namespace. Build order matters for Slurm images (base first).</p>
