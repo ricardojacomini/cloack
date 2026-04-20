@@ -1176,6 +1176,55 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">Yes</td>
 <td>Emails logged to <code>coldfront/report/emails/</code> instead of SMTP</td>
 </tr>
+<tr>
+<td>Per-Queue routing override</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>QueueRoutingOverride</code> sidecar pins the starting tier per queue (e.g. <code>storage → se</code>, <code>software → sse</code>). Signal precedence: <code>TicketCategory.default_policy &gt; Queue.routing_override &gt; first_tier</code>. Admin at <code>/admin/helpdesk_extensions/queueroutingoverride/</code>.</td>
+</tr>
+<tr>
+<td>Per-ticket affiliation (JHU/Schmidt)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>TicketAffiliation</code> OneToOne sidecar populated on ticket creation by 4-tier detect: gateway queue (<code>ssci → schmidt</code>, <code>skipjack → jhu</code>) &gt; authenticated OIDC user profile &gt; email domain (<code>jhu.edu</code>, <code>schmidtsciences.org</code> etc.) &gt; <code>unknown</code>. Admin filter on Ticket list; override maps via <code>HELPDESK_GATEWAY_QUEUE_AFFILIATION</code> / <code>HELPDESK_AFFILIATION_DOMAINS</code> settings.</td>
+</tr>
+<tr>
+<td>FQR / SLA timers</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>TicketFQRMetrics.fqr_due_at</code> (3 biz hours) + <code>TicketFollowUpTracker.followup_due_at</code> (3 biz days, rolling on each classified follow-up). <code>business_time.py</code> helper skips Sat/Sun. Banner chips on ticket detail: SLA always visible, FQR halfway/overdue/sent, follow-up idle. <code>SLAPolicy.clean()</code> enforces <code>first_response_minutes &lt;= resolution_minutes</code>.</td>
+</tr>
+<tr>
+<td>Related Tickets live-suggest</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>/extensions/tickets/related/</code> endpoint with 3-tier auth (staff=global, user=own email, anon=explicit <code>?email=</code>). Debounced JS widget on public + staff Create Ticket forms renders up to 5 cards with title, queue, status. Privacy-safe: anonymous users without email get empty results.</td>
+</tr>
+<tr>
+<td>Queue admin UX (fieldsets + inlines)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Custom <code>ArchQueueAdmin</code> groups 26 upstream fields into 5 fieldsets (Main / Escalation / Notifications-collapsed / Email intake-collapsed / Advanced-collapsed). <code>QueueRoutingOverrideInline</code> + <code>QueuePoolInline</code> surface routing + pool config on the queue detail page. "Starts at" column in list view.</td>
+</tr>
+<tr>
+<td>SME classification + Buddy System</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>SME primitives (<code>StaffSkill.SME_THRESHOLD=3</code>, <code>is_sme</code>, <code>StaffMember.is_sme_in(cat)</code>, <code>sme_categories()</code>) orthogonal to cargo seniority. In <code>skill_match</code> learning mode, <code>_strategy_skill_match</code> auto-picks an SME mentor when the junior lands a ticket; <code>TicketCollaborator(role='mentor', status='approved')</code> created automatically. 🎓 chips on ticket banner + skill matrix. Mentor has no routing load — safe pairing.</td>
+</tr>
+<tr>
+<td>SME Promotion Points</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Points accrue per (staff, category) via editable rulebook: FQR=3 / LQR=2 / tech_note≥80chars=2 / public_followup≥100chars=1 / own_resolved=3 / mentor_on_resolved=1, capped at 10 pts per ticket. <code>/extensions/my-skill-path/</code> personal page with progress-to-threshold bar + activity feed. Admin leaderboard per category. Idempotent via <code>SMEPointEvent</code> unique_together. Promotion remains manual (human-in-the-loop).</td>
+</tr>
 </tbody>
 </table>
 <hr />
