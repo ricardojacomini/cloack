@@ -884,13 +884,23 @@ PartitionName=batch Nodes=cn-01,cn-02 Default=YES MaxTime=1:00:00 State=UP Allow
             </thead>
             <tbody>
               <tr><td><code>sync_ldap_all</code></td><td>Daily 2 AM</td><td>ColdFront &rarr; LDAP (users, groups, home dirs, scratch symlinks)</td></tr>
-              <tr><td><code>sync_slurm_all</code></td><td>Every 15 min</td><td>ColdFront &rarr; Slurm (accounts, users, QOS, hierarchy). Safety net behind real-time signals.</td></tr>
-              <tr><td><code>collect_sacct_task</code></td><td>Every 15 min</td><td>Slurm &rarr; <code>SlurmJob</code> table (last 7 days window). Raw job history.</td></tr>
+              <tr><td><code>sync_slurm_all</code></td><td>Every 15 min</td><td>ColdFront &rarr; Slurm (accounts, users, QOS, hierarchy). Safety net behind real-time signals. REST-first via slurmrestd; CLI fallback only on docker clusters / <code>REQUIRE_SLURM_CLI=True</code>.</td></tr>
+              <tr><td><code>collect_sacct_task</code></td><td>Every 15 min</td><td>Slurm &rarr; <code>SlurmJob</code> table (last 7 days). Pulls via REST <code>/slurmdb/{v}/jobs</code>; <code>--use-cli</code> opts into legacy <code>sacct</code>.</td></tr>
               <tr><td><code>check_and_run_core_hours_reset</code></td><td>Daily 1 AM</td><td>Reset Core Usage gauges when scheduled date reached</td></tr>
               <tr><td><code>cleanup_task_queue</code></td><td>Hourly :30</td><td>Purge stuck OrmQ entries, remove old Task rows</td></tr>
-              <tr><td><code>sync_weekly_cap_usage</code></td><td>Every 5 min</td><td>Poll Slurm <code>sreport</code> for current weekly spend (gauge update only)</td></tr>
             </tbody>
           </table>
+
+          <div class="alert alert-info">
+            <strong>Removed Phase 2:</strong> the 5-minute
+            <code>sync_weekly_cap_usage</code> poll is gone. Weekly-cap
+            spend is now served live by
+            <code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code>
+            and rendered client-side on the allocation detail page.
+            The <code>Weekly Cap Usage ($)</code> AllocationAttribute is
+            still warmed as a side-effect of each endpoint hit, debounced
+            to one DB write per allocation per 5 minutes.
+          </div>
 
           <div class="alert alert-warning">
             <strong>NOT on the schedule:</strong> Billing computation
@@ -907,18 +917,24 @@ PartitionName=batch Nodes=cn-01,cn-02 Default=YES MaxTime=1:00:00 State=UP Allow
             <strong>Audit Trail:</strong> Every task uses <code>hook=TASK_HOOK</code>
             which creates a Django Admin <code>LogEntry</code> on completion.
             View in <strong>Admin &gt; Administration &gt; Log entries</strong>.
+            REST vs CLI counters per operation live in
+            <strong>Admin &gt; Slurm Sync Metrics</strong>.
           </div>
 
           <h6>Manual Task Execution</h6>
           <pre class="bg-light p-3 rounded">
 # Inside the coldfront container (note: use `coldfront`, not manage.py):
 docker exec coldfront coldfront sync_ldap             # LDAP sync
-docker exec coldfront coldfront sync_slurm            # Slurm sync
-docker exec coldfront coldfront collect_sacct         # Import jobs from sacct
+docker exec coldfront coldfront sync_slurm            # Slurm sync (REST-first)
+docker exec coldfront coldfront collect_sacct         # Import jobs from slurmrestd
+docker exec coldfront coldfront collect_sacct --use-cli  # Force sacct CLI
 
 # Billing computation (manual only, matches UI button):
 docker exec coldfront coldfront recalculate_billing --all   # &rarr; AllocationBilling rows
-docker exec coldfront coldfront sync_job_usage              # &rarr; SlurmAccountUsagePeriod rows</pre></div>
+docker exec coldfront coldfront sync_job_usage              # &rarr; SlurmAccountUsagePeriod rows
+
+# Diagnostic side-by-side sreport vs slurmrestd:
+docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0</pre></div>
                   </div>
                 </div>
                 
@@ -1914,6 +1930,85 @@ reliable signal is a stale log file timestamp.</p>
 
 <p><strong>Reference:</strong> CLAUDE.md &rarr; <em>Known Pitfalls</em>
 &rarr; "Nodes go down after container recreate".</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h32">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c32"
+                              aria-expanded="false">Pure-REST Slurm Integration</button>
+                    </h5>
+                  </div>
+                  <div id="c32" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>
+            ColdFront talks to Slurm via two layers: <code>slurmrestd</code>
+            REST API on TCP <code>:6820</code> (JWT-authenticated) and a
+            fallback to local <code>sacctmgr</code>/<code>sreport</code>/
+            <code>sacct</code> binaries via <code>slurm_command()</code>.
+            Phases 1-4 made REST the default and CLI the exception.
+          </p>
+
+          <h6>Setting: <code>REQUIRE_SLURM_CLI</code></h6>
+          <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+              <tr><th>Value</th><th>Behaviour</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>False</code> (default)</td><td>
+                <strong>Pure-REST mode.</strong> Bootstrap check skips the
+                binary probe; sync paths talk to slurmrestd. On a bare-metal
+                cluster, a REST failure raises a logged error and skips the
+                mutation — no silent degradation to <code>sacctmgr</code>.
+              </td></tr>
+              <tr><td><code>True</code></td><td>
+                <strong>Legacy mode.</strong> Bootstrap requires sacctmgr +
+                sreport on disk. When REST fails, sync transparently falls
+                back to CLI for every mutation. Use only for rollback or
+                migration windows.
+              </td></tr>
+            </tbody>
+          </table>
+
+          <h6>Cluster-specific overrides</h6>
+          <ul>
+            <li><code>cluster_type=container</code> (dev Docker): CLI
+                fallback is <strong>always</strong> allowed because Slurm
+                22.05 in containers has broken JWT auth. Runs sacctmgr via
+                <code>docker exec slurmctld</code>.</li>
+            <li><code>cluster_type=bare_metal</code>: respects
+                <code>REQUIRE_SLURM_CLI</code> strictly. Bare-metal prod
+                with slurmrestd online fails loud on REST regressions.</li>
+          </ul>
+
+          <h6>Live data endpoints (Phase 2)</h6>
+          <pre class="bg-light p-3 rounded">
+# Current-week billing spend for an allocation:
+GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/
+
+# Historical week (does NOT touch the cached AllocationAttribute):
+GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/?week_start=2026-05-04
+
+# Both require DRF token or session. PIs see own allocations; staff
+# scoped via StaffResourceAssignment; superuser sees all.</pre>
+
+          <h6>Drift diagnosis</h6>
+          <p>If the gauge shows different numbers than <code>sreport</code>,
+            run the side-by-side comparison:</p>
+          <pre class="bg-light p-3 rounded">docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0</pre>
+          <p>Exit code = count of allocations whose drift exceeds the
+            threshold. Investigate any account where
+            <code>sreport</code> &ne; REST by more than 2%.</p>
+
+          <h6>Observability</h6>
+          <p><strong>Admin &gt; Slurm Sync Metrics</strong>: per-cluster,
+            per-hour counts of REST success vs CLI fallback per operation
+            (<code>create_account</code>, <code>modify_account_qos</code>,
+            <code>add_user_to_account</code>, etc.). Any
+            non-zero <code>cli</code> count on a bare-metal cluster in
+            pure-REST mode indicates a REST regression worth investigating.</p></div>
                   </div>
                 </div>
                 

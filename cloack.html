@@ -320,11 +320,11 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td>Cap applied directly on Slurm account (not per-QOS)</td>
 </tr>
 <tr>
-<td>Weekly cap usage sync</td>
+<td>Weekly cap usage (live)</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Every 5 min: poll Slurm sreport, store in <code>Weekly Cap Usage ($)</code></td>
+<td>On-demand via <code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code>; AJAX gauge; debounced AllocationAttribute UPSERT</td>
 </tr>
 <tr>
 <td>Cap-to-TRES conversion</td>
@@ -1016,10 +1016,10 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td>Hourly :30</td>
 </tr>
 <tr>
-<td><code>sync_weekly_cap_usage</code></td>
+<td>~~<code>sync_weekly_cap_usage</code>~~</td>
 <td style="text-align: center;">--</td>
-<td style="text-align: center;">Yes</td>
-<td>Every 5 min</td>
+<td style="text-align: center;">~~Removed~~</td>
+<td>Removed (Phase 2) — replaced by live endpoint</td>
 </tr>
 </tbody>
 </table>
@@ -1278,7 +1278,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </tr>
 <tr>
 <td>Weekly Spend Cap</td>
-<td>Dollar-based caps via account-level GrpTRESMins, 5-min usage sync, spend gauge</td>
+<td>Dollar-based caps via account-level GrpTRESMins; live AJAX gauge via REST endpoint (Phase 2); diagnostic <code>shadow_compare_weekly_cap_usage</code></td>
 </tr>
 <tr>
 <td>Storage/Backup</td>
