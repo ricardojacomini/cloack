@@ -1528,6 +1528,7 @@ SLURM_NOOP=0
 </tr>
 </tbody>
 </table>
+<p><code>credits_used</code> is gated by <code>allocation.billing.billing_type == 'credit_holder'</code>: a pool on a pay-per-use or no_charge allocation reports 0.0 even when <code>SlurmAccountUsagePeriod</code> rows exist. Staff flipping <code>billing_type</code> away from credit_holder after the fact does not double-bill historical usage.</p>
 <h4>4. <code>SlurmPartition.tres_billing_weights</code> — <code>/admin/arch_sync/slurmpartition/</code></h4>
 <p>Per-partition multiplier injected as <code>TRESBillingWeights=</code> in <code>slurm.conf</code>. Combined with <code>BillingRate</code> to compute the actual charge. Example: <code>CPU=1.0,Mem=0.25G,GRES/gpu=2.0</code> → 1 GPU-hour = 2 billing units.</p>
 <h4>5. <code>SlurmAccountUsagePeriod</code> — <code>/billing/report/</code>, <code>/billing/my-usage/</code></h4>
