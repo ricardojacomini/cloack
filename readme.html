@@ -748,7 +748,7 @@ Source-tarball assembler: <a href="scripts/build_rpm_source.py">scripts/build_rp
 <td><code>arch/cn-rockylinux</code></td>
 <td><code>slurm/base/Dockerfile</code></td>
 <td><code>rockylinux:9</code></td>
-<td>Base image: Rocky 9 + Slurm 22.05 + Munge + SSSD + SPANK plugins</td>
+<td>Base image: Rocky 9 + Slurm 25.11 + Munge + SSSD + SPANK plugins (myspank, spank_reemit_cost, pyxis)</td>
 </tr>
 <tr>
 <td><code>arch/slurm-munge</code></td>
@@ -772,7 +772,7 @@ Source-tarball assembler: <a href="scripts/build_rpm_source.py">scripts/build_rp
 <td><code>arch/slurmd</code></td>
 <td><code>slurm/slurmd/Dockerfile</code></td>
 <td><code>arch/cn-rockylinux</code></td>
-<td>Slurm worker/login node daemon</td>
+<td>Slurm worker/login node daemon — also ships NVIDIA enroot runtime for <code>--container-image</code></td>
 </tr>
 <tr>
 <td><code>arch/slurmrestd</code></td>

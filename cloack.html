@@ -1142,6 +1142,13 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td>Cost telemetry compiled into base image</td>
 </tr>
 <tr>
+<td>Container jobs (Pyxis + enroot)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>NVIDIA Pyxis SPANK in base image (<code>spank_pyxis.so</code> v0.20.0); NVIDIA enroot runtime on compute + login nodes (<code>arch/slurmd</code> v3.5.0). Enables <code>sbatch --container-image=...</code>. GPU support (<code>libnvidia-container-tools</code>) installed via Ansible on bare-metal GPU nodes only.</td>
+</tr>
+<tr>
 <td>cli_filter.lua (cost estimation)</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
