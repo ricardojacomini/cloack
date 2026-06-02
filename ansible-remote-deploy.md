@@ -385,12 +385,10 @@ that's a follow-up scaffolding addition.
 
 ## Reference
 
-- [ansible/README.md](../ansible/README.md) — high-level tree layout + commands
+- [slurm/ANSIBLE.md](../slurm/ANSIBLE.md) — canonical bare-metal deployment guide (layout, playbooks, end-to-end deploy, what's NOT covered)
 - [coldfront/custom/plugins/arch_sync/ansible_scaffold_data.py](../coldfront/custom/plugins/arch_sync/ansible_scaffold_data.py) — source of truth (Python dict)
 - [scripts/regen_ansible_scaffold.py](../scripts/regen_ansible_scaffold.py) — re-embed playbook edits back into the data module
 - [start.sh](../start.sh) — `cmd_slurm ansible`, `cmd_slurm prod-sim` entry points (search for `ansible` and `prod-sim`)
-- [CLAUDE.md](../CLAUDE.md) "Ansible Scope (bare-metal, Phase 6 scaffold landed)" section
-- Memory: `project_ansible_phase6`, `feedback_ansible_scaffold_refresh`, `feedback_primary_repo_only`
 
 ## Out of scope
 

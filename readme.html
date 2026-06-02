@@ -603,11 +603,14 @@ docker exec openldap ldapsearch -H ldapi:/// -x \
 </code></pre>
 <hr />
 <h2>Bare-metal install — <code>cloack-deploy</code> RPM</h2>
-<p>For bare-metal Slurm deployments the production artefact is the
-<code>cloack-deploy</code> RPM (Rocky 9). It ships the Ansible tree plus a
-<code>cloack-deploy</code> CLI wrapper, all under <code>/opt/cloack/</code>, with
-<code>/usr/bin/cloack-deploy</code> as a PATH symlink so cron and systemd find it
-without touching <code>/etc/profile.d/</code>.</p>
+<p>For the full bare-metal deployment guide (5 playbooks, what each
+delivers end-to-end, what is intentionally NOT covered, single
+source-of-truth conventions, version pin policy), see
+<strong><a href="slurm/ANSIBLE.md">slurm/ANSIBLE.md</a></strong>.</p>
+<p>The production artefact is the <code>cloack-deploy</code> RPM (Rocky 9). It ships
+the Ansible tree plus a <code>cloack-deploy</code> CLI wrapper, all under
+<code>/opt/cloack/</code>, with <code>/usr/bin/cloack-deploy</code> as a PATH symlink so cron
+and systemd find it without touching <code>/etc/profile.d/</code>.</p>
 <pre><code class="language-bash"># 1. Install on a deploy workstation (Rocky 9)
 dnf install cloack-deploy
 
