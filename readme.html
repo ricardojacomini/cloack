@@ -2440,6 +2440,18 @@ SlurmCluster(name=&quot;arch-gpu&quot;, root_account=&quot;arch&quot;, slurmrest
 <p>When an allocation transitions to <strong>Active</strong> (staff approval), the system immediately creates the Slurm account hierarchy via REST API — no waiting for the periodic sync. This is best-effort: if the REST API is unavailable, the periodic sync (every 3 hours) acts as a safety net.</p>
 <p>The provisioning respects Model B affiliation filtering: a JHU PI allocation approved on a Schmidt-only cluster is silently skipped.</p>
 <p><strong>Recommendation for JHU (1000 nodes, 10K users):</strong> Start with Model A (single cluster with partitions). Migrate to Model B when hardware diversity or operational isolation justifies the complexity. The migration is infrastructure-only — add another slurmctld, create a new <code>SlurmCluster</code> in Django Admin with the appropriate <code>root_account</code>, no code changes needed.</p>
+<hr />
+<h2>Monitoring</h2>
+<p>External Grafana + Prometheus at https://dash.arch.jhu.edu/ scrape our hosts in <strong>pull mode</strong> over the JHU LAN. Exporters and scrape configs live under <a href="monitoring/"><code>monitoring/</code></a>:</p>
+<ul>
+<li><a href="monitoring/README.md"><code>monitoring/README.md</code></a> — entry point, daemon × layout matrix</li>
+<li><a href="monitoring/catalog.md"><code>monitoring/catalog.md</code></a> — canonical exporter inventory (image, port, DSN shape)</li>
+<li><a href="monitoring/docker/"><code>monitoring/docker/</code></a> — sidecars for the Docker side (Layout A + D, and the <code>cf-vm</code> of B/C)</li>
+<li><a href="monitoring/ansible/roles/monitoring/"><code>monitoring/ansible/roles/monitoring/</code></a> — bare-metal exporters (Layout B + C)</li>
+<li><a href="monitoring/scrape_configs/"><code>monitoring/scrape_configs/layout_{a,b,c,d}.yml</code></a> — per-layout target snippets to hand to the <code>dash</code> operator</li>
+</ul>
+<p>Covered daemons: coldfront + qcluster + helpdesk (django-prometheus + custom view), postgres (<code>:5432</code>), mariadb (Slurm acct DB on the non-standard <code>:3307</code>), openldap, keycloak (built-in <code>/metrics</code>), slurmctld/slurmdbd/slurmrestd (single exporter via REST + rotating JWT), munge (textfile collector), cli_filter (login nodes only), plus node_exporter + cadvisor everywhere. Compute nodes (<code>cn-XX</code>) are intentionally out of scope.</p>
+<p>The <code>slurm_exporter</code> reuses the rotating token that <code>start.sh</code> already keeps fresh at <code>${BASE_ETC}/slurm/slurm_jwt.token</code> (cron 03:00 daily, lifespan 30 days) — no manual token generation. See memory <a href=".claude/projects/-Users-ricardo-arch-jhu-dsai-schmidt/memory/project_monitoring_dash.md"><code>project_monitoring_dash</code></a> for the full handoff details.</p>
 <hr /></div>
     </main>
   </div>
