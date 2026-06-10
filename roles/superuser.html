@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLOACK — Superuser guide</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-shell { display: flex; min-height: 100vh; }
+.site-sidebar { width: 260px; background: linear-gradient(180deg, #0c111b 0%, #141a25 100%);
+               border-right: 1px solid #1f2b42; padding: 24px 0; display: flex; flex-direction: column; }
+.sidebar-brand { font-weight: 700; font-size: 1.1rem; color: #e0efff; text-align: center;
+                 margin-bottom: 24px; letter-spacing: 2px; }
+.sidebar-links { display: flex; flex-direction: column; gap: 4px; padding: 0 16px; }
+.sidebar-links a { color: #b3c7dd; text-decoration: none; padding: 10px 14px;
+                  border-radius: 6px; font-size: 0.95rem; display: block; transition: all 0.15s; }
+.sidebar-links a:hover { background: rgba(74, 158, 255, 0.14); color: #fff; }
+.sidebar-links a.active { background: rgba(74, 158, 255, 0.22); color: #fff; border-left: 4px solid #4a9eff; padding-left: 10px; }
+.page-content { flex: 1; max-width: 1200px; margin: 0 auto; padding: 36px 32px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+</style>
+</head>
+  <body>
+    <div class="site-shell">
+      
+        <aside class="site-sidebar">
+          <div class="sidebar-brand">ARCH Portal</div>
+          <div class="sidebar-links">
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html" class="active">Superuser</a><a href="admin.html">Admin</a>
+          </div>
+        </aside>
+        
+      <main class="page-content">
+        <div class="md-content"><h1>Superuser — ColdFront / Django admin (cluster ops + identity)</h1>
+<h2>Who you are + scope</h2>
+<p>You have <code>is_superuser=True</code> on your Django <code>User</code>. You typically also
+belong to the LDAP <code>cn=admin</code> group (cluster sudoers) and the
+<code>helpdesk-admin</code> group (helpdesk privileges). You approve / deny
+allocations, drain or resume Slurm nodes, reset stale OTP credentials,
+rotate the local <code>/admin/</code> break-glass password, and read the qcluster
+audit log for every async task.</p>
+<p>You typically also operate the cluster (deploy via <code>start.sh</code>, manage
+Ansible bundles) — for that side read <a href="admin.md"><code>admin.md</code></a>. For
+helpdesk-side work see <a href="staff.md"><code>staff.md</code></a>. You authenticate via
+Entra Federation if you are JHED; if you are an <code>ext-*</code> user you use
+TOTP via the Keycloak account console (same as every other regular
+<a href="user.md"><code>user.md</code></a>).</p>
+<h2>Quick start</h2>
+<h3>1. Approve / deny an allocation request</h3>
+<pre><code>/admin/allocation/allocation/?status__name=New
+  → open the allocation
+  → review IO, storage, backup, Weekly Cap
+  → action &quot;Approve&quot; or &quot;Deny&quot; (deny requires a reason)
+</code></pre>
+<p>Approval triggers <code>on_allocation_activated</code>, which provisions the
+Slurm account hierarchy via REST in real time. ToS gate still applies:
+PI association is created only if they have accepted the current ToS.</p>
+<h3>2. Drain / resume a Slurm node</h3>
+<pre><code>/admin/arch_sync/slurmnode/
+  → select node → action &quot;Drain selected nodes&quot; / &quot;Resume&quot;
+  → reason is logged on the SlurmNode row
+</code></pre>
+<p>Behind the scenes this calls <code>slurmrestd</code> (or <code>scontrol</code> as fallback)
+on the right cluster. The action is also surfaced on the live
+<code>/cluster/&lt;id&gt;/</code> page for staff with the cluster in their scope.</p>
+<h3>3. Reset a stale OTP credential</h3>
+<pre><code>docker exec keycloak bash -c '/opt/keycloak/bin/kcadm.sh ...'
+</code></pre>
+<p>See the recipe in <a href="../../keycloak/README.md"><code>keycloak/README.md</code></a>
+"Clear a stale OTP credential" — it requires:</p>
+<ul>
+<li><code>kcadm config credentials</code> once per session (writes
+  <code>/tmp/kcadm.config</code>).</li>
+<li><code>kcadm get users -q username=$USER</code> to fetch the user id.</li>
+<li><code>kcadm delete users/$UID/credentials/&lt;cred-id&gt;</code> to drop the OTP row.</li>
+</ul>
+<p>Alternative — force the user to re-enrol on their next login:</p>
+<pre><code class="language-bash">kcadm update users/$UID --config /tmp/kcadm.config -r jhu \
+  -s 'requiredActions=[&quot;CONFIGURE_TOTP&quot;]'
+</code></pre>
+<h3>4. Rotate the break-glass <code>/admin/</code> password</h3>
+<pre><code class="language-bash">bash scripts/rotate-admin-password.sh
+</code></pre>
+<p>Generates a 32-char password, applies it via <code>manage.py changepassword</code>
+inside the coldfront container, appends an entry to the gitignored
+audit log, and prints the password once for paste into the team vault.
+See <a href="../break-glass-admin.md"><code>docs/break-glass-admin.md</code></a> for the
+full runbook (vault location, quarterly rotation cadence,
+<code>admin_login_alert_task</code> alert wiring).</p>
+<h3>5. Read the qcluster audit trail</h3>
+<pre><code>/admin/django_q/task/
+/admin/?app=admin&amp;model=logentry   → Home → Administration → Log entries
+</code></pre>
+<p>Every <code>async_task()</code> call uses the <code>task_completion_hook</code> so the
+admin LogEntry table records when each scheduled task ran, success or
+failure, duration, and result snippet.</p>
+<h2>Reference matrices</h2>
+<h3>Scheduled tasks (django-q)</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Schedule</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sync-ldap-daily</code></td>
+<td>02:00 daily</td>
+<td>Full LDAP sync (PIs, members, groups, home dirs).</td>
+</tr>
+<tr>
+<td><code>sync-slurm</code></td>
+<td>every 15 min</td>
+<td>Safety net for the signal-based real-time provisioning.</td>
+</tr>
+<tr>
+<td><code>collect-sacct-periodic</code></td>
+<td>every 15 min</td>
+<td>Pull completed jobs from sacct into <code>SlurmJob</code>.</td>
+</tr>
+<tr>
+<td><code>check-core-hours-reset</code></td>
+<td>01:00 daily</td>
+<td>Trigger scheduled period resets on allocations.</td>
+</tr>
+<tr>
+<td><code>cleanup-task-queue</code></td>
+<td>hourly :30</td>
+<td>Purge stuck / old qcluster tasks.</td>
+</tr>
+<tr>
+<td><code>sync-totp-status</code></td>
+<td>every 30 min</td>
+<td>Mirror Keycloak TOTP enrolment state into <code>UserProfile.totp_enrolled</code>.</td>
+</tr>
+<tr>
+<td><code>refresh-slurm-jwt</code></td>
+<td>every 6 h (:17)</td>
+<td>Re-issue the slurmrestd JWT to <code>/etc/slurm/slurm_jwt.token</code>.</td>
+</tr>
+<tr>
+<td><code>sync-bare-metal-topology</code></td>
+<td>every 10 min</td>
+<td><code>import_slurm_cluster --update</code> per bare-metal cluster — Service Health reflects newly-added nodes within 10 min.</td>
+</tr>
+</tbody>
+</table>
+<h3>LDAP privilege groups (per affiliation tree)</h3>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>UID/GID</th>
+<th>What it grants</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cn=admin,ou=Groups,ou=jhu</code></td>
+<td>reserved</td>
+<td>Cluster sudoers; <code>sudo</code> on every Slurm node. Also auto-imports as Django <code>is_staff=True</code> via <code>seed_initial_data.sync_admin_group_to_is_staff</code>.</td>
+</tr>
+<tr>
+<td><code>cn=helpdesk-admin,ou=Groups,ou=jhu</code></td>
+<td>per affiliation</td>
+<td>Helpdesk admin (manage queues, change ticket status, edit categories).</td>
+</tr>
+<tr>
+<td><code>cn=helpdesk-staff,ou=Groups,ou=jhu</code></td>
+<td>per affiliation</td>
+<td>Helpdesk staff (work tickets, classify, reply).</td>
+</tr>
+<tr>
+<td>Cluster (LDAP admin) Django Group</td>
+<td>n/a</td>
+<td>Mirrors <code>cn=admin</code> membership for the Django side. Manage at <code>/admin/auth/group/</code>.</td>
+</tr>
+<tr>
+<td><code>ARCH_SUPERUSERS</code> env var</td>
+<td>n/a</td>
+<td>Comma-separated usernames auto-promoted to <code>is_superuser=True</code> when they land in <code>cn=admin</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Cluster Scope + Affiliation Scope (delegated staff admin)</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>M2M target</th>
+<th>Controls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cluster Scope</td>
+<td><code>Resource</code> (type Cluster)</td>
+<td>Drain / resume nodes, view cluster detail, regenerate the per-cluster Ansible bundle</td>
+</tr>
+<tr>
+<td>Affiliation Scope</td>
+<td><code>Affiliation</code></td>
+<td>Visibility into users, PIs, projects, allocations of those affiliations only (Manage Users page, Promote PI, scoped list views)</td>
+</tr>
+<tr>
+<td><code>elevate_to_superuser</code></td>
+<td>bool</td>
+<td>Lets a non-superuser staff approve / deny allocations within their scope</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Django Admin actions</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Action</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/admin/allocation/allocation/</code></td>
+<td>Approve / Deny</td>
+<td>Approves an allocation, fires real-time Slurm provisioning</td>
+</tr>
+<tr>
+<td><code>/admin/arch_sync/slurmnode/</code></td>
+<td>Drain / Resume</td>
+<td>Slurm node state via REST</td>
+</tr>
+<tr>
+<td><code>/admin/arch_sync/slurmcluster/</code></td>
+<td>Action "Action import from slurmrestd" / "Update from slurmrestd" / "Check drift"</td>
+<td>Mirror Slurm topology into ColdFront DB</td>
+</tr>
+<tr>
+<td><code>/admin/user/userprofile/</code></td>
+<td>Edit</td>
+<td>Set <code>is_pi</code>, <code>is_superuser</code>, <code>elevate_to_superuser</code>, <code>can_view_billing_stats</code></td>
+</tr>
+<tr>
+<td><code>/admin/auth/group/</code> → "Cluster (LDAP admin)"</td>
+<td>Add member</td>
+<td>Publishes to LDAP <code>cn=admin</code> via the <code>m2m_changed</code> signal</td>
+</tr>
+<tr>
+<td><code>/admin/django_q/task/</code></td>
+<td>View</td>
+<td>Live scheduled task table</td>
+</tr>
+<tr>
+<td><code>/admin/?app=admin&amp;model=logentry</code></td>
+<td>View</td>
+<td>Audit trail (all qcluster + admin actions)</td>
+</tr>
+</tbody>
+</table>
+<h2>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Allocation approved but Slurm account not created</td>
+<td>ToS not accepted by the PI, OR <code>on_allocation_activated</code> raised silently</td>
+<td>Check the qcluster Log entries; check <code>TOSAcceptance</code> rows; manual fallback: <code>docker exec coldfront python manage.py sync_slurm</code></td>
+</tr>
+<tr>
+<td><code>/admin/</code> login alert email not received</td>
+<td><code>ARCH_ADMIN_ALERT_EMAILS</code> not set in <code>.env</code>, OR recipient flagged the SMTP</td>
+<td>Set the env var; check <code>admin_login_alert_task</code> LogEntry for the dispatch result</td>
+</tr>
+<tr>
+<td><code>cn=admin</code> membership change not visible on login node</td>
+<td>SSSD cache; <code>sss_cache -E</code> runs at end of every <code>run_ldap_sync</code> but TTL = 60 s</td>
+<td>Wait one minute, or run <code>sss_cache -E</code> manually on the login node</td>
+</tr>
+<tr>
+<td>New user created but no UserProfile</td>
+<td>The Postgres trigger <code>tr_auth_user_after_insert_fn</code> is missing or out-of-date (e.g. <code>totp_enrolled</code> column added after trigger)</td>
+<td>Re-run <code>coldfront/init/ldap_sync_postgres_run_it_once.py</code>; see iter-4 fix <code>1bffe47</code></td>
+</tr>
+<tr>
+<td>Scheduled task missing from qcluster</td>
+<td>django-q scheduler did not pick up the new schedule (entry added but qcluster not restarted)</td>
+<td><code>docker restart qcluster</code></td>
+</tr>
+<tr>
+<td>OTP re-enrol flow does not prompt</td>
+<td>User does not have <code>CONFIGURE_TOTP</code> in their <code>requiredActions</code> and <code>defaultAction=true</code> only applies to new users</td>
+<td>Use the <code>kcadm update users</code> snippet from Quick start §3 to add the required action manually</td>
+</tr>
+<tr>
+<td><code>helpdesk-admin</code> LDAP membership changed but Django group did not</td>
+<td>The signal <code>_sync_helpdesk_ldap_groups</code> only fires on <code>m2m_changed</code> for <code>auth.User_groups</code> — the inverse direction does not auto-sync</td>
+<td>Run <code>coldfront python manage.py sync_ldap</code> to reconcile on the next pass</td>
+</tr>
+<tr>
+<td>Allocation in "Pending review" forever</td>
+<td>Staff scope does not include the requesting affiliation</td>
+<td>Add the affiliation to the staff's <code>StaffResourceAssignment.affiliations</code>, OR escalate to a superuser</td>
+</tr>
+</tbody>
+</table>
+<h2>Where to go next</h2>
+<ul>
+<li><code>/admin/</code> — Django Admin (Home → Administration → Log entries for
+  the qcluster task audit trail).</li>
+<li><a href="../break-glass-admin.md"><code>docs/break-glass-admin.md</code></a> — full
+  break-glass <code>/admin/</code> rotation runbook (vault, audit log, alerts).</li>
+<li><a href="../../keycloak/README.md"><code>keycloak/README.md</code></a> — kcadm recipes
+  (OTP credentials, theme re-apply, realm settings inspection).</li>
+<li><code>/staff/help/</code> — in-app help with operational notes.</li>
+<li><a href="admin.md"><code>admin.md</code></a> — cluster ops side.</li>
+<li><a href="README.md"><code>README.md</code></a> — the role index.</li>
+</ul></div>
+      </main>
+    </div>
+  </body>
+</html>

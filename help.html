@@ -45,7 +45,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     <aside class="site-sidebar">
       <div class="sidebar-brand">ARCH Portal</div>
       <div class="sidebar-links">
-        <a href="index.html">Home</a><a href="readme.html">README</a><a href="cloack.html">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html" class="active">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a>
+        <a href="index.html">Home</a><a href="readme.html">README</a><a href="cloack.html">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html" class="active">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="roles/index.html">User Guide (by role)</a>
       </div>
     </aside>
     
@@ -1926,8 +1926,7 @@ docker exec dev-&lt;name&gt; tail -5 /var/log/slurm/slurmd.log</pre>
 missing from the image or was skipped, the node stays <code>down*</code>
 until manually resumed. Separately, a long-lived <code>slurmd</code> can
 hang (rare) without exiting; the listening socket persists, so the only
-reliable signal is a stale log file timestamp.</p>
-</div>
+reliable signal is a stale log file timestamp.</p></div>
                   </div>
                 </div>
                 

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLOACK — User guide</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-shell { display: flex; min-height: 100vh; }
+.site-sidebar { width: 260px; background: linear-gradient(180deg, #0c111b 0%, #141a25 100%);
+               border-right: 1px solid #1f2b42; padding: 24px 0; display: flex; flex-direction: column; }
+.sidebar-brand { font-weight: 700; font-size: 1.1rem; color: #e0efff; text-align: center;
+                 margin-bottom: 24px; letter-spacing: 2px; }
+.sidebar-links { display: flex; flex-direction: column; gap: 4px; padding: 0 16px; }
+.sidebar-links a { color: #b3c7dd; text-decoration: none; padding: 10px 14px;
+                  border-radius: 6px; font-size: 0.95rem; display: block; transition: all 0.15s; }
+.sidebar-links a:hover { background: rgba(74, 158, 255, 0.14); color: #fff; }
+.sidebar-links a.active { background: rgba(74, 158, 255, 0.22); color: #fff; border-left: 4px solid #4a9eff; padding-left: 10px; }
+.page-content { flex: 1; max-width: 1200px; margin: 0 auto; padding: 36px 32px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+</style>
+</head>
+  <body>
+    <div class="site-shell">
+      
+        <aside class="site-sidebar">
+          <div class="sidebar-brand">ARCH Portal</div>
+          <div class="sidebar-links">
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html" class="active">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a>
+          </div>
+        </aside>
+        
+      <main class="page-content">
+        <div class="md-content"><h1>User — researcher running jobs on ARCH Portal</h1>
+<h2>Who you are + scope</h2>
+<p>You are a researcher with an ARCH Portal account: a JHU faculty / staff /
+student authenticating with <strong>JHED</strong>, an <strong>external collaborator</strong> with
+an <code>ext-*</code> username, or a <strong>Schmidt Sciences</strong> member with an <code>ssci-*</code>
+username. Your day-to-day is submitting Slurm jobs, checking quotas
+and bills, and managing the data in your own <code>/home/</code> and <code>/scratch/</code>.</p>
+<p>If you also <strong>manage allocations</strong> for a project (request a new paid
+allocation, set Weekly Caps, add other users), read <a href="pi.md"><code>pi.md</code></a> too.
+If you are a member of the helpdesk team handling tickets, see
+<a href="staff.md"><code>staff.md</code></a> instead.</p>
+<h2>Quick start</h2>
+<h3>1. First-time login</h3>
+<table>
+<thead>
+<tr>
+<th>Username pattern</th>
+<th>Login URL</th>
+<th>How you authenticate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>JHED ID (e.g. <code>rdesouz4</code>)</td>
+<td>the JHU portal card</td>
+<td>Entra Federation → MFA from JHU (no separate password)</td>
+</tr>
+<tr>
+<td><code>ext-jsmith</code></td>
+<td>the JHU portal card</td>
+<td>LDAP password (set during registration) + TOTP (Keycloak account console)</td>
+</tr>
+<tr>
+<td><code>ssci-jsmith</code></td>
+<td>the Schmidt portal card</td>
+<td>LDAP password (set during registration) + TOTP (Keycloak account console)</td>
+</tr>
+</tbody>
+</table>
+<p>If you do not have an account yet:</p>
+<ul>
+<li><strong>JHED users</strong> — no registration form; just sign in via JHU SSO and
+  the account is created on first login.</li>
+<li><strong><code>ext-*</code> users</strong> — open <code>/user/jhu/register/</code> on the portal, fill in
+  the form (the username <strong>must</strong> start with <code>ext-</code>), then wait for your
+  PI to add you to their project / allocation.</li>
+<li><strong><code>ssci-*</code> users</strong> — same flow but on <code>/user/schmidt/register/</code>, and
+  the username <strong>must</strong> start with <code>ssci-</code>.</li>
+</ul>
+<p>After your first successful login a banner at the top of every page
+prompts you to <strong>enrol TOTP</strong> in the Keycloak account console. Click
+the banner link, scan the QR code with Google Authenticator / Authy /
+Microsoft Authenticator, and you are done. The banner disappears
+within 30 minutes once the periodic sync picks up the new credential.</p>
+<h3>2. SSH to a login node</h3>
+<pre><code class="language-bash">ssh &lt;username&gt;@&lt;login-node-host&gt;
+</code></pre>
+<p>Authentication on login nodes uses the same identity as the portal:</p>
+<ul>
+<li><strong>JHED</strong> — browser-based Device Flow opens automatically; approve
+  in your browser, complete MFA in Entra, the SSH session unblocks.</li>
+<li><strong><code>ext-*</code> / <code>ssci-*</code> / <code>cn=admin</code></strong> — terminal asks for your LDAP
+  password and then a TOTP code (2 PAM prompts via <code>pam_kc_ssh.so</code>).</li>
+</ul>
+<h3>3. Submit your first job</h3>
+<pre><code class="language-bash">sbatch --partition=med --account=&lt;your-account&gt; --time=00:30:00 \
+  --wrap='hostname &amp;&amp; date'
+</code></pre>
+<p>The Slurm CLI Lua filter prompts you to confirm the cost estimate
+before the job is admitted. Press <code>y</code> to confirm or <code>n</code> to abort.</p>
+<p>For longer jobs, use a script:</p>
+<pre><code class="language-bash">#!/bin/bash
+#SBATCH --partition=high
+#SBATCH --account=rdesouz4_proj1
+#SBATCH --time=04:00:00
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
+#SBATCH --job-name=myrun
+#SBATCH --output=/home/jhu/rdesouz4/logs/%x-%j.out
+
+module load anaconda
+python my_analysis.py
+</code></pre>
+<h3>4. Check your usage and balance</h3>
+<pre><code class="language-bash">squeue -u $USER          # currently queued or running jobs
+sacct -u $USER --starttime=now-7days   # last week's accounting
+sbalance                 # core-hours used vs the allocation cap
+sbalance --week          # weekly $ cap remaining (paid allocations)
+</code></pre>
+<p><code>sbalance</code> reads from ColdFront's allocation attributes — the same
+numbers the portal's Allocation Detail page shows.</p>
+<h3>5. Manage data</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Quota</th>
+<th>Backup</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/home/&lt;aff&gt;/&lt;username&gt;</code></td>
+<td>Small, per-user</td>
+<td>Yes (snapshot)</td>
+<td>Included</td>
+</tr>
+<tr>
+<td><code>/home/&lt;aff&gt;/&lt;username&gt;/scratch_&lt;pi&gt;</code></td>
+<td>Symlink into PI's scratch — same quota as <code>/scratch</code></td>
+<td>No</td>
+<td>Included</td>
+</tr>
+<tr>
+<td><code>/scratch/&lt;aff&gt;/&lt;pi&gt;</code></td>
+<td>Set per allocation (<code>storage_tb</code>)</td>
+<td>Optional (<code>backup_tb</code>)</td>
+<td><code>$0.025 / TB / month</code> storage + <code>$0.015 / TB / month</code> backup</td>
+</tr>
+<tr>
+<td><code>/scratch/&lt;aff&gt;/&lt;pi&gt;/&lt;project&gt;</code></td>
+<td>Same quota as parent</td>
+<td>Inherits parent</td>
+<td>Same</td>
+</tr>
+</tbody>
+</table>
+<p>Storage and backup are billed per-month regardless of whether you run
+jobs. Storage charges show up on your PI's billing report under
+"Storage" / "Backup" lines.</p>
+<h2>Reference matrices</h2>
+<h3>Slurm partitions</h3>
+<table>
+<thead>
+<tr>
+<th>Partition</th>
+<th>Nodes</th>
+<th>Max wall</th>
+<th>Default?</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scavenger</code></td>
+<td><code>cn-01</code></td>
+<td>3 days</td>
+<td><strong>Yes</strong></td>
+<td>Free, preemptible. Default partition. Anything you can re-run if killed.</td>
+</tr>
+<tr>
+<td><code>low</code></td>
+<td><code>cn-01</code></td>
+<td>3 days</td>
+<td>No</td>
+<td>Paid, lowest CPU price. Single-node jobs that tolerate slower scheduling.</td>
+</tr>
+<tr>
+<td><code>med</code></td>
+<td><code>cn-01</code>, <code>cn-02</code></td>
+<td>3 days</td>
+<td>No</td>
+<td>Paid, mid-tier CPU price. 2-node jobs.</td>
+</tr>
+<tr>
+<td><code>high</code></td>
+<td><code>cn-02</code>, <code>cn-03</code></td>
+<td>3 days</td>
+<td>No</td>
+<td>Paid, highest CPU price. Fast scheduling, larger memory nodes.</td>
+</tr>
+<tr>
+<td><code>premium</code></td>
+<td><code>cn-01</code>, <code>cn-02</code>, <code>cn-03</code></td>
+<td>7 days</td>
+<td>No</td>
+<td>Paid, 7-day wall, all CPU nodes. No <code>interactive</code> QoS.</td>
+</tr>
+<tr>
+<td><code>a100</code></td>
+<td><code>gpu-01</code></td>
+<td>1 day</td>
+<td>No</td>
+<td>Paid GPU partition (NVIDIA A100).</td>
+</tr>
+<tr>
+<td><code>l40s</code>, <code>h100</code>, <code>h200</code></td>
+<td>varies</td>
+<td>varies</td>
+<td>No</td>
+<td>Paid GPU partitions per hardware generation.</td>
+</tr>
+</tbody>
+</table>
+<h3>QoS (job class)</h3>
+<table>
+<thead>
+<tr>
+<th>QoS</th>
+<th>Priority</th>
+<th>Max wall</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scavenger</code></td>
+<td>low</td>
+<td>3 days</td>
+<td>Free. Job is preempted if a paid job needs the resource.</td>
+</tr>
+<tr>
+<td><code>interactive</code></td>
+<td>1000</td>
+<td>4 hours</td>
+<td>Higher priority, capped 4 h. Excluded from <code>premium</code>.</td>
+</tr>
+<tr>
+<td><code>normal</code></td>
+<td>normal</td>
+<td>per partition</td>
+<td>Default for paid allocations.</td>
+</tr>
+<tr>
+<td><code>premium</code></td>
+<td>high</td>
+<td>per partition</td>
+<td>Higher priority on <code>premium</code> partition.</td>
+</tr>
+<tr>
+<td><code>ssci</code></td>
+<td>normal</td>
+<td>per partition</td>
+<td>Free QoS for <code>ssci-*</code> accounts on paid partitions (Schmidt Sciences funded).</td>
+</tr>
+</tbody>
+</table>
+<h3>Cost (per the live <code>rates.lua</code> shipped in the cluster)</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Full rate</th>
+<th>Overhead-only</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU service unit (per core-hour)</td>
+<td>$0.35</td>
+<td>$0.10</td>
+</tr>
+<tr>
+<td>GPU-hour</td>
+<td>$1.20</td>
+<td>$0.40</td>
+</tr>
+<tr>
+<td>GPU partition CPU service unit</td>
+<td>$0.45</td>
+<td>$0.15</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>$0.025 / TB / month</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Backup</td>
+<td>$0.015 / TB / month</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>GPU-only billing rule</strong> — when a job uses any GPU, only its GPU
+charges go into the bill total; the CPU hours of that job are reported
+for transparency but <strong>excluded</strong> from the amount due. Pure-CPU jobs
+charge CPU as expected.</p>
+<h3>CLI cheat-sheet</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sinfo</code></td>
+<td>Show partition / node status.</td>
+</tr>
+<tr>
+<td><code>squeue</code></td>
+<td>List queued + running jobs (use <code>-u $USER</code> to filter).</td>
+</tr>
+<tr>
+<td><code>sbatch &lt;script&gt;</code></td>
+<td>Submit a batch job.</td>
+</tr>
+<tr>
+<td><code>srun --pty bash</code></td>
+<td>Interactive shell on a compute node.</td>
+</tr>
+<tr>
+<td><code>scancel &lt;jobid&gt;</code></td>
+<td>Cancel one of your jobs.</td>
+</tr>
+<tr>
+<td><code>sacct --starttime=...</code></td>
+<td>Past job accounting (state, exit code, hours).</td>
+</tr>
+<tr>
+<td><code>sbalance</code></td>
+<td>ColdFront-side usage vs allocation cap.</td>
+</tr>
+<tr>
+<td><code>sbalance --week</code></td>
+<td>Weekly $ cap remaining for paid allocations.</td>
+</tr>
+<tr>
+<td><code>seff &lt;jobid&gt;</code></td>
+<td>Efficiency report after a job finishes.</td>
+</tr>
+<tr>
+<td><code>stree --full</code></td>
+<td>Visualise the Slurm account hierarchy you sit under.</td>
+</tr>
+<tr>
+<td><code>sqos</code>, <code>sassoc</code>, <code>sfeatures</code></td>
+<td>ARCH-specific helpers (QoS overview, your associations, partition features).</td>
+</tr>
+</tbody>
+</table>
+<h2>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Permission denied (publickey)</code> on SSH</td>
+<td>Public-key auth disabled by default; you must complete the OTP flow</td>
+<td>Re-SSH and follow the terminal prompts (password + TOTP, or browser Device Flow) — see <a href="../break-glass-admin.md"><code>docs/break-glass-admin.md</code></a> for the model</td>
+</tr>
+<tr>
+<td>Banner says "Activate TOTP" but I already enrolled</td>
+<td>Cache up to 30 min — the <code>sync_totp_status</code> task polls Keycloak periodically</td>
+<td>Wait 30 min, or hit <code>/user/user-profile/</code> to trigger a refresh; if it persists open a helpdesk ticket</td>
+</tr>
+<tr>
+<td><code>srun: error: AssocMaxCpuMinutesPerJobLimit</code></td>
+<td>Your weekly $ cap or core-hour cap is exhausted on that allocation</td>
+<td><code>sbalance --week</code> to confirm; switch to <code>scavenger</code> (free), or ask your PI to raise the Weekly Cap</td>
+</tr>
+<tr>
+<td><code>sbatch: error: Invalid account or account/partition combination</code></td>
+<td>The account you passed (e.g. <code>rdesouz4_proj1</code>) has no QoS that admits jobs on that partition</td>
+<td>Use <code>sassoc</code> to see which <code>account × partition</code> pairs you can submit to</td>
+</tr>
+<tr>
+<td>Job stuck in PD with reason <code>QOSGrpBillingMinutes</code></td>
+<td>Your account's Weekly Cap on <code>billing</code> TRES was reached</td>
+<td><code>sbalance --week</code> to confirm; switch partitions / wait for the weekly window to reset / ask the PI to raise the cap</td>
+</tr>
+<tr>
+<td><code>cli_filter</code> aborted my job with "accept_cost not set"</td>
+<td>A non-CLI submission path (e.g. OnDemand custom app, slurmrestd direct) did not inject <code>comment=accept_cost</code></td>
+<td>Re-submit via <code>sbatch</code> / <code>srun</code> from the login node, or set <code>--comment=accept_cost</code> explicitly</td>
+</tr>
+<tr>
+<td>Storage charge appears on bill with 0 hours run</td>
+<td>Storage and backup are charged monthly regardless of compute activity</td>
+<td>This is by design; see the "Storage / Backup billing without jobs" note above</td>
+</tr>
+<tr>
+<td>GPU job's CPU hours appear in the report but not in the total</td>
+<td>GPU-only billing rule (this page's Cost table)</td>
+<td>This is by design — GPU jobs charge GPU only; CPU hours are shown for transparency</td>
+</tr>
+<tr>
+<td><code>Permission denied</code> editing <code>/scratch/jhu/myproject</code></td>
+<td>The directory belongs to the PI, not you</td>
+<td>Ask your PI to add you to the project / allocation in ColdFront</td>
+</tr>
+</tbody>
+</table>
+<h2>Where to go next</h2>
+<ul>
+<li><code>/user/help/</code> — in-app help with live updates.</li>
+<li><a href="../../slurm/README.md"><code>slurm/README.md</code></a> — full Slurm reference
+  (cost enforcement, hierarchy, weekly cap details, daemons in depth).</li>
+<li><a href="pi.md"><code>pi.md</code></a> — if you also manage a project.</li>
+<li><a href="README.md"><code>README.md</code></a> — the role index.</li>
+</ul></div>
+      </main>
+    </div>
+  </body>
+</html>

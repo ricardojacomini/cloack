@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLOACK — PI guide</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-shell { display: flex; min-height: 100vh; }
+.site-sidebar { width: 260px; background: linear-gradient(180deg, #0c111b 0%, #141a25 100%);
+               border-right: 1px solid #1f2b42; padding: 24px 0; display: flex; flex-direction: column; }
+.sidebar-brand { font-weight: 700; font-size: 1.1rem; color: #e0efff; text-align: center;
+                 margin-bottom: 24px; letter-spacing: 2px; }
+.sidebar-links { display: flex; flex-direction: column; gap: 4px; padding: 0 16px; }
+.sidebar-links a { color: #b3c7dd; text-decoration: none; padding: 10px 14px;
+                  border-radius: 6px; font-size: 0.95rem; display: block; transition: all 0.15s; }
+.sidebar-links a:hover { background: rgba(74, 158, 255, 0.14); color: #fff; }
+.sidebar-links a.active { background: rgba(74, 158, 255, 0.22); color: #fff; border-left: 4px solid #4a9eff; padding-left: 10px; }
+.page-content { flex: 1; max-width: 1200px; margin: 0 auto; padding: 36px 32px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+</style>
+</head>
+  <body>
+    <div class="site-shell">
+      
+        <aside class="site-sidebar">
+          <div class="sidebar-brand">ARCH Portal</div>
+          <div class="sidebar-links">
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html" class="active">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a>
+          </div>
+        </aside>
+        
+      <main class="page-content">
+        <div class="md-content"><h1>PI — managing a project, its allocations, and billing</h1>
+<h2>Who you are + scope</h2>
+<p>You are a <strong>Principal Investigator</strong> with an ARCH Portal account that has the
+PI flag on your <code>UserProfile</code>. You own one or more <strong>Projects</strong>, request
+<strong>Allocations</strong> against them (default scavenger / paid Pay-Per-Use /
+condo Hardware-Credit), set Weekly Caps, add users to your projects,
+and read the billing report monthly. Authentication-wise you are a
+normal user — read <a href="user.md"><code>user.md</code></a> for the login flow and the
+job-submission basics.</p>
+<p>If you also operate the cluster (deploy services, configure Slurm) you
+are a different role — read <a href="admin.md"><code>admin.md</code></a>. If you handle
+helpdesk tickets you are also Staff — see <a href="staff.md"><code>staff.md</code></a>.</p>
+<h2>Quick start</h2>
+<h3>1. Accept the Terms of Service</h3>
+<p>Before you can do anything as a PI you must accept the current ToS.
+You will see a banner at the top of every portal page until you do.
+Click the banner → check the box → submit. ToS acceptance is also
+required for every user you add to your projects.</p>
+<h3>2. Create a project and request an allocation</h3>
+<pre><code>/project/create/                       → create a new project
+/project/&lt;id&gt;/                         → project detail page
+  Click &quot;Request Resource Allocation&quot;  → choose a resource (Cluster)
+</code></pre>
+<p>A project with empty / <code>default</code> abbreviation is the <strong>scavenger-only</strong>
+default project: it cannot host paid allocations. To request a paid
+allocation, give the project a real abbreviation (<code>proj1</code>, <code>alpha</code>,
+etc.) when you create it.</p>
+<p>For paid allocations, fill in:</p>
+<ul>
+<li><strong>IO Number</strong> — your funding source. Allocations without an IO
+  number are treated as no-charge regardless of partition.</li>
+<li><strong>storage_tb</strong> / <strong>backup_tb</strong> if you need storage and/or backup.</li>
+<li><strong>Weekly Cap ($)</strong> <strong>or</strong> <strong>Weekly Cap (hours)</strong> to bound spend.</li>
+</ul>
+<h3>3. Add users to a project</h3>
+<pre><code>/project/&lt;id&gt;/ → &quot;Add Users&quot;
+</code></pre>
+<p>Users must already have an ARCH Portal account (registered via
+<code>/user/jhu/register/</code> or <code>/user/schmidt/register/</code>) and they must have
+accepted the current ToS. Once you add them, the Slurm associations
+provision in real time via the post-save signal — they can submit
+jobs against the allocation immediately.</p>
+<h3>4. Set or update a Weekly Cap</h3>
+<pre><code>/allocation/&lt;id&gt;/ → click the Weekly Cap field → edit → save
+</code></pre>
+<ul>
+<li>Dollar cap takes precedence over hours cap if both are set.</li>
+<li>One cap is enforced <strong>per allocation</strong> (so users sharing the
+  allocation share the cap).</li>
+<li>The gauge below the Core Usage gauge shows current spend vs cap.</li>
+</ul>
+<h3>5. Read the billing report</h3>
+<pre><code>/billing/report/                        → all-PI view (staff-scoped)
+/billing/report-by-pi/                  → per-PI view, your projects only
+/user/user-profile/ → &quot;My Usage &amp; Billing&quot;  → PDF download
+</code></pre>
+<p>Storage and backup are billed monthly regardless of compute activity.
+GPU jobs charge GPU only — their CPU hours appear for transparency but
+are excluded from the total due (the GPU-only billing rule, sourced in
+<code>billing_views.calculate_allocation_charges</code>).</p>
+<h2>Reference matrices</h2>
+<h3>Allocation lifecycle</h3>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Set by</th>
+<th>What you can do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New</td>
+<td>PI on request</td>
+<td>Edit IO / storage / backup; cancel before review</td>
+</tr>
+<tr>
+<td>Pending review</td>
+<td>Auto on submit</td>
+<td>Cannot edit; ColdFront staff approve / deny</td>
+</tr>
+<tr>
+<td>Active</td>
+<td>Staff approval</td>
+<td>Add users, set Weekly Cap, submit jobs</td>
+</tr>
+<tr>
+<td>Renewal Requested</td>
+<td>PI</td>
+<td>Same as Active, with a renewal note for staff</td>
+</tr>
+<tr>
+<td>Expired / Archived</td>
+<td>Auto on end_date</td>
+<td>Read-only; usage history preserved</td>
+</tr>
+</tbody>
+</table>
+<h3>Billing model decision table</h3>
+<table>
+<thead>
+<tr>
+<th>If…</th>
+<th>…pick</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Default scavenger PI project (no abbreviation, no IO)</td>
+<td><strong>No Charge</strong> — auto-set by <code>_ensure_allocation_billing</code> signal</td>
+</tr>
+<tr>
+<td>Schmidt PI (<code>ssci-*</code>)</td>
+<td><strong>No Charge</strong> — funded by the Schmidt programme</td>
+</tr>
+<tr>
+<td>Paid project, IO number, no upfront hardware purchase</td>
+<td><strong>Pay-Per-Use</strong></td>
+</tr>
+<tr>
+<td>Paid project, IO number, you bought hardware credit</td>
+<td><strong>Condo</strong> (Hardware-Credit holder; <code>credits_used</code> gated by <code>billing_type=credit_holder</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3>Cost Center setup (multi-IO)</h3>
+<p>You can pool multiple IO numbers under a single project / allocation:</p>
+<pre><code>/billing/cost-centers/                  → manage your Cost Centers
+  → &quot;Add Cost Center&quot;
+  → Link Cost Center to a project       → ProjectCostCenter M2M
+  → Assign a Cost Center to an allocation → AllocationCostCenter M2M
+</code></pre>
+<p>ColdFront enforces the Slurm gate: a paid JHU allocation without a
+<strong>pay-role</strong> Cost Center linked at the project AND allocation level is
+silently skipped by <code>slurm_sync</code> (no Slurm account created).</p>
+<h3>Weekly Cap: dollars vs hours</h3>
+<table>
+<thead>
+<tr>
+<th>Cap</th>
+<th>Units</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dollar cap</td>
+<td><code>$</code> (converted to <code>GrpTRESMins=billing=X</code> via <code>$X × 1000 × 60</code>)</td>
+<td>Most allocations. Predictable monthly spend bound.</td>
+</tr>
+<tr>
+<td>Hours cap</td>
+<td>core-hours</td>
+<td>Hardware-Credit / academic allocations where dollars are not the budget unit.</td>
+</tr>
+</tbody>
+</table>
+<p>Per partition the dollar value translates differently because of
+<code>TRESBillingWeights</code>. A <code>med</code> partition with <code>CPU=1.0</code> costs more
+per core-hour than <code>low</code> with <code>CPU=0.5</code>.</p>
+<h2>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Banner says "Accept Terms of Service" but I already accepted</td>
+<td>Old ToS version superseded by a new one</td>
+<td>Visit <code>/user/user-profile/</code> and accept again; everything you provisioned before stays valid</td>
+</tr>
+<tr>
+<td>Adding a user to a project does nothing visible in Slurm</td>
+<td>They have not accepted ToS yet — the post-save signal skips provisioning until they do</td>
+<td>Email the user with the ToS link; once they accept, the immediate-provisioning signal fires</td>
+</tr>
+<tr>
+<td>"Request Resource Allocation" button is not shown</td>
+<td>This project is a <code>default</code> project (no abbreviation)</td>
+<td>Create a new project with a real abbreviation; default projects are scavenger-only by design</td>
+</tr>
+<tr>
+<td>Allocation is Active but jobs fail with <code>Invalid account</code></td>
+<td>The Slurm account hasn't been provisioned yet, or the user's ToS gate has not cleared</td>
+<td>Wait for the next <code>sync_slurm</code> (every 15 min) or trigger it via Admin actions on the allocation</td>
+</tr>
+<tr>
+<td>Storage charge is $0 but I set <code>storage_tb=0.20</code></td>
+<td><code>0.20 TB × $0.025 = $0.005</code>, which rounds to $0.00</td>
+<td>This is expected at small sizes; ratio is correct</td>
+</tr>
+<tr>
+<td>Billing report shows nothing for the past month</td>
+<td>The "Computing Billing" button on <code>/billing/report/</code> was never pressed</td>
+<td>This is by design: <code>SlurmAccountUsagePeriod</code> rows are written only when staff explicitly clicks Compute Billing</td>
+</tr>
+<tr>
+<td>Hardware Credit pool reports 0 hours despite usage</td>
+<td>The allocation's <code>billing_type</code> is not <code>credit_holder</code></td>
+<td>Set <code>billing_type=credit_holder</code> on the AllocationBilling row via Django Admin, or via the Project Detail page if you have staff scope</td>
+</tr>
+</tbody>
+</table>
+<h2>Where to go next</h2>
+<ul>
+<li><code>/user/help/</code> — in-app help with live updates.</li>
+<li><a href="../../coldfront/BILLING_SETUP_GUIDE.md"><code>coldfront/BILLING_SETUP_GUIDE.md</code></a>
+  — full billing reference (rates, periods, invoices, Cost Centers).</li>
+<li><a href="user.md"><code>user.md</code></a> — login + day-to-day job submission.</li>
+<li><a href="README.md"><code>README.md</code></a> — the role index.</li>
+</ul></div>
+      </main>
+    </div>
+  </body>
+</html>

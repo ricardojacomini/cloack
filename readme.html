@@ -45,7 +45,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     <aside class="site-sidebar">
       <div class="sidebar-brand">ARCH Portal</div>
       <div class="sidebar-links">
-        <a href="index.html">Home</a><a href="readme.html" class="active">README</a><a href="cloack.html">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a>
+        <a href="index.html">Home</a><a href="readme.html" class="active">README</a><a href="cloack.html">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="roles/index.html">User Guide (by role)</a>
       </div>
     </aside>
     
@@ -411,6 +411,7 @@ SLURM_NOOP=0
 </table>
 <p><strong>Why they must stay separate:</strong> if both use the same password, anyone who knows the ColdFront admin login also has full LDAP admin access (create/delete users, modify ACLs, read all attributes). In production this is a security risk.</p>
 <p>Other password variables: <code>LDAP_ROOT_PASS</code> (LDAP <code>cn=root</code> — used internally by <code>replace_ldif.sh</code> for LDIF imports), <code>POSTGRESQL_PASSWORD</code>, <code>COLDFRONT_DB_PASSWORD</code>, <code>KEYCLOAK_DB_PASSWORD</code>.</p>
+<p><strong>Break-glass <code>admin</code> account:</strong> after the passwordless rollout (<code>auth-passwordless-model</code>), the local Django <code>admin</code> user is the only password-backed entry point left in the stack — every other path goes through Keycloak / OIDC. Its credential handling (strong random password, enterprise vault, quarterly rotation, audit logging via <code>admin_login_alert_task</code>) is documented in <a href="docs/break-glass-admin.md"><code>docs/break-glass-admin.md</code></a>. Quarterly rotation is automated by <a href="scripts/rotate-admin-password.sh"><code>scripts/rotate-admin-password.sh</code></a>: it generates a 32-char password via <code>openssl rand</code>, applies it inside the container via <code>manage.py changepassword</code>, appends an entry to the gitignored audit log, and prints the new value once so it can be pasted into the team vault. Run with <code>--help</code> for usage / flags.</p>
 <h3>Deploy flows</h3>
 <h4><code>update</code> vs <code>deploy</code> — quick reference</h4>
 <table>
@@ -601,6 +602,90 @@ docker exec openldap ldapsearch -H ldapi:/// -x \
 # Force LDAP → ColdFront re-sync
 ./start.sh ldap-reinit dev
 </code></pre>
+<h3>Deploy pipeline (4 stages)</h3>
+<p>The CLOACK stack moves through 4 environments along a single pipeline. Each
+stage has a clear responsibility; tagged GHCR images flow under explicit
+operator control. Full strategy in
+<a href=".claude/plans/deploy-pipeline-4-stages.md"><code>.claude/plans/deploy-pipeline-4-stages.md</code></a>.</p>
+<pre><code>[1] dev laptop          [2] dev VM Proxmox       [3] edumaster bare-metal   [4] portal bare-metal
+    macOS arm64             Linux amd64               Linux amd64                Linux amd64
+    build local             build local               pull GHCR :dev             pull GHCR :prod
+    git push code           git pull code             git pull code              git pull code
+    (no image push)         docker push :dev          docker push :prod          (no push)
+                            docker push :sha-XXX      docker push :rc-&lt;UTC&gt;
+                                                       (retag, not rebuild)
+</code></pre>
+<h4>Tag scheme</h4>
+<table>
+<thead>
+<tr>
+<th>Tag</th>
+<th>Created by</th>
+<th>Mutable?</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>:sha-&lt;git-short&gt;</code></td>
+<td>Stage 2 (publish)</td>
+<td><strong>Immutable</strong></td>
+<td>Snapshot tied to a git commit. "What code is in this image?"</td>
+</tr>
+<tr>
+<td><code>:dev</code></td>
+<td>Stage 2 (publish)</td>
+<td>Mutable head</td>
+<td>Latest Stage 2 build. What edumaster pulls.</td>
+</tr>
+<tr>
+<td><code>:rc-YYYY-MM-DD-HHMM</code></td>
+<td>Stage 3 (promote)</td>
+<td><strong>Immutable</strong></td>
+<td>Validated + promoted at this exact UTC moment. Rollback target.</td>
+</tr>
+<tr>
+<td><code>:prod</code></td>
+<td>Stage 3 (promote)</td>
+<td>Mutable head</td>
+<td>Latest validated build. What portal pulls.</td>
+</tr>
+</tbody>
+</table>
+<p>Rollback is a retag (<code>:prod</code> ← previous <code>:rc-*</code>), not a rebuild — same digest,
+new label. The original <code>:rc-*</code> is untouched and serves as immutable
+"what was in prod between X and Y" record.</p>
+<h4>Subcommands</h4>
+<table>
+<thead>
+<tr>
+<th>Subcommand</th>
+<th>Stage</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>./start.sh publish [--tag &lt;tag&gt;] [--check]</code></td>
+<td>2</td>
+<td><strong>Pending</strong> — Phase 1 of the 4-stage plan</td>
+</tr>
+<tr>
+<td><code>./start.sh promote [--from &lt;tag&gt;] [--check] [--rollback &lt;rc-tag&gt;] [--skip-verify]</code></td>
+<td>3</td>
+<td><strong>Shipped (dormant)</strong> — refuses until <code>docker-compose-ghcr.yml</code> lands</td>
+</tr>
+<tr>
+<td><code>./start.sh start --from-ghcr [dev\|prod]</code></td>
+<td>3 &amp; 4</td>
+<td><strong>Pending</strong> — Phase 1 of the 4-stage plan</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>promote</code> subcommand pulls <code>:dev</code>, runs <code>scripts/verify-deploy.sh</code> as
+pre-flight gate, then retags + pushes <code>:prod</code> + <code>:rc-&lt;UTC&gt;</code> atomically (all
+source images must pull successfully before any push). See
+<code>./start.sh promote --help</code> for full options.</p>
 <hr />
 <h2>Bare-metal install — <code>cloack-deploy</code> RPM</h2>
 <p>For the full bare-metal deployment guide (5 playbooks, what each

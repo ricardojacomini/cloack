@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLOACK — Admin guide</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-shell { display: flex; min-height: 100vh; }
+.site-sidebar { width: 260px; background: linear-gradient(180deg, #0c111b 0%, #141a25 100%);
+               border-right: 1px solid #1f2b42; padding: 24px 0; display: flex; flex-direction: column; }
+.sidebar-brand { font-weight: 700; font-size: 1.1rem; color: #e0efff; text-align: center;
+                 margin-bottom: 24px; letter-spacing: 2px; }
+.sidebar-links { display: flex; flex-direction: column; gap: 4px; padding: 0 16px; }
+.sidebar-links a { color: #b3c7dd; text-decoration: none; padding: 10px 14px;
+                  border-radius: 6px; font-size: 0.95rem; display: block; transition: all 0.15s; }
+.sidebar-links a:hover { background: rgba(74, 158, 255, 0.14); color: #fff; }
+.sidebar-links a.active { background: rgba(74, 158, 255, 0.22); color: #fff; border-left: 4px solid #4a9eff; padding-left: 10px; }
+.page-content { flex: 1; max-width: 1200px; margin: 0 auto; padding: 36px 32px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+</style>
+</head>
+  <body>
+    <div class="site-shell">
+      
+        <aside class="site-sidebar">
+          <div class="sidebar-brand">ARCH Portal</div>
+          <div class="sidebar-links">
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html" class="active">Admin</a>
+          </div>
+        </aside>
+        
+      <main class="page-content">
+        <div class="md-content"><h1>Admin — cluster / DevOps operator running start.sh and Ansible</h1>
+<h2>Who you are + scope</h2>
+<p>You operate the ARCH Portal stack on <strong>physical hosts</strong>: the dev VM on
+Proxmox, the <strong>edumaster</strong> bare-metal validation host, and the
+production <strong>portal</strong> bare-metal host. You run <code>./start.sh deploy /
+start / publish / promote</code>, you ship images to GHCR, you run
+<code>ansible-playbook</code> for the bare-metal Slurm cluster install, and you
+own the rotation of the GHCR PATs.</p>
+<p>You are the only role that needs read-write access to GHCR. You
+typically also have <code>is_superuser=True</code> in ColdFront — for the cluster
+ops Django side read <a href="superuser.md"><code>superuser.md</code></a>. For helpdesk
+work see <a href="staff.md"><code>staff.md</code></a>. You authenticate the same way every
+other user does (<a href="user.md"><code>user.md</code></a>).</p>
+<h2>Quick start</h2>
+<p>Five recipes you will run most days. Every command assumes you have
+already <code>git clone</code>'d the repo at the canonical path on whatever host
+you are on.</p>
+<h3>1. Local laptop dev (Stage 1)</h3>
+<pre><code class="language-bash">cd ~/arch_jhu_dsai_schmidt
+./start.sh deploy dev -y --paid-accounts   # full clean + reseed dev stack
+bash scripts/verify-deploy.sh              # confirm 8/8 checks green
+</code></pre>
+<p>Use this when you want a clean known-good state. It wipes named
+volumes and reseeds 4 test users (<code>ext-staff</code>, <code>ext-user</code>,
+<code>ssci-staff</code>, <code>ssci-user</code>, password <code>123</code>).</p>
+<h3>2. Build and publish on the Proxmox VM (Stage 2)</h3>
+<pre><code class="language-bash">ssh proxmox-vm
+cd ~/jhu-arch
+git pull origin dev
+./start.sh start dev          # local build, no GHCR
+bash scripts/verify-deploy.sh # optional smoke
+./start.sh publish            # docker push :dev + :sha-&lt;git-short&gt;
+</code></pre>
+<p>Publish refuses with a clear error when the working tree is dirty
+(the <code>:sha-*</code> tag would lie about content). Override with
+<code>--tag &lt;something-other-than-dev&gt;</code> if you genuinely want a throwaway tag.</p>
+<h3>3. Promote on edumaster (Stage 3)</h3>
+<pre><code class="language-bash">ssh edumaster
+cd ~/jhu-arch
+git pull origin dev                          # configs / templates only
+./start.sh start --from-ghcr dev             # docker pull :dev, no build
+bash scripts/verify-deploy.sh                # mandatory pre-flight
+./start.sh promote                           # :dev -&gt; :prod + :rc-&lt;UTC&gt;
+# Rollback if a bad promotion slipped through:
+./start.sh promote --rollback rc-2026-06-09-1430
+</code></pre>
+<p><code>promote</code> runs <code>verify-deploy.sh</code> as a pre-flight gate by default; use
+<code>--skip-verify</code> only as an emergency override. <strong>Never</strong> run <code>./start.sh
+deploy --from-ghcr</code> — it is hard-refused. Stages 3 and 4 must never
+populate test data (the deploy command's job).</p>
+<h3>4. Deploy on prod portal (Stage 4)</h3>
+<pre><code class="language-bash">ssh portal
+cd ~/jhu-arch
+git pull origin dev                          # configs only
+./start.sh start --from-ghcr prod            # docker pull :prod, no build
+bash scripts/verify-deploy.sh
+./start.sh ldap-reinit                       # only if LDAP needs re-seed
+</code></pre>
+<p>Portal can run Slurm via Docker (pull the slurm images) <strong>or</strong> via
+bare-metal Ansible (see playbook recipes below). The compose overlay
+controls which one is active.</p>
+<h3>5. Bare-metal Slurm via Ansible</h3>
+<pre><code class="language-bash">cd ~/jhu-arch
+./start.sh slurm ansible all                 # regenerate ansible/ tree
+ansible-playbook -i ansible/clusters/&lt;name&gt;/inventory.ini \
+  ansible/slurm-server/playbook.yml          # slurmctld + slurmdbd + slurmrestd
+ansible-playbook -i ansible/clusters/&lt;name&gt;/inventory.ini \
+  ansible/slurm-client/playbook.yml          # slurmd on every compute node
+ansible-playbook -i ansible/clusters/&lt;name&gt;/inventory.ini \
+  ansible/slurm-verify/playbook.yml          # read-only pre-flight (no changes)
+</code></pre>
+<p><code>slurm-verify</code> is safe to run any time and reports a 14-check matrix
+across OS, UIDs, munge, Slurm version, SPANK support, ports, SSSD TTL,
+and PAM stack.</p>
+<h2>Reference matrices</h2>
+<h3>4-stage deploy pipeline</h3>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Host</th>
+<th>What you run</th>
+<th>Result</th>
+<th>Image flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong> Laptop coding</td>
+<td>macOS arm64</td>
+<td><code>./start.sh deploy dev -y --paid-accounts</code></td>
+<td>Full local dev stack with test data</td>
+<td><code>arch/&lt;svc&gt;</code> built locally</td>
+</tr>
+<tr>
+<td><strong>1</strong>→<strong>2</strong></td>
+<td>Laptop</td>
+<td><code>git push origin dev</code></td>
+<td>Source code is on GitHub</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>2</strong> dev VM build</td>
+<td>Proxmox Linux amd64</td>
+<td><code>git pull origin dev</code></td>
+<td>Code on the builder host</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Proxmox</td>
+<td><code>./start.sh start dev</code></td>
+<td>Local build matching prod arch</td>
+<td><code>arch/&lt;svc&gt;</code> built locally on amd64</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Proxmox</td>
+<td><code>./start.sh publish</code></td>
+<td><code>:dev</code> + <code>:sha-*</code> pushed to GHCR</td>
+<td><code>ghcr.io/jhu-arch/cloack/&lt;svc&gt;:dev</code> + <code>:sha-&lt;git-short&gt;</code></td>
+</tr>
+<tr>
+<td><strong>3</strong> edumaster bare-metal</td>
+<td>Linux amd64</td>
+<td><code>git pull origin dev</code></td>
+<td>Configs / templates on edumaster</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>edumaster</td>
+<td><code>./start.sh start --from-ghcr dev</code></td>
+<td>Stack runs the <code>:dev</code> images, no build</td>
+<td><code>ghcr.io/...:dev</code> pulled</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>edumaster</td>
+<td><code>bash scripts/verify-deploy.sh</code></td>
+<td>8-check validation result</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>edumaster</td>
+<td><code>./start.sh promote</code></td>
+<td><code>:dev</code> retagged → <code>:prod</code> + <code>:rc-&lt;UTC&gt;</code></td>
+<td><code>ghcr.io/...:prod</code> + <code>:rc-*</code> pushed</td>
+</tr>
+<tr>
+<td><strong>4</strong> portal bare-metal</td>
+<td>Linux amd64</td>
+<td><code>git pull origin dev</code></td>
+<td>Configs on portal</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>portal</td>
+<td><code>./start.sh start --from-ghcr prod</code></td>
+<td>Stack runs the <code>:prod</code> images</td>
+<td><code>ghcr.io/...:prod</code> pulled</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>portal</td>
+<td><code>./start.sh ldap-reinit</code> (manual)</td>
+<td>LDAP re-seeded if needed</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Direction of artefacts:</p>
+<pre><code>git origin/dev                          GHCR registry
+       ↓                                    ↓
+laptop ──push──&gt; origin            Stage 2 ──push :dev, :sha-*─&gt; GHCR
+       ↑                                    ↓
+proxmox ──pull──&gt; origin           Stage 3 ──pull :dev, push :prod, :rc-*─&gt; GHCR
+       ↑                                    ↓
+edumaster ──pull──&gt; origin         Stage 4 ──pull :prod
+       ↑                                    ↑
+portal ──pull──&gt; origin            (portal never pushes)
+</code></pre>
+<h3>GHCR registry namespace and PATs</h3>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>PAT scope</th>
+<th>Operations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 (laptop)</td>
+<td>none</td>
+<td>git push only</td>
+</tr>
+<tr>
+<td>2 (Proxmox)</td>
+<td><code>GHCR_BUILDER_PAT</code> (write)</td>
+<td><code>docker push :dev</code> + <code>:sha-*</code></td>
+</tr>
+<tr>
+<td>3 (edumaster)</td>
+<td><code>GHCR_BUILDER_PAT</code> (write)</td>
+<td><code>docker pull :dev</code>, <code>docker push :prod</code> + <code>:rc-*</code></td>
+</tr>
+<tr>
+<td>4 (portal)</td>
+<td><code>GHCR_CONSUMER_PAT</code> (read-only)</td>
+<td><code>docker pull :prod</code> only</td>
+</tr>
+</tbody>
+</table>
+<p>Registry path: <code>ghcr.io/jhu-arch/cloack/&lt;image&gt;:&lt;tag&gt;</code>.</p>
+<p>Cross-org topology: the repo lives in the <code>cloack</code> GitHub org, packages
+live in the <code>jhu-arch</code> org. The two PATs are <strong>fine-grained</strong>, scoped
+to the <code>jhu-arch</code> org, and <strong>SSO-authorized</strong> for Johns Hopkins
+University Enterprise. Rotation cadence: ≤ 1 year (fine-grained PAT
+maximum lifetime).</p>
+<h3>Image inventory (13 — 6 cloack apps + 7 slurm; cn-rockylinux is build-only)</h3>
+<table>
+<thead>
+<tr>
+<th>Track</th>
+<th>Image</th>
+<th>Built from</th>
+<th>Promoted past <code>:dev</code>?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cloack</td>
+<td><code>coldfront</code>, <code>helpdesk</code>, <code>keycloak</code>, <code>keycloak-config</code>, <code>openldap</code>, <code>phpldapadmin</code>, <code>postgres</code></td>
+<td>each service's <code>Dockerfile</code></td>
+<td>Yes — Stage 3 + 4</td>
+</tr>
+<tr>
+<td>Slurm (base)</td>
+<td><code>cn-rockylinux</code></td>
+<td><code>slurm/base/Dockerfile</code></td>
+<td><strong>No</strong> — build dep only, never pulled by runtime hosts</td>
+</tr>
+<tr>
+<td>Slurm (services)</td>
+<td><code>slurmctld</code>, <code>slurmdbd</code>, <code>slurmrestd</code>, <code>slurm-munge</code>, <code>mariadb</code>, <code>slurmd</code></td>
+<td><code>slurm/&lt;svc&gt;/Dockerfile</code></td>
+<td>Yes (in Docker-Slurm Mode A) — Stage 3 + 4</td>
+</tr>
+</tbody>
+</table>
+<p>Note that <code>cn-rockylinux</code> is consumed at <strong>build time</strong> by the other
+Slurm images (each does a <code>FROM arch/cn-rockylinux</code>). Once a Slurm
+service image is pushed, the cn-rockylinux layers travel inside it —
+runtime hosts (Stage 3 + 4) never pull cn-rockylinux as a standalone
+image.</p>
+<h3>Stage 4 dual-mode Slurm</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Slurm runs as</th>
+<th>What portal pulls</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A — Docker Slurm</strong></td>
+<td>containers</td>
+<td>6 cloack apps + 6 Slurm services</td>
+<td>All-Docker portal, smaller HPC scale</td>
+</tr>
+<tr>
+<td><strong>B — Bare-metal Slurm</strong></td>
+<td>services on real hosts via Ansible roles</td>
+<td>6 cloack apps only</td>
+<td>Real HPC scale, dedicated compute nodes, kernel-level features</td>
+</tr>
+</tbody>
+</table>
+<p>In Mode B the operator runs <code>ansible/slurm-server/playbook.yml</code> and
+<code>ansible/slurm-client/playbook.yml</code> against the cluster inventory.
+<code>cluster_manager.write_compose_overlay</code> honours
+<code>CLOACK_FROM_GHCR=1</code> to rewrite Slurm image refs to <code>ghcr.io/...:prod</code>
+in Mode A.</p>
+<h3><code>start.sh</code> subcommands by stage</h3>
+<table>
+<thead>
+<tr>
+<th>Subcommand</th>
+<th>Stage(s)</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>init [dev]</code></td>
+<td>1, 2</td>
+<td>Bootstrap user/group/dirs/<code>.env</code>. Run once before first <code>start</code>.</td>
+</tr>
+<tr>
+<td><code>start [dev]</code></td>
+<td>1, 2</td>
+<td>Build (or skip build) and start managed services.</td>
+</tr>
+<tr>
+<td><code>start --from-ghcr [dev\|prod]</code></td>
+<td>3, 4</td>
+<td>Pull from GHCR, skip build. Refuses if <code>docker-compose-ghcr.yml</code> is missing.</td>
+</tr>
+<tr>
+<td><code>deploy [dev] -y [--paid-accounts]</code></td>
+<td>1, 2</td>
+<td>Destructive: clean + init + start + populate test data. Hard-refused with <code>--from-ghcr</code>.</td>
+</tr>
+<tr>
+<td><code>publish [--tag &lt;tag&gt;] [--check]</code></td>
+<td>2</td>
+<td>Retag local <code>arch/&lt;svc&gt;</code> as <code>ghcr.io/...:&lt;tag&gt;</code> + <code>:sha-&lt;short&gt;</code> and push. Refuses dirty working tree.</td>
+</tr>
+<tr>
+<td><code>promote [--from &lt;tag&gt;] [--rc &lt;label&gt;] [--check] [--rollback &lt;rc-tag&gt;] [--skip-verify]</code></td>
+<td>3</td>
+<td>Pull <code>:dev</code>, run <code>verify-deploy.sh</code>, retag + push <code>:prod</code> + <code>:rc-&lt;UTC&gt;</code>.</td>
+</tr>
+<tr>
+<td><code>ldap-reinit [dev]</code></td>
+<td>3, 4</td>
+<td>Re-initialise OpenLDAP from migration LDIF, force sync with ColdFront.</td>
+</tr>
+<tr>
+<td><code>slurm {create\|start\|stop\|restart\|status\|test-jobs\|ansible\|prod-sim}</code></td>
+<td>varies</td>
+<td>Per-cluster Slurm operations. <code>ansible all</code> regenerates the bare-metal scaffold.</td>
+</tr>
+<tr>
+<td><code>helpdesk {start\|populate\|restart\|stop}</code></td>
+<td>1, 2</td>
+<td>Helpdesk container lifecycle.</td>
+</tr>
+<tr>
+<td><code>doctor</code></td>
+<td>any</td>
+<td>Read-only validation of <code>.env</code> ↔ realm config ↔ TLS cert ↔ Host header drift.</td>
+</tr>
+</tbody>
+</table>
+<h3>Ansible playbooks</h3>
+<table>
+<thead>
+<tr>
+<th>Playbook</th>
+<th>What it does</th>
+<th>When to run</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ansible/slurm-server/playbook.yml</code></td>
+<td>Compiles Slurm from source, installs slurmctld / slurmdbd / slurmrestd on the controller groups</td>
+<td>Bare-metal install or major Slurm version bump</td>
+</tr>
+<tr>
+<td><code>ansible/slurm-client/playbook.yml</code></td>
+<td>Same build stack plus slurmd on every compute node and login node</td>
+<td>New compute node, or after <code>slurm-server</code></td>
+</tr>
+<tr>
+<td><code>ansible/slurm-verify/playbook.yml</code></td>
+<td>Read-only 14-check pre-flight (OS, UIDs, munge, Slurm version, SPANK, ports, SSSD TTL, PAM stack). No changes applied.</td>
+<td>Any time you want a confidence check</td>
+</tr>
+<tr>
+<td><code>ansible/sssd-flush/playbook.yml</code></td>
+<td>Runs <code>sss_cache -E</code> on every login node</td>
+<td><code>sync_ldap</code> already triggers this per cluster; manual run useful after a large LDIF import</td>
+</tr>
+<tr>
+<td><code>cloack-deploy</code> RPM</td>
+<td>Thin packaging of the Ansible tree + a <code>cloack-deploy</code> CLI wrapper</td>
+<td>Sites that prefer an RPM-driven flow over <code>ansible-playbook</code> directly</td>
+</tr>
+</tbody>
+</table>
+<h3>Environment variables you will set on Stage 3 / Stage 4 hosts</h3>
+<p>Phase 2 (commit <code>a525237</code>) added multi-FQDN reverse-proxy support. The
+following env vars are <strong>opt-in</strong>; leave them empty in single-FQDN dev
+to keep current behaviour.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ARCH_PUBLIC_HOST</code></td>
+<td>The portal FQDN (<code>portal.arch.jhu.edu</code>). Used everywhere.</td>
+</tr>
+<tr>
+<td><code>KEYCLOAK_HOSTNAME_JHU</code></td>
+<td>JHU realm FQDN (<code>auth.arch.jhu.edu</code>). Empty → single-FQDN.</td>
+</tr>
+<tr>
+<td><code>KEYCLOAK_HOSTNAME_SCHMIDT</code></td>
+<td>Schmidt realm FQDN. Empty → single-FQDN.</td>
+</tr>
+<tr>
+<td><code>KC_HOSTNAME</code></td>
+<td>Empty in multi-FQDN; Keycloak uses inbound Host instead.</td>
+</tr>
+<tr>
+<td><code>KC_HOSTNAME_BACKCHANNEL_DYNAMIC</code></td>
+<td><code>true</code> in multi-FQDN deploys (trust <code>X-Forwarded-Host</code>).</td>
+</tr>
+<tr>
+<td><code>HELPDESK_SCRIPT_NAME</code></td>
+<td><code>/helpdesk</code> in prod to route <code>portal.arch.jhu.edu/helpdesk</code> to the helpdesk container. Empty → no prefix.</td>
+</tr>
+<tr>
+<td><code>CLOACK_IMAGE_TAG</code></td>
+<td>Auto-set by <code>--from-ghcr</code>; override only for rollback (<code>sha-abc123</code> or <code>rc-YYYY-MM-DD-HHMM</code>).</td>
+</tr>
+<tr>
+<td><code>CLOACK_FROM_GHCR</code></td>
+<td>Auto-set by <code>--from-ghcr</code>; do not set by hand.</td>
+</tr>
+</tbody>
+</table>
+<h2>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>keycloak-config Error... exit 5</code> on first deploy</td>
+<td><code>jq</code> could not index into an error response on <code>/auth/flows</code> (realm not imported yet)</td>
+<td>Already fixed in commit <code>cd35aad</code>; if reappears, check the <code>_GHCR_IMAGE_REWRITE_RE</code> regex hasn't been broken by a new image name pattern</td>
+</tr>
+<tr>
+<td><code>keycloak-config Error... exit 3</code> on first deploy</td>
+<td><code>jq</code> tried <code>ascii_downcase</code> on a null <code>displayName</code> (Keycloak default executions list)</td>
+<td>Fixed in <code>8443758</code> — re-pull the latest dev if you see this</td>
+</tr>
+<tr>
+<td><code>curl: URL malformed</code> in configure-keycloak.sh</td>
+<td>Copied flow has a literal space in its sub-flow alias (<code>passwordless-browser forms</code>)</td>
+<td>Fixed in <code>d0dfafe</code> — <code>${forms_sub_alias// /%20}</code> URL-encodes the space</td>
+</tr>
+<tr>
+<td><code>IntegrityError: null value in column "totp_enrolled"</code></td>
+<td>Postgres trigger <code>tr_auth_user_after_insert_fn</code> was created before the <code>totp_enrolled</code> column existed</td>
+<td>Fixed in <code>1bffe47</code> — drop the trigger and re-run <code>ldap_sync_postgres_run_it_once.py</code></td>
+</tr>
+<tr>
+<td>Themes do not apply on first deploy (default Keycloak look)</td>
+<td><code>configure_realm_themes</code> ran before <code>import_keycloak_providers</code> so PUT returned 404 silently</td>
+<td>Fixed in <code>b7efa22</code> — re-runs the idempotent block after realms are imported</td>
+</tr>
+<tr>
+<td><code>publish: working tree is dirty</code></td>
+<td>You have uncommitted source changes</td>
+<td>Commit them, or use <code>./start.sh publish --tag wip-&lt;something&gt;</code> to bypass the SHA-tag promise</td>
+</tr>
+<tr>
+<td><code>deploy --from-ghcr is not allowed</code></td>
+<td>Stages 3 and 4 must never populate test data</td>
+<td>Use <code>./start.sh start --from-ghcr &lt;tag&gt;</code> plus <code>./start.sh ldap-reinit</code> instead</td>
+</tr>
+<tr>
+<td><code>publish: no GHCR auth in ~/.docker/config.json</code></td>
+<td>Builder PAT not loaded</td>
+<td><code>echo $GHCR_BUILDER_PAT \| docker login ghcr.io -u &lt;user&gt; --password-stdin</code></td>
+</tr>
+<tr>
+<td><code>--from-ghcr: docker-compose-ghcr.yml not found</code></td>
+<td>Phase 0 file missing in the repo on this host</td>
+<td>Pull latest dev (<code>52b709f</code> introduced the file)</td>
+</tr>
+<tr>
+<td><code>pgrep -f "start.sh deploy"</code> loop never exits</td>
+<td>The waiter's own command line contains the pattern, deadlock</td>
+<td>Track <code>$DEPLOY_PID</code> directly with <code>wait $DEPLOY_PID</code>; see memory <code>feedback_pgrep_self_match_deadlock</code></td>
+</tr>
+<tr>
+<td>Slurm overlay still emits <code>arch/&lt;svc&gt;</code> after <code>--from-ghcr</code></td>
+<td><code>CLOACK_FROM_GHCR</code> was not exported when <code>write_compose_overlay</code> ran</td>
+<td>Re-run <code>./start.sh slurm create &lt;name&gt;</code> after exporting the var</td>
+</tr>
+<tr>
+<td><code>configure_realm_frontend_urls</code> did nothing visible</td>
+<td><code>KEYCLOAK_HOSTNAME_JHU</code> / <code>_SCHMIDT</code> are empty</td>
+<td>Set them in <code>.env</code> for multi-FQDN, or leave them empty for single-FQDN — the function is a no-op then by design</td>
+</tr>
+</tbody>
+</table>
+<h2>Where to go next</h2>
+<ul>
+<li><a href="../ansible-remote-deploy.md"><code>docs/ansible-remote-deploy.md</code></a> — full
+  bare-metal Ansible deploy guide, RPM install, idempotent re-runs.</li>
+<li><a href="../break-glass-admin.md"><code>docs/break-glass-admin.md</code></a> — <code>/admin/</code>
+  break-glass rotation (vault, audit log, alerts).</li>
+<li><a href="../../slurm/README.md"><code>slurm/README.md</code></a> — full Slurm config
+  reference (partitions, QOS, weekly cap, CLI tools).</li>
+<li><a href="../../slurm/ANSIBLE.md"><code>slurm/ANSIBLE.md</code></a> — bare-metal Slurm install
+  via the <code>cloack-deploy</code> RPM path.</li>
+<li><code>.claude/plans/deploy-pipeline-4-stages.md</code> — the design plan behind
+  the matrix on this page; read when the model needs to evolve.</li>
+<li><a href="superuser.md"><code>superuser.md</code></a> — ColdFront / Django admin side
+  (drain nodes, approve allocations, qcluster audit, OTP resets).</li>
+<li><a href="README.md"><code>README.md</code></a> — the role index.</li>
+</ul></div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -45,7 +45,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     <aside class="site-sidebar">
       <div class="sidebar-brand">ARCH Portal</div>
       <div class="sidebar-links">
-        <a href="index.html">Home</a><a href="readme.html">README</a><a href="cloack.html" class="active">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a>
+        <a href="index.html">Home</a><a href="readme.html">README</a><a href="cloack.html" class="active">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="roles/index.html">User Guide (by role)</a>
       </div>
     </aside>
     
@@ -971,6 +971,13 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
 <td><code>HELPDESK_SHOW_CHANGE_PASSWORD=True</code> keeps the dropdown item; clicking it shows a banner page (no form) with a button to <code>${COLDFRONT_URL}/user/user-profile/</code>. Password management stays in ColdFront/identity providers.</td>
+</tr>
+<tr>
+<td>Passwordless rollout (TOTP + Entra)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>No <code>userPassword</code> written to LDAP for any non-system user. JHED (incl. cn=admin) authenticate via Entra Federation → MFA from JHU; ext-<em>/ssci-</em> enrol TOTP in the Keycloak Account Console (Schmidt realm browser flow rewritten to Username Form → OTP Form only, no password page). <code>CONFIGURE_TOTP</code> required action <code>enabled=true defaultAction=true</code> on both realms → first login forces enrolment. ColdFront banner block in <code>base_black.html</code> + <code>base_light_sidebar.html</code> checks <code>UserProfile.totp_enrolled</code> (synced every 30 min by <code>sync_totp_status</code> qcluster task polling Keycloak admin REST). <code>/admin/</code> break-glass stays local-password + <code>django-axes</code> brute-force lockout + <code>AdminLoginRateLimitMiddleware</code> per-IP throttle + <code>admin_login_alert_task</code> email on every superuser login. Quarterly rotation automated by <code>scripts/rotate-admin-password.sh</code>. Merged to dev 2026-06-09 (commit <code>aef43b6</code>).</td>
 </tr>
 </tbody>
 </table>

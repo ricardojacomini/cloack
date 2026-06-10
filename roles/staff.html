@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLOACK — Staff guide</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-shell { display: flex; min-height: 100vh; }
+.site-sidebar { width: 260px; background: linear-gradient(180deg, #0c111b 0%, #141a25 100%);
+               border-right: 1px solid #1f2b42; padding: 24px 0; display: flex; flex-direction: column; }
+.sidebar-brand { font-weight: 700; font-size: 1.1rem; color: #e0efff; text-align: center;
+                 margin-bottom: 24px; letter-spacing: 2px; }
+.sidebar-links { display: flex; flex-direction: column; gap: 4px; padding: 0 16px; }
+.sidebar-links a { color: #b3c7dd; text-decoration: none; padding: 10px 14px;
+                  border-radius: 6px; font-size: 0.95rem; display: block; transition: all 0.15s; }
+.sidebar-links a:hover { background: rgba(74, 158, 255, 0.14); color: #fff; }
+.sidebar-links a.active { background: rgba(74, 158, 255, 0.22); color: #fff; border-left: 4px solid #4a9eff; padding-left: 10px; }
+.page-content { flex: 1; max-width: 1200px; margin: 0 auto; padding: 36px 32px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+</style>
+</head>
+  <body>
+    <div class="site-shell">
+      
+        <aside class="site-sidebar">
+          <div class="sidebar-brand">ARCH Portal</div>
+          <div class="sidebar-links">
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html">PI</a><a href="staff.html" class="active">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a>
+          </div>
+        </aside>
+        
+      <main class="page-content">
+        <div class="md-content"><h1>Staff — Helpdesk operator handling tickets</h1>
+<h2>Who you are + scope</h2>
+<p>You are a <strong>Helpdesk staff member</strong> with the <code>helpdesk-staff</code> LDAP group
+on your account (or, for team leads, <code>helpdesk-admin</code>). You triage the
+queue, work tickets through the skill-based assignment matrix, escalate
+on FQR / SLA breaches, and read the analytics dashboards. You authenticate
+the same way every other user does — see <a href="user.md"><code>user.md</code></a> for the
+login flow.</p>
+<p>If you also approve allocations or run cluster ops, you are also a
+<strong>Superuser</strong> — read <a href="superuser.md"><code>superuser.md</code></a>. If you author or
+read tickets without working them, you are a regular <a href="user.md"><code>user.md</code></a>.</p>
+<h2>Quick start</h2>
+<h3>1. Triage a new ticket</h3>
+<pre><code>helpdesk → /helpdesk/                   → dashboard with open tickets
+  → click ticket → ticket detail view
+  → Set Priority, Queue, Owner
+  → Assign by skill                     → use the skill-match panel on the right
+</code></pre>
+<p>The ticket view banner shows urgency (SLA / FQR / strike / overdue).
+The right-hand context sidebar shows the submitter's past tickets,
+their PI / project / department, GPU / partition references found in
+the title / description, similar open tickets, and suggested
+collaborators ranked by skill match.</p>
+<h3>2. Respond + classify</h3>
+<pre><code>&quot;Send email as &lt;ResponseTemplate&gt;&quot;      → picks a template
+  → {name}/{your_name}/{issue}/{ticket_number}/{survey_url}/{signature}
+    are auto-substituted
+  → choose the email class (FQR / strike 1-3 / LQR)
+  → server-side scrub catches any token you didn't fill in
+</code></pre>
+<p>The classification advances the <code>TicketFollowUpTracker</code> and feeds the
+analytics dashboard. Internal notes use <code>public=False</code>; customer
+emails use <code>public=True</code> — collaborators are forced to internal-only.</p>
+<h3>3. Escalate</h3>
+<pre><code>ticket → &quot;Escalate&quot; action               → applies the StaffMember.policy
+                                           (3-strike, FQR / SLA breach)
+                                          → reassigns to the next staff in
+                                            the routing matrix
+                                          → logs the routing decision
+                                            for audit
+</code></pre>
+<p><code>/extensions/analytics/routing/</code> shows the live decision audit trail.</p>
+<h3>4. Read the analytics</h3>
+<pre><code>/dashboard/                              → 3 tabs:
+                                            • Department / Project
+                                            • PI
+                                            • Resource (GPU / CPU / Storage / Backup)
+/reports/                                → 8 stock helpdesk reports rendered
+                                            inline as Chart.js bar / line charts
+/extensions/skill-matrix/                → skills × categories grid
+/extensions/calendar/                    → workload calendar
+/extensions/schedule/                    → engineer × day × slot grid +
+                                            Time Allocations
+</code></pre>
+<h3>5. Run a public feedback ticket through the Feedback queue</h3>
+<p>Tickets created via the <strong>public</strong> submit form with a category whose
+<code>show_on_submit=True</code> are auto-routed to the <strong>Feedback &amp; Suggestions</strong>
+queue (slug <code>feedback</code>, owner = <code>ARCH_SUPERUSERS[0]</code>). They do not
+pollute General Support — review them on a separate cadence.</p>
+<h2>Reference matrices</h2>
+<h3>Ticket statuses</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Open?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Open</td>
+<td>Yes</td>
+<td>New, untouched.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Reopened</td>
+<td>Yes</td>
+<td>Customer or staff reopened after Resolved / Closed.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Resolved</td>
+<td>No</td>
+<td>Customer can still reply.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Closed</td>
+<td>No</td>
+<td>Locked.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Duplicate</td>
+<td>No</td>
+<td>Customer redirected to canonical ticket.</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>Archived</strong></td>
+<td><strong>No</strong></td>
+<td><strong>ARCH Portal addition.</strong> Resolved / Closed → Archived. Single exit: Archived → Reopened.</td>
+</tr>
+</tbody>
+</table>
+<h3>Priority + SLA windows</h3>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>First Quality Response (FQR)</th>
+<th>SLA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 — Critical</td>
+<td>30 minutes</td>
+<td>4 hours</td>
+</tr>
+<tr>
+<td>2 — High</td>
+<td>2 hours</td>
+<td>1 business day</td>
+</tr>
+<tr>
+<td>3 — Normal</td>
+<td>1 business day</td>
+<td>3 business days</td>
+</tr>
+<tr>
+<td>4 — Low</td>
+<td>2 business days</td>
+<td>5 business days</td>
+</tr>
+<tr>
+<td>5 — Very Low</td>
+<td>best-effort</td>
+<td>best-effort</td>
+</tr>
+</tbody>
+</table>
+<p>Breaches trigger escalation per <code>StaffMember.policy</code> (3-strike rule
+shipped by default).</p>
+<h3>Skill matrix routing</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>StaffSkill(technology_domain, ticket_category)</code></td>
+<td>A staff's competence per (domain, category) pair</td>
+</tr>
+<tr>
+<td><code>cognitive_process</code></td>
+<td>Bloom's taxonomy 1-6; <strong>SME threshold</strong> is the singleton <code>HelpdeskSMEConfig.cognitive_threshold</code> (default 6 = Evaluation)</td>
+</tr>
+<tr>
+<td><code>is_mentor</code></td>
+<td>Admin override per (staff, category); promotes a staff to SME regardless of <code>cognitive_process</code></td>
+</tr>
+<tr>
+<td><code>TicketCategory.show_on_submit</code></td>
+<td>Surface this category on the public submit form</td>
+</tr>
+<tr>
+<td><code>TicketCategory.default_queue</code></td>
+<td>Auto-route the ticket to a specific queue (e.g. <code>feedback</code>)</td>
+</tr>
+<tr>
+<td><code>TicketCategory.default_assignee</code></td>
+<td>Auto-route to a product owner</td>
+</tr>
+</tbody>
+</table>
+<h3>Helpdesk extensions</h3>
+<table>
+<thead>
+<tr>
+<th>URL</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/extensions/skill-matrix/</code></td>
+<td>Skills × categories grid; admin-editable</td>
+</tr>
+<tr>
+<td><code>/extensions/calendar/</code></td>
+<td>Workload calendar (assigned hours per staff per week)</td>
+</tr>
+<tr>
+<td><code>/extensions/schedule/</code></td>
+<td>Engineer × day × 30-min-slot grid + Time Allocations</td>
+</tr>
+<tr>
+<td><code>/extensions/schedule/request/</code></td>
+<td>Staff submits a weekly allocation request</td>
+</tr>
+<tr>
+<td><code>/extensions/schedule/my-requests/</code></td>
+<td>Staff's own request history</td>
+</tr>
+<tr>
+<td><code>/extensions/schedule/admin/requests/</code></td>
+<td>Admin reviews + approves / denies requests</td>
+</tr>
+<tr>
+<td><code>/extensions/deletion-requests/</code></td>
+<td>Superuser queue for justified ticket deletions</td>
+</tr>
+<tr>
+<td><code>/extensions/trello/</code></td>
+<td>Trello browser (Kanban / Cards / Lists / Gantt)</td>
+</tr>
+<tr>
+<td><code>/extensions/analytics/routing/</code></td>
+<td>Routing decision audit dashboard</td>
+</tr>
+</tbody>
+</table>
+<h2>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New status 6 (Archived) does not show on a tab I expected</td>
+<td>Archived is not in <code>OPEN_STATUSES = (1, 2)</code></td>
+<td>Archived is a closed status by design — it shows on the All / Closed tabs only</td>
+</tr>
+<tr>
+<td>Skill matrix shows 0 mentors despite recent edits</td>
+<td><code>hd_sme_threshold</code> cache TTL = 5 min</td>
+<td>Wait, or <code>cache.delete("hd_sme_threshold")</code> from the Django shell</td>
+</tr>
+<tr>
+<td>Customer email goes out with <code>{name}</code> not substituted</td>
+<td>The classification dropdown was bypassed (typed directly into the editor)</td>
+<td>Pre-save scrub catches this and re-renders the template; review the ticket and resend if needed</td>
+</tr>
+<tr>
+<td>Public feedback ticket routed to General Support</td>
+<td>The category does NOT have <code>default_queue</code> set</td>
+<td>Edit the <code>TicketCategory</code> in Django Admin and set <code>default_queue=Feedback</code></td>
+</tr>
+<tr>
+<td>Collaborator cannot add a comment</td>
+<td>Server-side guard: collaborator can only add <code>public=False</code> notes</td>
+<td>This is by design; only the owner sends customer emails</td>
+</tr>
+<tr>
+<td>Reports page is slow</td>
+<td>8 sub-reports rendered inline as Chart.js</td>
+<td>The two open-by-default cards (Queue-by-Status, User-by-Status) are the hot path; collapse the rest if needed</td>
+</tr>
+</tbody>
+</table>
+<h2>Where to go next</h2>
+<ul>
+<li><code>/staff/help/</code> — in-app help (Staff Help Page).</li>
+<li><code>/extensions/</code> — admin UI for skill matrix, schedule grid,
+  analytics, deletion-request queue.</li>
+<li><a href="superuser.md"><code>superuser.md</code></a> — if you also approve allocations
+  or run cluster ops.</li>
+<li><a href="README.md"><code>README.md</code></a> — the role index.</li>
+</ul></div>
+      </main>
+    </div>
+  </body>
+</html>
