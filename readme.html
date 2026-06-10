@@ -668,7 +668,7 @@ new label. The original <code>:rc-*</code> is untouched and serves as immutable
 <tr>
 <td><code>./start.sh publish [--tag &lt;tag&gt;] [--check]</code></td>
 <td>2</td>
-<td><strong>Pending</strong> — Phase 1 of the 4-stage plan</td>
+<td><strong>Shipped (dormant)</strong> — refuses dirty working tree; needs GHCR auth to push</td>
 </tr>
 <tr>
 <td><code>./start.sh promote [--from &lt;tag&gt;] [--check] [--rollback &lt;rc-tag&gt;] [--skip-verify]</code></td>
@@ -678,7 +678,7 @@ new label. The original <code>:rc-*</code> is untouched and serves as immutable
 <tr>
 <td><code>./start.sh start --from-ghcr [dev\|prod]</code></td>
 <td>3 &amp; 4</td>
-<td><strong>Pending</strong> — Phase 1 of the 4-stage plan</td>
+<td><strong>Shipped (dormant)</strong> — pulls cloack images from GHCR; refuses if <code>docker-compose-ghcr.yml</code> is missing</td>
 </tr>
 </tbody>
 </table>
@@ -686,6 +686,21 @@ new label. The original <code>:rc-*</code> is untouched and serves as immutable
 pre-flight gate, then retags + pushes <code>:prod</code> + <code>:rc-&lt;UTC&gt;</code> atomically (all
 source images must pull successfully before any push). See
 <code>./start.sh promote --help</code> for full options.</p>
+<p><strong>Phase 2 multi-FQDN compat (2026-06-10):</strong> <code>KC_HOSTNAME_STRICT</code> +
+<code>KC_HOSTNAME_BACKCHANNEL_DYNAMIC</code> env vars on Keycloak,
+<code>HELPDESK_SCRIPT_NAME</code> for helpdesk subpath mount, per-realm
+<code>KEYCLOAK_HOSTNAME_JHU</code> / <code>_SCHMIDT</code> driving
+<code>configure_realm_frontend_urls</code> in <code>configure-keycloak.sh</code>. All defaults
+preserve single-FQDN dev behaviour. See
+<code>.claude/plans/deploy-pipeline-4-stages.md</code> Phase 2 for the full operator
+env-var glossary, and <a href="docs/roles/admin.md"><code>docs/roles/admin.md</code></a> for the
+runbook.</p>
+<p><strong>Role-based User Guide:</strong> five role guides ship at
+<a href="docs/roles/"><code>docs/roles/</code></a> — pick the one that matches your role
+(User / PI / Staff / Superuser / Admin) and follow the 5-section
+template (scope, quick start, reference matrices, troubleshooting,
+where to go next). <a href="docs/CLOACK_User_Guide.pdf"><code>docs/CLOACK_User_Guide.pdf</code></a>
+is the printable / offline mirror.</p>
 <hr />
 <h2>Bare-metal install — <code>cloack-deploy</code> RPM</h2>
 <p>For the full bare-metal deployment guide (5 playbooks, what each
