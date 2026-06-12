@@ -903,6 +903,13 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td><code>FollowUpMeta</code>: note kind (tech/RCA/internal/decision/customer_reply) + email class (FQR/strike 1-3/LQR); picking a classification pastes <code>ResponseTemplate.body</code> with <code>{name}</code>/<code>{your_name}</code>/<code>{issue}</code>/<code>{ticket_number}</code>/<code>{survey_url}</code>/<code>{signature}</code> already substituted (pre_save scrub safety net catches bypassed tokens); advances <code>TicketFollowUpTracker</code></td>
 </tr>
 <tr>
+<td>Helpdesk AI triage + pre-diagnosis (local-only LLM)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>ai-engine</code> container (llama.cpp + qwen3-4b-instruct, internal network only) classifies every new ticket (<code>TriageResult</code> badge + staff Apply) and analyzes the guided pre-diagnosis form (<code>hd_prediag</code>); provider registry in admin (<code>AIProvider</code>/<code>AIEngineConfig</code>, keys stay in env); staff dashboard at <code>/extensions/ai/</code>; user data never leaves infra, <code>CLAUDE_API_KEY</code> optional — see helpdesk/AI_ARCHITECTURE.md</td>
+</tr>
+<tr>
 <td>Delete approval queue</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>

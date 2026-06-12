@@ -558,8 +558,10 @@ docker start openldap
 ./start.sh slurm start arch-dev                                     # start slurmctld + slurmd + slurmdbd + slurmrestd
 ./start.sh ldap-reinit dev                                          # seed minimal LDAP + sync to ColdFront
 ./start.sh populate dev --partitions a100,l40s,h100,h200            # import depts + seed partitions (no billing)
-./start.sh helpdesk start                                           # build + start helpdesk
+./start.sh helpdesk start                                           # build + start helpdesk (+ helpdesk-qcluster worker + ai-engine)
 ./start.sh helpdesk populate                                        # sample queues + tickets
+./start.sh ai pull                                                  # download local LLM weights (sha256-verified, one-time)
+./start.sh ai status                                                # AI engine health (local triage — see helpdesk/AI_ARCHITECTURE.md)
 </code></pre>
 <p>Add <code>--with-billing</code> to <code>populate</code> if you want fake BillingRate/AllocationBilling records.</p>
 <p><strong>About the <code>dev</code> token:</strong> it is an <em>environment modifier</em> (not a cluster name). When present as the first arg after the subcommand, it switches the compose overlay from <code>docker-compose.yml</code> (prod) to <code>docker-compose-dev.yml</code>. <code>clean-all</code> and <code>slurm</code> ignore it (for <code>slurm create &lt;name&gt;</code>, the second arg is the cluster name). <code>helpdesk</code> <strong>respects</strong> it — <code>./start.sh helpdesk dev &lt;action&gt;</code> uses the dev compose file (needed so the container's compose hash matches the rest of the dev stack; otherwise <code>./start.sh start dev</code> flags helpdesk as an orphan).</p>

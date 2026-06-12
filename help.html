@@ -2260,6 +2260,15 @@ or via Django Admin &rarr; <a href="/admin/arch_sync/costcenter/">/admin/arch_sy
       <li><strong>Staff Help</strong> &mdash; <code>/extensions/staff-help/</code> in-app
           reference for staff: FQR checklist, escalation chain, skill levels, 3-strike rule,
           and response templates (content mirrored below).</li>
+      <li><strong>AI Triage &amp; Pre-Diagnosis (local-only)</strong> &mdash; every new ticket
+          is classified by a local LLM (<code>ai-engine</code> container, qwen3-4b-instruct)
+          into a <code>TriageResult</code> badge with a staff-confirmed <em>Apply</em> button
+          (never auto-applied); the submit form offers a guided pre-diagnosis
+          (&ldquo;What best describes your issue?&rdquo; + follow-up questions) analyzed
+          asynchronously with escalation via Slack/Teams routes. Staff dashboard at
+          <code>/extensions/ai/</code> (status, human-triage queue, audit trail).
+          Ticket content never leaves the infrastructure &mdash; external API keys are
+          optional and never receive user data.</li>
     </ul>
 
     <h4 id="staff-help" style="color:#4a9eff; margin-top:24px;">Staff Help (In-App Reference)</h4>
