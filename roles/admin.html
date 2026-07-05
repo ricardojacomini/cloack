@@ -52,7 +52,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
         <div class="md-content"><h1>Admin — cluster / DevOps operator running start.sh and Ansible</h1>
 <h2>Who you are + scope</h2>
 <p>You operate the ARCH Portal stack on <strong>physical hosts</strong>: the dev VM on
-Proxmox, the <strong>edumaster</strong> bare-metal validation host, and the
+Proxmox, the <strong>edulogin</strong> bare-metal validation host, and the
 production <strong>portal</strong> bare-metal host. You run <code>./start.sh deploy /
 start / publish / promote</code>, you ship images to GHCR, you run
 <code>ansible-playbook</code> for the bare-metal Slurm cluster install, and you
@@ -85,8 +85,8 @@ bash scripts/verify-deploy.sh # optional smoke
 <p>Publish refuses with a clear error when the working tree is dirty
 (the <code>:sha-*</code> tag would lie about content). Override with
 <code>--tag &lt;something-other-than-dev&gt;</code> if you genuinely want a throwaway tag.</p>
-<h3>3. Promote on edumaster (Stage 3)</h3>
-<pre><code class="language-bash">ssh edumaster
+<h3>3. Promote on edulogin (Stage 3)</h3>
+<pre><code class="language-bash">ssh edulogin
 cd ~/jhu-arch
 git pull origin dev                          # configs / templates only
 ./start.sh start --from-ghcr dev             # docker pull :dev, no build
@@ -172,29 +172,29 @@ and PAM stack.</p>
 <td><code>ghcr.io/jhu-arch/cloack/&lt;svc&gt;:dev</code> + <code>:sha-&lt;git-short&gt;</code></td>
 </tr>
 <tr>
-<td><strong>3</strong> edumaster bare-metal</td>
+<td><strong>3</strong> edulogin bare-metal</td>
 <td>Linux amd64</td>
 <td><code>git pull origin dev</code></td>
-<td>Configs / templates on edumaster</td>
+<td>Configs / templates on edulogin</td>
 <td>—</td>
 </tr>
 <tr>
 <td><strong>3</strong></td>
-<td>edumaster</td>
+<td>edulogin</td>
 <td><code>./start.sh start --from-ghcr dev</code></td>
 <td>Stack runs the <code>:dev</code> images, no build</td>
 <td><code>ghcr.io/...:dev</code> pulled</td>
 </tr>
 <tr>
 <td><strong>3</strong></td>
-<td>edumaster</td>
+<td>edulogin</td>
 <td><code>bash scripts/verify-deploy.sh</code></td>
 <td>8-check validation result</td>
 <td>—</td>
 </tr>
 <tr>
 <td><strong>3</strong></td>
-<td>edumaster</td>
+<td>edulogin</td>
 <td><code>./start.sh promote</code></td>
 <td><code>:dev</code> retagged → <code>:prod</code> + <code>:rc-&lt;UTC&gt;</code></td>
 <td><code>ghcr.io/...:prod</code> + <code>:rc-*</code> pushed</td>
@@ -229,7 +229,7 @@ laptop ──push──&gt; origin            Stage 2 ──push :dev, :sha-*─
        ↑                                    ↓
 proxmox ──pull──&gt; origin           Stage 3 ──pull :dev, push :prod, :rc-*─&gt; GHCR
        ↑                                    ↓
-edumaster ──pull──&gt; origin         Stage 4 ──pull :prod
+edulogin ──pull──&gt; origin          Stage 4 ──pull :prod
        ↑                                    ↑
 portal ──pull──&gt; origin            (portal never pushes)
 </code></pre>
@@ -254,7 +254,7 @@ portal ──pull──&gt; origin            (portal never pushes)
 <td><code>docker push :dev</code> + <code>:sha-*</code></td>
 </tr>
 <tr>
-<td>3 (edumaster)</td>
+<td>3 (edulogin)</td>
 <td><code>GHCR_BUILDER_PAT</code> (write)</td>
 <td><code>docker pull :dev</code>, <code>docker push :prod</code> + <code>:rc-*</code></td>
 </tr>
@@ -271,7 +271,7 @@ live in the <code>jhu-arch</code> org. The two PATs are <strong>fine-grained</st
 to the <code>jhu-arch</code> org, and <strong>SSO-authorized</strong> for Johns Hopkins
 University Enterprise. Rotation cadence: ≤ 1 year (fine-grained PAT
 maximum lifetime).</p>
-<h3>Image inventory (13 — 6 cloack apps + 7 slurm; cn-rockylinux is build-only)</h3>
+<h3>Image inventory (13 runtime — 7 cloack apps + 6 Slurm services; +<code>cn-rockylinux</code> build-only = 14 published)</h3>
 <table>
 <thead>
 <tr>
@@ -298,7 +298,7 @@ maximum lifetime).</p>
 <td>Slurm (services)</td>
 <td><code>slurmctld</code>, <code>slurmdbd</code>, <code>slurmrestd</code>, <code>slurm-munge</code>, <code>mariadb</code>, <code>slurmd</code></td>
 <td><code>slurm/&lt;svc&gt;/Dockerfile</code></td>
-<td>Yes (in Docker-Slurm Mode A) — Stage 3 + 4</td>
+<td>Yes — <code>promote</code> retags these <strong>best-effort</strong> (skips any not published, e.g. bare-metal Slurm). <code>slurmd</code> is the login-node image too, so it promotes even when compute workers run bare-metal.</td>
 </tr>
 </tbody>
 </table>
@@ -321,14 +321,20 @@ image.</p>
 <tr>
 <td><strong>A — Docker Slurm</strong></td>
 <td>containers</td>
-<td>6 cloack apps + 6 Slurm services</td>
+<td>7 cloack apps + 6 Slurm services</td>
 <td>All-Docker portal, smaller HPC scale</td>
 </tr>
 <tr>
 <td><strong>B — Bare-metal Slurm</strong></td>
 <td>services on real hosts via Ansible roles</td>
-<td>6 cloack apps only</td>
+<td>7 cloack apps only</td>
 <td>Real HPC scale, dedicated compute nodes, kernel-level features</td>
+</tr>
+<tr>
+<td><strong>A′ — current target</strong></td>
+<td>core Slurm containerized; <strong>compute workers excluded</strong></td>
+<td>7 cloack apps + 6 Slurm services (workers not started; login-node <code>slurmd</code> still runs)</td>
+<td>Containerized controller + login + <code>slurmdbd</code>/<code>slurmrestd</code>/<code>mariadb</code>, compute nodes added later (bare-metal or Docker)</td>
 </tr>
 </tbody>
 </table>
@@ -564,7 +570,7 @@ to keep current behaviour.</p>
   reference (partitions, QOS, weekly cap, CLI tools).</li>
 <li><a href="../../slurm/ANSIBLE.md"><code>slurm/ANSIBLE.md</code></a> — bare-metal Slurm install
   via the <code>cloack-deploy</code> RPM path.</li>
-<li><code>.claude/plans/deploy-pipeline-4-stages.md</code> — the design plan behind
+<li><code>docs/deploy-pipeline-4-stages.md</code> — the design plan behind
   the matrix on this page; read when the model needs to evolve.</li>
 <li><a href="superuser.md"><code>superuser.md</code></a> — ColdFront / Django admin side
   (drain nodes, approve allocations, qcluster audit, OTP resets).</li>

@@ -23,6 +23,10 @@ You will see a banner at the top of every portal page until you do.
 Click the banner → check the box → submit. ToS acceptance is also
 required for every user you add to your projects.
 
+You can re-read what you agreed to at any time: on `/user/user-profile/`
+the **Terms of Service** row shows `Accepted vX` as a link that opens the
+exact version you accepted (read-only, with a Print button).
+
 ### 2. Create a project and request an allocation
 
 ```

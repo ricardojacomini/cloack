@@ -837,7 +837,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Sidebar links route to correct realm; <code>home_or_sso</code> view + realm-skip guard in OIDC backends</td>
+<td>Sidebar links route to correct realm; <code>home_or_sso</code> view + realm-skip guard in OIDC backends. Edge/subdomain mode: helpdesk auto-SSO entry (<code>home_or_sso</code>/<code>LOGIN_URL</code> → host-aware <code>realm_dispatch_login</code>) and the portal ARCH Helpdesk card are per-affiliation (<code>helpdesk.&lt;base&gt;</code> → matching realm), not JHU-hardcoded</td>
 </tr>
 <tr>
 <td>Portal landing page</td>

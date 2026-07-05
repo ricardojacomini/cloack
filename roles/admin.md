@@ -3,7 +3,7 @@
 ## Who you are + scope
 
 You operate the ARCH Portal stack on **physical hosts**: the dev VM on
-Proxmox, the **edumaster** bare-metal validation host, and the
+Proxmox, the **edulogin** bare-metal validation host, and the
 production **portal** bare-metal host. You run `./start.sh deploy /
 start / publish / promote`, you ship images to GHCR, you run
 `ansible-playbook` for the bare-metal Slurm cluster install, and you
@@ -48,10 +48,10 @@ Publish refuses with a clear error when the working tree is dirty
 (the `:sha-*` tag would lie about content). Override with
 `--tag <something-other-than-dev>` if you genuinely want a throwaway tag.
 
-### 3. Promote on edumaster (Stage 3)
+### 3. Promote on edulogin (Stage 3)
 
 ```bash
-ssh edumaster
+ssh edulogin
 cd ~/jhu-arch
 git pull origin dev                          # configs / templates only
 ./start.sh start --from-ghcr dev             # docker pull :dev, no build
@@ -109,10 +109,10 @@ and PAM stack.
 | **2** dev VM build | Proxmox Linux amd64 | `git pull origin dev` | Code on the builder host | — |
 | **2** | Proxmox | `./start.sh start dev` | Local build matching prod arch | `arch/<svc>` built locally on amd64 |
 | **2** | Proxmox | `./start.sh publish` | `:dev` + `:sha-*` pushed to GHCR | `ghcr.io/jhu-arch/cloack/<svc>:dev` + `:sha-<git-short>` |
-| **3** edumaster bare-metal | Linux amd64 | `git pull origin dev` | Configs / templates on edumaster | — |
-| **3** | edumaster | `./start.sh start --from-ghcr dev` | Stack runs the `:dev` images, no build | `ghcr.io/...:dev` pulled |
-| **3** | edumaster | `bash scripts/verify-deploy.sh` | 8-check validation result | — |
-| **3** | edumaster | `./start.sh promote` | `:dev` retagged → `:prod` + `:rc-<UTC>` | `ghcr.io/...:prod` + `:rc-*` pushed |
+| **3** edulogin bare-metal | Linux amd64 | `git pull origin dev` | Configs / templates on edulogin | — |
+| **3** | edulogin | `./start.sh start --from-ghcr dev` | Stack runs the `:dev` images, no build | `ghcr.io/...:dev` pulled |
+| **3** | edulogin | `bash scripts/verify-deploy.sh` | 8-check validation result | — |
+| **3** | edulogin | `./start.sh promote` | `:dev` retagged → `:prod` + `:rc-<UTC>` | `ghcr.io/...:prod` + `:rc-*` pushed |
 | **4** portal bare-metal | Linux amd64 | `git pull origin dev` | Configs on portal | — |
 | **4** | portal | `./start.sh start --from-ghcr prod` | Stack runs the `:prod` images | `ghcr.io/...:prod` pulled |
 | **4** | portal | `./start.sh ldap-reinit` (manual) | LDAP re-seeded if needed | — |
@@ -126,7 +126,7 @@ laptop ──push──> origin            Stage 2 ──push :dev, :sha-*─> G
        ↑                                    ↓
 proxmox ──pull──> origin           Stage 3 ──pull :dev, push :prod, :rc-*─> GHCR
        ↑                                    ↓
-edumaster ──pull──> origin         Stage 4 ──pull :prod
+edulogin ──pull──> origin          Stage 4 ──pull :prod
        ↑                                    ↑
 portal ──pull──> origin            (portal never pushes)
 ```
@@ -137,7 +137,7 @@ portal ──pull──> origin            (portal never pushes)
 |---|---|---|
 | 1 (laptop) | none | git push only |
 | 2 (Proxmox) | `GHCR_BUILDER_PAT` (write) | `docker push :dev` + `:sha-*` |
-| 3 (edumaster) | `GHCR_BUILDER_PAT` (write) | `docker pull :dev`, `docker push :prod` + `:rc-*` |
+| 3 (edulogin) | `GHCR_BUILDER_PAT` (write) | `docker pull :dev`, `docker push :prod` + `:rc-*` |
 | 4 (portal) | `GHCR_CONSUMER_PAT` (read-only) | `docker pull :prod` only |
 
 Registry path: `ghcr.io/jhu-arch/cloack/<image>:<tag>`.
@@ -148,13 +148,13 @@ to the `jhu-arch` org, and **SSO-authorized** for Johns Hopkins
 University Enterprise. Rotation cadence: ≤ 1 year (fine-grained PAT
 maximum lifetime).
 
-### Image inventory (13 — 6 cloack apps + 7 slurm; cn-rockylinux is build-only)
+### Image inventory (13 runtime — 7 cloack apps + 6 Slurm services; +`cn-rockylinux` build-only = 14 published)
 
 | Track | Image | Built from | Promoted past `:dev`? |
 |---|---|---|---|
 | Cloack | `coldfront`, `helpdesk`, `keycloak`, `keycloak-config`, `openldap`, `phpldapadmin`, `postgres` | each service's `Dockerfile` | Yes — Stage 3 + 4 |
 | Slurm (base) | `cn-rockylinux` | `slurm/base/Dockerfile` | **No** — build dep only, never pulled by runtime hosts |
-| Slurm (services) | `slurmctld`, `slurmdbd`, `slurmrestd`, `slurm-munge`, `mariadb`, `slurmd` | `slurm/<svc>/Dockerfile` | Yes (in Docker-Slurm Mode A) — Stage 3 + 4 |
+| Slurm (services) | `slurmctld`, `slurmdbd`, `slurmrestd`, `slurm-munge`, `mariadb`, `slurmd` | `slurm/<svc>/Dockerfile` | Yes — `promote` retags these **best-effort** (skips any not published, e.g. bare-metal Slurm). `slurmd` is the login-node image too, so it promotes even when compute workers run bare-metal. |
 
 Note that `cn-rockylinux` is consumed at **build time** by the other
 Slurm images (each does a `FROM arch/cn-rockylinux`). Once a Slurm
@@ -166,8 +166,9 @@ image.
 
 | Mode | Slurm runs as | What portal pulls | When to use |
 |---|---|---|---|
-| **A — Docker Slurm** | containers | 6 cloack apps + 6 Slurm services | All-Docker portal, smaller HPC scale |
-| **B — Bare-metal Slurm** | services on real hosts via Ansible roles | 6 cloack apps only | Real HPC scale, dedicated compute nodes, kernel-level features |
+| **A — Docker Slurm** | containers | 7 cloack apps + 6 Slurm services | All-Docker portal, smaller HPC scale |
+| **B — Bare-metal Slurm** | services on real hosts via Ansible roles | 7 cloack apps only | Real HPC scale, dedicated compute nodes, kernel-level features |
+| **A′ — current target** | core Slurm containerized; **compute workers excluded** | 7 cloack apps + 6 Slurm services (workers not started; login-node `slurmd` still runs) | Containerized controller + login + `slurmdbd`/`slurmrestd`/`mariadb`, compute nodes added later (bare-metal or Docker) |
 
 In Mode B the operator runs `ansible/slurm-server/playbook.yml` and
 `ansible/slurm-client/playbook.yml` against the cluster inventory.
@@ -244,7 +245,7 @@ to keep current behaviour.
   reference (partitions, QOS, weekly cap, CLI tools).
 - [`slurm/ANSIBLE.md`](../../slurm/ANSIBLE.md) — bare-metal Slurm install
   via the `cloack-deploy` RPM path.
-- `.claude/plans/deploy-pipeline-4-stages.md` — the design plan behind
+- `docs/deploy-pipeline-4-stages.md` — the design plan behind
   the matrix on this page; read when the model needs to evolve.
 - [`superuser.md`](superuser.md) — ColdFront / Django admin side
   (drain nodes, approve allocations, qcluster audit, OTP resets).

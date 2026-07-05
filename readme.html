@@ -99,7 +99,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 - Domain B (jhu.arch.cluster): suffix <code>ou=jhu,dc=arch,dc=cluster</code> — UID/GID range starting 10000
 - Domain C (schmidt.arch.cluster): suffix <code>ou=schmidt,dc=arch,dc=cluster</code> — UID/GID range starting 30000</p>
 <p>Keep UID/GID ranges non-overlapping.</p>
-<p><strong>ColdFront as Directory Ground Truth:</strong> UID and GID allocation is centralized in the ColdFront database via <code>Affiliation.next_uid</code> / <code>next_gid</code> counters (atomic, race-condition free). <code>UserProfile</code> stores <code>ldap_uid</code>, <code>ldap_gid</code>, and <code>ldap_groups</code> (readonly, cached from LDAP sync). The Django Admin "Change User" and "UserProfile" pages show a "Directory (LDAP)" fieldset with this information. On ColdFront startup, <code>sync_ldap</code> automatically pushes users/groups to LDAP. The Import Users page supports two modes: <strong>New Users</strong> (CSV, allocate new UIDs) and <strong>Migration</strong> (LDIF slapcat dump, preserve existing UIDs/GIDs/passwords).</p>
+<p><strong>ColdFront as Directory Ground Truth:</strong> UID and GID allocation is centralized in the ColdFront database via <code>Affiliation.next_uid</code> / <code>next_gid</code> counters (atomic, race-condition free). <code>UserProfile</code> stores <code>ldap_uid</code>, <code>ldap_gid</code>, and <code>ldap_groups</code> (readonly, cached from LDAP sync). The Django Admin "Change User" and "UserProfile" pages show a "Directory (LDAP)" fieldset with this information. On ColdFront startup, <code>sync_ldap</code> automatically pushes users/groups to LDAP. The Import Users page supports two modes: <strong>New Users</strong> (CSV, allocate new UIDs) and <strong>Migration</strong> (LDIF slapcat dump, preserve existing UIDs/GIDs/passwords). New Users mode also has an optional <strong>Course code</strong> field for disposable class accounts — set e.g. <code>en540</code> and each CSV <code>uid</code> becomes <code>en540-&lt;uid&gt;</code> with a per-course synthetic email (so a student who already has an account gets a separate, UID-distinct identity); the whole cohort is removed at term end via the "Delete Course Accounts" card or <code>coldfront delete_course_users --course en540 --yes</code> (drops Slurm associations, the user's home dir, LDAP entry, and ColdFront user — shared per-PI scratch is never touched). To tear down <strong>specific</strong> accounts by name (not a course prefix), use the generic sibling <code>coldfront delete_users -u &lt;user1&gt; &lt;user2&gt; --dry-run</code> then <code>--yes</code> — same four-step teardown, but it refuses system accounts and blocks deleting a PI (which would cascade-delete their projects/allocations) unless <code>--force-pi</code> is passed. The page also has an <strong>Export Users</strong> card that streams the directory as CSV (<code>full_name,email,uid,is_pi,members,member_of</code>, filterable by scope and affiliation) — <code>members</code> lists a PI's LDAP group members and <code>member_of</code> lists the PI(s) a user belongs to.</p>
 <p><strong>Minimal LDAP Bootstrap:</strong> <code>install.sh</code> creates only the bare minimum (root DN, cn=root, munge/slurm system accounts). OUs (<code>ou=jhu</code>, <code>ou=schmidt</code>, etc.) and user accounts are <strong>not</strong> hardcoded — they come from ColdFront via:
 - <strong>Option A:</strong> Import Users → Migration (LDIF upload via UI) — replays structural entries + users + groups + creates projects/allocations
 - <strong>Option B:</strong> <code>./start.sh ldap-reinit</code> (CLI) — restores full slapcat dump
@@ -210,6 +210,7 @@ Use `start.sh` to manage the full CLOACK stack. It wraps `docker compose` with i
 | `./start.sh reconf` | Push updated `slurm.conf` to all nodes (`scontrol reconfigure`) |
 | `./start.sh test [dev] [MODULE]` | Run Django unit tests (default: all arch_sync tests). Example: `./start.sh test coldfront.plugins.arch_sync.tests.test_billing` |
 | `./start.sh helpdesk {start\|stop\|restart\|status\|destroy\|log\|populate}` | Manage the Helpdesk service. `populate` creates sample queues and tickets (idempotent) |
+| `./start.sh mta {create\|start\|stop\|status\|log}` | Manage the inbound-email MTA (`arch-mta` postfix, edge profile). Receives SMTP via the NPM `:25` stream → Maildir → Helpdesk tickets. `--from-ghcr` pulls the published image |
 | `./start.sh help` | Show usage |
 
 ### Quick start
@@ -332,8 +333,8 @@ FORCE_BUILD=1
 FORCE_REDEPLOY=1
 
 # Slurm (leave empty on dev; set real paths on production)
-SLURM_CONF=/opt/mprov/slurm/current/etc/slurm.conf
-SLURM_MPROV=/opt/mprov/slurm/current/bin
+SLURM_CONF=/opt/mprov/cloack/slurm/current/etc/slurm.conf
+SLURM_MPROV=/opt/mprov/cloack/slurm/current/bin
 PLUGIN_SLURM=1
 SLURM_NOOP=0
 </code></pre>
@@ -608,8 +609,8 @@ docker exec openldap ldapsearch -H ldapi:/// -x \
 <p>The CLOACK stack moves through 4 environments along a single pipeline. Each
 stage has a clear responsibility; tagged GHCR images flow under explicit
 operator control. Full strategy in
-<a href=".claude/plans/deploy-pipeline-4-stages.md"><code>.claude/plans/deploy-pipeline-4-stages.md</code></a>.</p>
-<pre><code>[1] dev laptop          [2] dev VM Proxmox       [3] edumaster bare-metal   [4] portal bare-metal
+<a href="docs/deploy-pipeline-4-stages.md"><code>docs/deploy-pipeline-4-stages.md</code></a>.</p>
+<pre><code>[1] dev laptop          [2] dev VM Proxmox       [3] edulogin bare-metal    [4] portal bare-metal
     macOS arm64             Linux amd64               Linux amd64                Linux amd64
     build local             build local               pull GHCR :dev             pull GHCR :prod
     git push code           git pull code             git pull code              git pull code
@@ -638,7 +639,7 @@ operator control. Full strategy in
 <td><code>:dev</code></td>
 <td>Stage 2 (publish)</td>
 <td>Mutable head</td>
-<td>Latest Stage 2 build. What edumaster pulls.</td>
+<td>Latest Stage 2 build. What edulogin pulls.</td>
 </tr>
 <tr>
 <td><code>:rc-YYYY-MM-DD-HHMM</code></td>
@@ -694,7 +695,7 @@ source images must pull successfully before any push). See
 <code>KEYCLOAK_HOSTNAME_JHU</code> / <code>_SCHMIDT</code> driving
 <code>configure_realm_frontend_urls</code> in <code>configure-keycloak.sh</code>. All defaults
 preserve single-FQDN dev behaviour. See
-<code>.claude/plans/deploy-pipeline-4-stages.md</code> Phase 2 for the full operator
+<code>docs/deploy-pipeline-4-stages.md</code> Phase 2 for the full operator
 env-var glossary, and <a href="docs/roles/admin.md"><code>docs/roles/admin.md</code></a> for the
 runbook.</p>
 <p><strong>Role-based User Guide:</strong> five role guides ship at
@@ -1301,7 +1302,7 @@ INVOICE_ENABLED=1
 INVOICE_DEFAULT_STATUS=Payment Pending
 
 # Slurm sync (required for billing data)
-SLURM_BIN=/opt/mprov/slurm/current/bin
+SLURM_BIN=/opt/mprov/cloack/slurm/current/bin
 SLURM_NOOP=0
 </code></pre>
 <h3>URL Endpoints</h3>
@@ -1939,8 +1940,8 @@ sqos rdesouz4
 <pre><code class="language-bash"># List all associations for an account
 sacctmgr -n -P list assoc where account=ACCOUNT format=Cluster,Account,User,Partition,QOS
 
-# List all accounts with parents
-sacctmgr -n -P list associations where user= format=Account,ParentName,Share
+# List all accounts with parents (use ParentID/ID — ParentName is unreliable)
+sacctmgr -n -P show assoc where user= format=Account,ParentName,ParentID,ID,Share
 
 # List accounts under a specific parent
 sacctmgr -n list account where parent=schmidt format=Account,Description
@@ -1952,7 +1953,13 @@ sacctmgr show account name=rdesouz4 withassoc format=Account,User,QOS,GrpTRESMin
 sacctmgr modify account where name=rdesouz4 set parent=nodep -i
 </code></pre>
 <blockquote>
-<p><strong>Note:</strong> <code>sacctmgr list account format=ParentName</code> returns empty. Use <code>list associations where user=</code> to get parent info.</p>
+<p><strong>Note:</strong> In Slurm 25.11, <code>ParentName</code> is reported <strong>empty</strong> for every account whose
+parent is not <code>root</code> — even when <code>ParentID</code> is correct (e.g. <code>noschool→jhu</code> shows
+<code>ParentName=''</code> but <code>ParentID</code> = jhu's <code>ID</code>). The hierarchy is still intact and the
+scheduler enforces it; only the display string is blank. Build/verify trees from
+<code>ParentID→ID</code>, not <code>ParentName</code> (this is what <code>stree</code>'s <code>build_tree</code> does). Do <strong>not</strong>
+"heal" empty <code>ParentName</code> by reparenting in sync — it churns a modify per account every
+run. <code>sacctmgr list account format=ParentName</code> is likewise empty; use <code>show assoc where user=</code>.</p>
 </blockquote>
 <h3>start.sh slurm — Cluster Management</h3>
 <p><strong>Option A: CLI</strong></p>
