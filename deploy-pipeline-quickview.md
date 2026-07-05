@@ -74,6 +74,44 @@ echo $GHCR_CONSUMER_PAT | docker login ghcr.io -u <user> --password-stdin  # rea
 docker exec -i postgres psql -U <admin> < ${BASE_DATA}/backup/postgres_<ts>.sql   # DB restore if migration corrupted data
 ```
 
+## Email intake (arch-mta) — bring up + verify
+
+Inbound email → Helpdesk tickets: MX → NPM `:25` stream → `arch-mta` (postfix,
+edge profile) → `/maildrop/<queue>/new` → `get_email` cron → ticket.
+
+```bash
+# 1. MTA up (edge/prod; off in dev)
+./start.sh mta create && ./start.sh mta start && ./start.sh mta status
+
+# 2. helpdesk must be RECREATED — `docker restart` is NOT enough: it skips the
+#    /maildrop mount + overlay re-stage (migration 0050) + env_file reload:
+./start.sh helpdesk stop && ./start.sh helpdesk start
+
+# 3. queues must be LOCAL (not imap) — migration 0050:
+docker exec helpdesk python manage.py shell -c \
+ "from helpdesk.models import Queue; q=Queue.objects.get(slug='feedback'); \
+  print(q.email_address, q.email_box_type, q.email_box_local_dir, q.allow_email_submission)"
+# -> feedback@arch.jhu.edu local /maildrop/feedback/new True
+
+# 4. end-to-end (proxy off for a direct swaks; prod sets MTA_PROXY_PROTOCOL=1):
+docker exec arch-mta swaks --helo $(hostname) --server 127.0.0.1:25 \
+  --to feedback@helpdesk.arch.jhu.edu --from tester@example.com \
+  --header 'Subject: [feedback-3] Re: t' --body 'test'
+docker exec helpdesk python manage.py get_email      # -> threads into ticket 3
+```
+
+Gotchas:
+- **Stale `QUEUE_EMAIL_BOX_*` in the HOST `helpdesk.env` breaks intake** — it
+  overrides EVERY queue to `imap` (settings-first) → `get_email` dies on a DNS
+  error and never reads the Maildir. `ensure_host_paths` now auto-scrubs it; on an
+  already-running host: `sed -i '/^QUEUE_EMAIL_BOX_/d' ${BASE_ETC}/helpdesk/helpdesk.env`
+  then `helpdesk stop && start`.
+- **`docker restart helpdesk` ≠ apply** — skips overlay re-stage (repo→BASE_DATA),
+  container recreate (`/maildrop`), env_file reload. Always `helpdesk stop && start`.
+- **`arch-mta` is edge-only** — off in dev; only the `get_email` side (empty Maildirs) runs, so dev stays green.
+- **`MTA_PROXY_PROTOCOL=1`** in prod (mail via NPM stream); `0` only for a direct swaks test.
+- Inbound-email follow-ups auto-classify as **Communication (e-mail) - user's reply** (`note_kind=user_reply`) — distinct from staff outbound comms (`customer_reply`, which carry FQR/LQR), and never Technical Note.
+
 ## Top gotchas
 
 - **Slurm build is opt-in** — `start dev` does NOT build `arch/slurmd`. Run `slurm start` before `publish`, and confirm `publish --check` shows zero `SKIP` for Slurm images, or Stage 3 has no `login01` to pull.
