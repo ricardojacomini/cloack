@@ -272,6 +272,85 @@ docker exec coldfront coldfront shell -c "from coldfront.plugins.arch_sync.clust
 docker restart skipjack-slurmctld
 ```
 
+### `/etc/slurm` is a directory bind — edit in place, no `.nfs`
+
+The Slurm service containers bind the whole per-cluster dir
+`${BASE_DATA}/slurm/<cluster>` **as** `/etc/slurm` (a **directory** bind, not
+per-file). This is inode-proof: rewriting any file **in place** — `vim` (backup
+`~`), **`git`** (`pull`/`checkout`/`reset`), `sed -i`, or the DB writer — is
+picked up live. `scontrol reconfigure` re-reads the fresh file, and the old
+single-file-bind failure mode (a stranded inode kept alive as a `.nfsXXXX`,
+`Device or resource busy`, controller stuck on stale config) is gone.
+
+```bash
+# Safe: edit the mirror in place, then reload — no recreate, no .nfs
+vim ${BASE_DATA}/slurm/skipjack/slurm.conf
+docker exec skipjack-slurmctld scontrol reconfigure
+```
+
+Because a directory bind **masks** image-baked files, the dir must be a
+**complete** `/etc/slurm`. `verify-deploy.sh` check 14 asserts this per role
+(controller vs slurmd). Re-stage the static payload (statics + `prolog.sh`/
+`epilog.sh` + `cli_filter.lua` + seeds for `qos_config.lua`/`rates.lua`) any time:
+
+```bash
+./start.sh stage-slurm-cluster-conf <cluster>   # root on the host; safe on skipjack
+```
+
+`qos_config.lua` (billing toggles) and `rates.lua` (rate catalog) are **exported
+per-cluster** into `${BASE_DATA}/slurm/<cluster>/` from the DB and are only
+**seeded** (not overwritten) by staging — never hand-edit them; change the toggle
+/ `BillingRate` in the UI and the signal re-exports + reconfigures.
+
+#### Stage 4 rollout (skipjack, prod live) — one-time recreate
+
+Converting a live cluster from the old per-file binds to the directory bind is a
+one-time **CONTAINER RECREATE**, not a restart (the mount shape changes). Do it in
+a maintenance window. The Slurm images are **unchanged** — only the `coldfront`
+image (which carries the overlay generator) and the overlay itself change.
+
+Two commands are easy to confuse — one is required, the other is forbidden:
+
+| Command | Stage 4? | Why |
+|---------|:---:|-----|
+| `./start.sh start --from-ghcr prod` | ✅ | Refreshes the **main stack** — pulls the new `coldfront:prod` that carries the dir-bind generator (prod bakes custom code into the image; `docker restart coldfront` does **not** pick it up). Does **not** touch the `skipjack-slurm` project. |
+| `./start.sh slurm start --from-ghcr prod` | ❌ | The live-rerun trap — regenerates/rebrings the cluster and has clobbered accounting (`DbdHost`) + interactive (`SrunPortRange=0-0`). Never run it on a live host. |
+| `docker compose --project-name skipjack-slurm … up -d --force-recreate skipjack-slurmctld slurmrestd` | ✅ | Applies the dir-bind with the **current** `:prod` images (no re-pull, no full `slurm start`). |
+
+Pre-req: Stage 2 published `:dev`+`:sha` and Stage 3 `promote`d → `coldfront:prod`
+already carries the change.
+
+```bash
+ssh mgmt02 && cd /opt/mprov/cloack && git pull origin dev
+
+# 1. Main stack: pull the new coldfront:prod (dir-bind generator is baked in).
+#    Safe — normal main-stack refresh; does NOT touch the slurm cluster.
+./start.sh start --from-ghcr prod
+
+# 2. Assemble the /etc/slurm payload in the per-cluster dir (adds job_submit.lua
+#    + qos_config.lua that used to come from shared/). Runs as root on the host.
+./start.sh stage-slurm-cluster-conf skipjack
+ls ${BASE_DATA}/slurm/skipjack/       # job_submit.lua qos_config.lua rates.lua cli_filter.lua prolog.sh epilog.sh …
+
+# 3. Regenerate ONLY the slurm overlay (dir-binds) via the now-updated coldfront.
+docker exec coldfront coldfront shell -c \
+  "from coldfront.plugins.arch_sync import cluster_manager as m; from coldfront.plugins.arch_sync.models import SlurmCluster as C; m.write_compose_overlay(C.objects.get(name='skipjack'))"
+
+# 4. Surgical RECREATE of the core with the SAME :prod images (NEVER slurm start
+#    --from-ghcr). Service KEYS: slurmctld is BRANDED (skipjack-slurmctld);
+#    slurmrestd/slurmdbd are UNBRANDED (only container_name is branded).
+docker compose --project-name skipjack-slurm --env-file <env> -f docker-compose-slurm-skipjack.yml \
+  up -d --force-recreate --no-deps skipjack-slurmctld slurmrestd    # slurmdbd unchanged
+
+# 5. Verify (the .nfs disappears on recreate).
+docker inspect skipjack-slurmctld --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}' | grep /etc/slurm
+docker exec skipjack-slurmctld ls /etc/slurm
+docker exec skipjack-slurmctld scontrol ping && docker exec skipjack-slurmctld sinfo
+bash scripts/verify-deploy.sh
+```
+
+After this the "edit in place" flow above holds forever.
+
 ### Import an existing cluster's topology (nodes/partitions/QOS from slurmrestd)
 
 ```bash
@@ -418,6 +497,88 @@ ssh <node> 'mount | grep -i weka; timeout 5 stat /weka/home/jhu/<user> || echo H
 If `srun hostname` **also** hangs, it's the srun stdio reverse-path (`SrunPortRange`
 / firewall between the node and the login host), not the home directory.
 
+### Rebrand the Slurm core to GHCR on a live host
+
+Rename the running core containers from local `arch/*` images to
+`ghcr.io/jhu-arch/cloack/*:prod` **without** touching `slurm.conf` (same image
+bits — `arch/*` and the GHCR tags share the same image ID). The 2026-07-06 saga
+came from re-running `slurm start`, which re-runs `write_slurm_conf` and clobbers
+the served config (`SrunPortRange=0-0` / `DbdHost` breakage). Do **not** do that.
+
+> **Prod repo is not rw-mounted:** base `docker-compose.yml` only mounts
+> `./ansible` and `./slurm` under `/opt/arch` (dev mounts `.:/opt/arch:rw`). So
+> `write_compose_overlay` run inside coldfront writes to an **ephemeral container
+> path**, not the host overlay — you must `docker cp` it out.
+
+```bash
+# 1. regen core-only overlay with GHCR env passed via `docker exec -e`
+#    (NOT os.environ set mid-python — that does not apply)
+docker exec -e CLOACK_FROM_GHCR=1 -e CLOACK_IMAGE_TAG=prod coldfront python -c \
+  "import django,os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','coldfront.config.settings'); django.setup(); \
+   from coldfront.plugins.arch_sync.models import SlurmCluster; \
+   from coldfront.plugins.arch_sync.cluster_manager import write_compose_overlay; \
+   print(write_compose_overlay(SlurmCluster.objects.get(name='skipjack'), core_only=True))"
+# 2. copy the overlay out to the host
+docker cp coldfront:/opt/arch/docker-compose-slurm-skipjack.yml ./docker-compose-slurm-skipjack.yml
+# 3. validate
+docker compose -p skipjack-slurm --env-file .env -f docker-compose-slurm-skipjack.yml config -q
+# 4. guard-diff vs a backup of the RUNNING overlay — ONLY image lines (arch/*→ghcr:prod)
+#    and configless mounts (slurm.conf :ro, cgroup→<cluster>/, +plugstack) may change.
+#    If a compute node / port / container_name changes → STOP.
+# 5. recreate the core with GHCR (controller-recreate blip only; no write_slurm_conf)
+docker compose -p skipjack-slurm --env-file .env -f docker-compose-slurm-skipjack.yml up -d
+```
+
+> **NEVER `./start.sh slurm start --from-ghcr` on a live host** — it re-runs
+> `write_slurm_conf` and clobbers the served `slurm.conf` (the 2026-07-06 saga).
+
+### Configless node bring-up
+
+Under configless (`SlurmCluster.configless=True`), the containerized controller
+serves the `.conf` set (`slurm.conf` `:ro`, `gres.conf`, `cgroup.conf`,
+`plugstack.conf`) on host port **6817**. Bare-metal compute nodes run
+`slurmd --conf-server <host>:6817`; login nodes run `sackd --conf-server
+<host>:6817` (23.11+ client-config daemon — gives `srun`/`sacct`/`sinfo` config
+with no local file). Client `.lua`, `prolog.d`/`epilog.d`, and SPANK `.so`
+binaries **stay local** (configless serves `.conf`, never binaries).
+
+> **Per-cluster mount files must exist before `docker compose up -d`:**
+> `slurm.conf`, `gres.conf`, `cgroup.conf`, `plugstack.conf` must all exist as
+> **files** in `${BASE_DATA}/slurm/<cluster>/` (e.g.
+> `/opt/mprov/cloack/var/slurm/skipjack/`). A missing mount source makes Docker
+> create a phantom **empty directory** there and slurmctld dies reading it as a
+> dir. Stage any missing one: `cp slurm/conf/<file> ${BASE_DATA}/slurm/<cluster>/`.
+
+After a controller recreate, nodes show `unk` (UNKNOWN) briefly while configless
+`slurmd` re-registers — normal blip, wait ~1 min then re-check `sinfo -N`. If the
+controller log warns `Node <X> appears to have a different slurm.conf than the
+slurmctld` (CONF_HASH mismatch), that node has a stale cached/local `slurm.conf`
+— make the config actually converge (do **not** just set `DebugFlags=NO_CONF_HASH`):
+
+```bash
+ssh <node> 'systemctl restart slurmd'                      # re-fetch via --conf-server
+docker exec <cluster>-slurmctld scontrol update NodeName=<X> State=RESUME
+```
+
+### `docker compose up -d` is idempotent
+
+With the overlay file **and** `.env` unchanged, `up -d` is a no-op — it only
+recreates containers whose resolved config (image tag / env / volume / port)
+diverged; unchanged ones stay `Running` (no node blip), and the one-shot
+`munge-init` re-runs harmlessly. `.env` is in the config hash, so an `.env` change
+**will** recreate the affected containers. Preview without touching anything:
+
+```bash
+docker compose -p <cluster>-slurm --env-file .env -f docker-compose-slurm-<cluster>.yml up -d --dry-run
+```
+
+> **NEVER `docker compose build` / `up --build` on a pull host (mgmt02)** — it
+> recreates the local `arch/*` images and drifts from the tested GHCR artifacts.
+> Builds happen on the Stage 1/2 build host → publish → mgmt02 **pulls**. Also:
+> `In Use (U)` in `docker image ls` is per image-**ID**, not per tag — many tags
+> (`arch/*`, `ghcr :dev/:prod/:rc/:sha`) share one ID, so pruning redundant tags
+> frees ~0 disk.
+
 ---
 
 ## 6. Billing
@@ -468,6 +629,45 @@ docker exec coldfront coldfront migrate
 docker exec coldfront coldfront setup_schedules      # reconcile django-q cron dict
 docker restart coldfront                             # redeploy custom/ overlay + reload code
 ```
+
+### Email intake (arch-mta) — inbound mail → Helpdesk tickets
+
+Edge/prod only (off in dev). Flow: MX → JHU NPM `:25` stream → `172.16.1.2:25`
+(in-stack NPM) → `arch-mta:25` → `/maildrop/<queue>/new` → `get_email` cron → ticket.
+
+```bash
+./start.sh mta create                 # stage Maildirs + multi-SAN cert + mta.env
+./start.sh mta start                   # BUILD arch/mta locally, then start (edge profile)
+./start.sh mta start --from-ghcr prod  # PROD: PULL ghcr.io/jhu-arch/cloack/mta:prod (no build)
+./start.sh mta status                  # health + virtual_mailbox_domains
+./start.sh mta log                     # tail postfix
+docker exec helpdesk python manage.py get_email   # drain Maildir → tickets
+```
+
+> **`--from-ghcr` needs GHCR read auth.** The ghcr overlay maps `arch-mta` →
+> `ghcr.io/jhu-arch/cloack/mta:${tag}` with `build: !reset null` (pull-only). A
+> private package fails with `[mta] GHCR pull failed (auth?...)` — log in with a
+> **`read:packages`** token first:
+> `echo "$PAT" | docker login ghcr.io -u <user> --password-stdin`. The tag defaults
+> to the running `coldfront` tag, else `dev`. Confirm it pulled (not built):
+> `docker inspect arch-mta --format '{{.Config.Image}}'` → `…/cloack/mta:prod`.
+> Inside a `deploy --from-ghcr` (`CLOACK_FROM_GHCR=1`) arch-mta already comes up
+> no-build; the flag is only for a standalone `mta start`.
+
+**NPM streams (two hops, PROXY protocol OFF unless real sender IP is required):**
+
+| NPM | Incoming | Forward Host | Forward Port | PROXY |
+|-----|----------|--------------|--------------|-------|
+| JHU external (`status`, `162.129.223.99`) | `25` | `172.16.1.2` (mgmt02 green-zone) | `25` | off |
+| in-stack (compose) | `25` | `arch-mta` | `25` | off |
+
+> Only turn PROXY protocol on (both streams + `MTA_PROXY_PROTOCOL=1`, so
+> `smtpd_upstream_proxy_protocol = haproxy`) if arch-mta must log the **real**
+> sender IP instead of the NPM IP; chaining it across two NPM streams is fragile.
+> A stale global `QUEUE_EMAIL_BOX_*` in the host `helpdesk.env` overrides every
+> queue to `imap` and breaks intake — `ensure_host_paths` auto-scrubs it, or
+> `sed -i '/^QUEUE_EMAIL_BOX_/d' ${BASE_ETC}/helpdesk/helpdesk.env` then
+> `./start.sh helpdesk stop && start` (a bare `docker restart helpdesk` is NOT enough).
 
 ---
 

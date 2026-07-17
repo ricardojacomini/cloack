@@ -427,6 +427,61 @@ docker exec skipjack-slurmctld sinfo -h
 # skipjack*  up  infinite  1  idle  b202
 ```
 
+### 6c. Configless mode (opt-in)
+
+When `SlurmCluster.configless=True` (default off, activated by
+`SlurmctldParameters=enable_configless` in `slurm.conf`), the containerized
+controller (`skipjack-slurmctld`) is the **single source of config** and
+**serves** the `.conf` set over port **6817** — `slurm.conf` (`:ro`, the
+operator's static file is truth), `gres.conf`, `cgroup.conf`, and
+`plugstack.conf` (all per-cluster, co-located under
+`${BASE_DATA}/slurm/<cluster>/`). Bare-metal nodes fetch config on boot instead
+of carrying a local copy:
+
+```bash
+# compute node (slurmd fetches slurm.conf/gres/cgroup — no local /etc/slurm/slurm.conf)
+slurmd --conf-server <coldfront-host>:6817
+# login node (sackd, Slurm 23.11+: gives srun/sacct/sinfo config with no local file)
+sackd --conf-server <coldfront-host>:6817
+```
+
+**What configless serves vs. what stays local:** configless serves `.conf`
+files **only, never binaries**. So each node still needs, installed locally by
+the `slurm-client` role (or baked into the image):
+
+- the client `.lua` (`cli_filter.lua` / `rates.lua` / `qos_config.lua`),
+- the `prolog.d` / `epilog.d` scripts,
+- the SPANK `.so` objects in `/usr/lib64/slurm/`. `plugstack.conf` **is** served,
+  but it only *names* the `.so`; the file itself must exist on the node. Its
+  entries (`myspank.so`, `spank_reemit_cost.so`, `spank_pyxis.so`) are all
+  `optional` = **fail-soft** (log the failure, don't abort the job), so a served
+  `plugstack` won't break job launch even if a node is missing a `.so`.
+
+> **Port must be 6817, not `6817+(pk-1)`.** With `prefix_core_containers` the
+> controller is published on host port **6817** flat. An older pk-offset (e.g.
+> `6818` for pk=2) is unreachable by bare-metal `slurmd`/`sackd` fixed on 6817 →
+> nodes stuck `Down` / configless "connect failure".
+
+> **Per-cluster mount files must exist as FILES first.** `slurm.conf`,
+> `gres.conf`, `cgroup.conf`, and `plugstack.conf` must all exist under
+> `${BASE_DATA}/slurm/<cluster>/` (e.g. `/opt/mprov/cloack/var/slurm/skipjack/`)
+> **before** `docker compose up -d`. If a mount source is missing, Docker
+> silently creates a phantom empty **directory** at that path and slurmctld
+> fails reading it as a dir. Stage any missing one:
+> `cp slurm/conf/<file> ${BASE_DATA}/slurm/skipjack/<file>`.
+
+**Node bring-up after a controller recreate.** Nodes show `unk` (UNKNOWN)
+briefly while configless `slurmd` re-registers — a normal blip; wait ~1 min and
+re-check `sinfo -N`. If the controller log warns *"Node `<X>` appears to have a
+different slurm.conf than the slurmctld"* (CONF_HASH mismatch), that node has a
+stale cached/local `slurm.conf` — force it to re-fetch, don't paper over it with
+`DebugFlags=NO_CONF_HASH`:
+
+```bash
+ssh coldfront@b201 'sudo systemctl restart slurmd'        # re-fetch via --conf-server
+docker exec skipjack-slurmctld scontrol update NodeName=b201 State=RESUME
+```
+
 ---
 
 ## 7. Post-deploy validation
