@@ -36,6 +36,22 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 .md-content ul, .md-content ol { padding-left: 22px; }
 .md-content li { margin-bottom: 4px; }
 .md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+/* index landing */
+.index-page { text-align: center; padding: 34px 12px 44px; }
+.index-hero { max-width: 768px; margin: 0 auto; }
+.index-hero svg { width: 100%; height: auto; border-radius: 14px; display: block;
+                  box-shadow: 0 10px 40px rgba(0,0,0,0.45); }
+.index-tagline { color: #8fb8ff; font-size: 1.15rem; margin: 28px auto 0; letter-spacing: 0.5px; }
+.index-blurb { color: #8a9bb0; font-size: 1rem; max-width: 800px; margin: 14px auto 0;
+               text-align: center; line-height: 1.7; }
+.index-cards { margin: 34px auto 0; display: flex; gap: 14px; justify-content: center;
+               flex-wrap: wrap; max-width: 1080px; }
+.index-card { flex: 0 1 192px; background: #111c30; border: 1px solid #2d4a6f; border-radius: 10px;
+              padding: 18px 20px; text-decoration: none; font-size: 1rem; display: block;
+              transition: all 0.15s; }
+.index-card:hover { transform: translateY(-2px); border-color: #4a9eff; background: #152441;
+                    text-decoration: none; }
+.index-card small { color: #5a6d7f; display: block; margin-top: 4px; }
 </style>
   
 </head>
@@ -51,40 +67,11 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     
     <main class="page-content">
       
-    <div style="text-align:center; padding: 60px 20px 30px;">
-      <h1 style="color:#4a9eff; font-size:2.2rem; letter-spacing:2px;">CLOACK Stack</h1>
-      <p style="color:#5a6d7f; font-size:1.1rem; margin-top:8px;">
-        Containerized identity and resource management for HPC clusters
-      </p>
-      <p style="color:#8a9bb0; font-size:1rem; max-width:880px; margin:22px auto 0; text-align:justify; line-height:1.6;">
-        Architected and deployed a containerized, multi-tenant HPC platform (the CLOACK Stack)
-        integrating allocation management (ColdFront), federated identity (Keycloak), and
-        workload scheduling (Slurm) to serve both the university and external research partners
-        from a single secure deployment. The platform also includes an integrated helpdesk with
-        an AI-driven support engine &mdash; routing requests across local and cloud LLMs with
-        retrieval-augmented context &mdash; to accelerate researcher support and automate
-        routine operational workflows.
-      </p>
-      <div style="margin-top:30px; display:flex; gap:16px; justify-content:center; flex-wrap:wrap;">
-        <a href="readme.html" style="background:#1a2d4a; border:1px solid #2d4a6f; border-radius:8px; padding:18px 28px; color:#4a9eff; text-decoration:none; font-size:1rem; min-width:180px;">
-          <strong>README</strong><br><small style="color:#5a6d7f;">Setup &amp; Usage Guide</small>
-        </a>
-        <a href="cloack.html" style="background:#1a2d4a; border:1px solid #2d4a6f; border-radius:8px; padding:18px 28px; color:#00cec9; text-decoration:none; font-size:1rem; min-width:180px;">
-          <strong>CLOACK</strong><br><small style="color:#5a6d7f;">Stack Documentation</small>
-        </a>
-        <a href="architecture.html" style="background:#1a2d4a; border:1px solid #2d4a6f; border-radius:8px; padding:18px 28px; color:#f39c12; text-decoration:none; font-size:1rem; min-width:180px;">
-          <strong>Architecture</strong><br><small style="color:#5a6d7f;">Interactive Diagram</small>
-        </a>
-        <a href="cluster-models.html" style="background:#1a2d4a; border:1px solid #2d4a6f; border-radius:8px; padding:18px 28px; color:#27ae60; text-decoration:none; font-size:1rem; min-width:180px;">
-          <strong>Cluster Models</strong><br><small style="color:#5a6d7f;">Single vs Federation</small>
-        </a>
-        <a href="help.html" style="background:#1a2d4a; border:1px solid #2d4a6f; border-radius:8px; padding:18px 28px; color:#e056fd; text-decoration:none; font-size:1rem; min-width:180px;">
-          <strong>Help</strong><br><small style="color:#5a6d7f;">User &amp; PI Guide</small>
-        </a>
-      </div>
+    <div class="index-page">
+      <h1 class="sr-only">CLOACK Stack</h1>
 
       <!-- hero banner — inline SVG so it renders with zero external assets -->
-      <div style="margin:44px auto 10px; max-width:768px;">
+      <div class="index-hero">
         <svg viewBox="0 0 1200 630" role="img" aria-label="CLOACK Stack — Multi-Tenant HPC Platform"
              style="width:100%; height:auto; border-radius:14px; display:block; box-shadow:0 10px 40px rgba(0,0,0,0.45);">
           <defs>
@@ -128,6 +115,37 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
             <circle cx="1012" cy="478" r="9" fill="#5aa2ff"/>
           </g>
         </svg>
+      </div>
+
+      <p class="index-tagline">
+        Containerized identity and resource management for HPC clusters
+      </p>
+      <p class="index-blurb">
+        Architected and deployed a containerized, multi-tenant HPC platform (the CLOACK Stack)
+        integrating allocation management (ColdFront), federated identity (Keycloak), and
+        workload scheduling (Slurm) to serve both the university and external research partners
+        from a single secure deployment. The platform also includes an integrated helpdesk with
+        an AI-driven support engine &mdash; routing requests across local and cloud LLMs with
+        retrieval-augmented context &mdash; to accelerate researcher support and automate
+        routine operational workflows.
+      </p>
+
+      <div class="index-cards">
+        <a class="index-card" href="readme.html">
+          <strong style="color:#4a9eff;">README</strong><small>Setup &amp; Usage Guide</small>
+        </a>
+        <a class="index-card" href="cloack.html">
+          <strong style="color:#00cec9;">CLOACK</strong><small>Stack Documentation</small>
+        </a>
+        <a class="index-card" href="architecture.html">
+          <strong style="color:#f39c12;">Architecture</strong><small>Interactive Diagram</small>
+        </a>
+        <a class="index-card" href="cluster-models.html">
+          <strong style="color:#27ae60;">Cluster Models</strong><small>Single vs Federation</small>
+        </a>
+        <a class="index-card" href="help.html">
+          <strong style="color:#e056fd;">Help</strong><small>User &amp; PI Guide</small>
+        </a>
       </div>
     </div>
     
