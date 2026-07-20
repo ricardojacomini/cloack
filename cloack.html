@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Portal — CLOACK Stack</title>
+  <title>CLOACK Stack — Documentation</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
   <style>
 body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
@@ -43,7 +43,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
   <div class="site-shell">
     
     <aside class="site-sidebar">
-      <div class="sidebar-brand">Portal</div>
+      <div class="sidebar-brand">CLOACK Stack</div>
       <div class="sidebar-links">
         <a href="index.html">Home</a><a href="readme.html">README</a><a href="cloack.html" class="active">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="roles/index.html">User Guide (by role)</a>
       </div>
@@ -372,7 +372,10 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <p>Instead of creating per-allocation QOS (<code>wk_{id}</code>), the cap is enforced at the <strong>account association level</strong>:</p>
 <pre><code class="language-bash">sacctmgr modify account where name=pi001_f01_a set GrpTRESMins=billing=1800000
 </code></pre>
-<h3>Storage &amp; Backup</h3>
+<h3>Storage (Hot &amp; Cold) — WekaFS integration</h3>
+<p>Hot storage is provisioned WekaFS project space; cold storage is the backup
+service. Both are requested per project (Hot/Cold Storage checkboxes) and
+billed per TB-month.</p>
 <table>
 <thead>
 <tr>
