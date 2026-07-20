@@ -81,7 +81,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
             Go to <strong>Django Admin &rarr; Slurm Clusters</strong>. Create a cluster record with:
           </p>
           <ul>
-            <li><strong>Name</strong> &mdash; must match Slurm's cluster name (e.g. <code>arch</code>)</li>
+            <li><strong>Name</strong> &mdash; must match Slurm's cluster name (e.g. <code>my_cluster</code>)</li>
             <li><strong>Type</strong> &mdash; <code>docker</code> (dev) or <code>bare_metal</code> (prod)</li>
             <li><strong>Root account</strong> &mdash; top of Slurm hierarchy (e.g. <code>orga</code> or <code>orgb</code>)</li>
             <li><strong>TRES types</strong> &mdash; e.g. <code>cpu,billing</code> or <code>cpu,gres/gpu,billing</code></li>
@@ -124,7 +124,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
           <h6>Step 7 &mdash; Create ColdFront Resource</h6>
           <p>
             Go to <strong>Django Admin &rarr; Resources</strong>. Create a resource
-            (e.g. "ARCH Cluster") that PIs will select when requesting allocations.
+            (e.g. "CLOACK Cluster") that PIs will select when requesting allocations.
             This links ColdFront allocations to the Slurm cluster.
           </p>
 
@@ -351,7 +351,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
           <pre class="bg-light p-2">
 root (orga)
   &boxur;&boxh; it (school)        &larr; fairshare from School.shares
-        &boxur;&boxh; arch (department)    &larr; fairshare from Department.dept_shares
+        &boxur;&boxh; my_cluster (department)    &larr; fairshare from Department.dept_shares
               &boxur;&boxh; jsmith (PI allocation account)
                     &boxur;&boxh; user1, user2  &larr; associations</pre>
           <table class="table table-sm table-bordered">
@@ -655,7 +655,7 @@ root
 │   │       └── 👤 pi001   <span class="text-warning">[20000]</span>
 │   │           └── <span class="text-success">👤 pi001</span>
 │   └── 🏫 it   <span class="text-muted">(school)</span>
-│       └── 🏢 arch   <span class="text-muted">(department)</span>
+│       └── 🏢 my_cluster   <span class="text-muted">(department)</span>
 │           └── 👤 bblanch6   <span class="text-warning">[20000]</span>
 │               └── <span class="text-success">👤 bblanch6</span>
 └── 🏛️ orgb   <span class="text-info">[Fairshare=80]</span>  <span class="text-muted">(organization)</span>
@@ -691,7 +691,7 @@ root
             <tbody>
               <tr><td>OrgB PIs (<code>orgb-*</code>)</td><td>OrgB Sciences</td><td><code>SS</code></td></tr>
               <tr><td>OrgA PIs without dept</td><td>No Department</td><td><code>NODEP</code></td></tr>
-              <tr><td>OrgA admin/infra PIs</td><td>Advanced Research Computing</td><td><code>ARCH</code></td></tr>
+              <tr><td>OrgA admin/infra PIs</td><td>Advanced Research Computing</td><td><code>CLOACK</code></td></tr>
             </tbody>
           </table>
 
@@ -949,7 +949,7 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
                   </div>
                   <div id="c14" class="collapse " data-parent="#helpAccordion">
                     <div class="card-body"><p>These commands are available on all Slurm nodes (login + compute). Installed in the base image at <code>/usr/local/bin/</code>.</p>
-<p>All ARCH CLI tools support <code>-M &lt;cluster&gt;</code> for multi-cluster queries (e.g. <code>stree -M arch-dev</code>).</p>
+<p>All CLOACK CLI tools support <code>-M &lt;cluster&gt;</code> for multi-cluster queries (e.g. <code>stree -M my_cluster-dev</code>).</p>
 
           <h6><code>stree</code> — Account Hierarchy</h6>
           <table class="table table-sm table-bordered">
@@ -959,7 +959,7 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
               <tr><td><code>stree --full</code></td><td>Your tree with user associations listed</td></tr>
               <tr><td><code>stree -r root</code></td><td><span class="badge badge-warning">Admin</span> Full hierarchy from root</td></tr>
               <tr><td><code>stree -r orga</code></td><td><span class="badge badge-warning">Admin</span> Subtree from a specific account</td></tr>
-              <tr><td><code>stree -M arch-dev</code></td><td>Scope to a specific cluster</td></tr>
+              <tr><td><code>stree -M my_cluster-dev</code></td><td>Scope to a specific cluster</td></tr>
             </tbody>
           </table>
           <div class="alert alert-secondary py-1 px-2 mb-3" style="font-size:0.85rem;">
@@ -977,7 +977,7 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
               <tr><td><code>sbalance -u &lt;user&gt;</code></td><td>Show accounts for a specific user</td></tr>
               <tr><td><code>sbalance --usage</code></td><td>Include usage percentage column</td></tr>
               <tr><td><code>sbalance --hide-zero</code></td><td>Hide accounts with zero usage</td></tr>
-              <tr><td><code>sbalance -M arch-dev</code></td><td>Scope to a specific cluster</td></tr>
+              <tr><td><code>sbalance -M my_cluster-dev</code></td><td>Scope to a specific cluster</td></tr>
             </tbody>
           </table>
 
@@ -988,7 +988,7 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
               <tr><td><code>sqos all</code></td><td>Show all QOS definitions (priority, limits, flags)</td></tr>
               <tr><td><code>sqos account=&lt;acct&gt;</code></td><td>Show QOS assigned to an account</td></tr>
               <tr><td><code>sqos &lt;user&gt;</code></td><td>Show QOS for a user (all accounts)</td></tr>
-              <tr><td><code>sqos -M arch-dev</code></td><td>Scope to a specific cluster</td></tr>
+              <tr><td><code>sqos -M my_cluster-dev</code></td><td>Scope to a specific cluster</td></tr>
             </tbody>
           </table>
 
@@ -1001,7 +1001,7 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
               <tr><td><code>sassoc account=&lt;acct&gt;</code></td><td>Show all users in an account</td></tr>
               <tr><td><code>sassoc --tree account=&lt;acct&gt;</code></td><td>Tree view with fairshare</td></tr>
               <tr><td><code>sassoc --clusters</code></td><td>List all registered Slurm clusters</td></tr>
-              <tr><td><code>sassoc -M arch-dev</code></td><td>Filter by cluster</td></tr>
+              <tr><td><code>sassoc -M my_cluster-dev</code></td><td>Filter by cluster</td></tr>
             </tbody>
           </table>
 
@@ -1257,12 +1257,12 @@ Slurm secret.</p>
     <tr><td>Dev / Docker Compose</td><td>Docker</td><td><code>dev</code></td><td><code>http://slurmrestd:6820</code></td></tr>
     <tr><td>Production &mdash; OrgA</td><td>Bare Metal</td><td><code>orga</code></td><td><code>http://slurmrestd.hpc.example.edu:6820</code></td></tr>
     <tr><td>Production &mdash; OrgB</td><td>Bare Metal</td><td><code>orgb</code></td><td><code>http://slurmrestd.orgb.example.edu:6820</code></td></tr>
-    <tr><td>Production &mdash; ARCH (combined)</td><td>Bare Metal</td><td><code>arch</code></td><td><code>http://slurmrestd.hpc.example.edu:6820</code></td></tr>
+    <tr><td>Production &mdash; CLOACK (combined)</td><td>Bare Metal</td><td><code>my_cluster</code></td><td><code>http://slurmrestd.hpc.example.edu:6820</code></td></tr>
   </tbody>
 </table>
 <p><strong>Root Account</strong> determines the deployment model:</p>
 <ul>
-  <li><code>root</code> or <code>arch</code> &rarr; <strong>Model A/C</strong> &mdash; both OrgA and OrgB affiliations under one cluster</li>
+  <li><code>root</code> or <code>my_cluster</code> &rarr; <strong>Model A/C</strong> &mdash; both OrgA and OrgB affiliations under one cluster</li>
   <li><code>orga</code> &rarr; <strong>Model B</strong> &mdash; OrgA-only cluster (OrgB allocations excluded)</li>
   <li><code>orgb</code> &rarr; <strong>Model B</strong> &mdash; OrgB-only cluster (OrgA allocations excluded)</li>
 </ul>
@@ -1280,7 +1280,7 @@ Slurm secret.</p>
 <div class="alert alert-warning mt-2">
   <strong>Common errors on first setup:</strong>
   <ul class="mb-0">
-    <li><code>pull access denied for arch/slurmctld</code> &mdash; Images have not been built yet. Click <strong>Build Images</strong> first.</li>
+    <li><code>pull access denied for cloack/slurmctld</code> &mdash; Images have not been built yet. Click <strong>Build Images</strong> first.</li>
     <li><code>No such container: slurmctld</code> &mdash; The cluster has not been deployed. Click <strong>Deploy</strong> after building images.</li>
     <li><code>No docker-compose-slurm-*.yml found</code> &mdash; Deploy generates this file. Use the UI Dashboard to deploy, or run <code>./start.sh slurm start</code>.</li>
   </ul>
@@ -1440,12 +1440,12 @@ Slurm secret.</p>
           <table class="table table-sm table-bordered">
             <thead><tr><th>Service</th><th>Image</th><th>Purpose</th></tr></thead>
             <tbody>
-              <tr><td><code>coldfront</code></td><td>arch/coldfront</td><td>Django portal &mdash; resource allocation, billing, project management</td></tr>
-              <tr><td><code>qcluster</code></td><td>arch/coldfront</td><td>Django-Q async task worker (same image, different entrypoint)</td></tr>
-              <tr><td><code>openldap</code></td><td>arch/openldap</td><td>LDAP directory &mdash; user accounts, groups, PI mappings</td></tr>
-              <tr><td><code>keycloak</code></td><td>arch/keycloak</td><td>OIDC identity provider &mdash; OrgA (Entra ID) + OrgB realms</td></tr>
-              <tr><td><code>postgres</code></td><td>arch/postgres</td><td>PostgreSQL &mdash; ColdFront DB, Keycloak DB, slurm_jobs DB</td></tr>
-              <tr><td><code>phpldapadmin</code></td><td>arch/phpldapadmin</td><td>LDAP web UI (port 8081)</td></tr>
+              <tr><td><code>coldfront</code></td><td>cloack/coldfront</td><td>Django portal &mdash; resource allocation, billing, project management</td></tr>
+              <tr><td><code>qcluster</code></td><td>cloack/coldfront</td><td>Django-Q async task worker (same image, different entrypoint)</td></tr>
+              <tr><td><code>openldap</code></td><td>cloack/openldap</td><td>LDAP directory &mdash; user accounts, groups, PI mappings</td></tr>
+              <tr><td><code>keycloak</code></td><td>cloack/keycloak</td><td>OIDC identity provider &mdash; OrgA (Entra ID) + OrgB realms</td></tr>
+              <tr><td><code>postgres</code></td><td>cloack/postgres</td><td>PostgreSQL &mdash; ColdFront DB, Keycloak DB, slurm_jobs DB</td></tr>
+              <tr><td><code>phpldapadmin</code></td><td>cloack/phpldapadmin</td><td>LDAP web UI (port 8081)</td></tr>
             </tbody>
           </table>
 
@@ -1453,38 +1453,38 @@ Slurm secret.</p>
           <table class="table table-sm table-bordered">
             <thead><tr><th>Service</th><th>Image</th><th>Purpose</th></tr></thead>
             <tbody>
-              <tr><td><code>munge-init</code></td><td>arch/slurm-munge</td><td>One-shot: generates munge key</td></tr>
-              <tr><td><code>slurm-db</code></td><td>arch/mariadb</td><td>MariaDB for Slurm accounting</td></tr>
-              <tr><td><code>slurmdbd</code></td><td>arch/slurmdbd</td><td>Slurm database daemon</td></tr>
-              <tr><td><code>slurmctld</code></td><td>arch/slurmctld</td><td>Slurm controller</td></tr>
-              <tr><td><code>slurmrestd</code></td><td>arch/slurmrestd</td><td>Slurm REST API (port 6820)</td></tr>
-              <tr><td><code>login01</code></td><td>arch/slurmd</td><td>Login node (SSH port 2201)</td></tr>
-              <tr><td><code>cn-01..03</code></td><td>arch/slurmd</td><td>Compute nodes</td></tr>
+              <tr><td><code>munge-init</code></td><td>cloack/slurm-munge</td><td>One-shot: generates munge key</td></tr>
+              <tr><td><code>slurm-db</code></td><td>cloack/mariadb</td><td>MariaDB for Slurm accounting</td></tr>
+              <tr><td><code>slurmdbd</code></td><td>cloack/slurmdbd</td><td>Slurm database daemon</td></tr>
+              <tr><td><code>slurmctld</code></td><td>cloack/slurmctld</td><td>Slurm controller</td></tr>
+              <tr><td><code>slurmrestd</code></td><td>cloack/slurmrestd</td><td>Slurm REST API (port 6820)</td></tr>
+              <tr><td><code>login01</code></td><td>cloack/slurmd</td><td>Login node (SSH port 2201)</td></tr>
+              <tr><td><code>cn-01..03</code></td><td>cloack/slurmd</td><td>Compute nodes</td></tr>
             </tbody>
           </table>
 
           <h6>Image Build Order</h6>
-          <p>All Slurm images inherit from <code>arch/cn-rockylinux</code> (Rocky 9 + Slurm 25.11). Build order:</p>
+          <p>All Slurm images inherit from <code>cloack/cn-rockylinux</code> (Rocky 9 + Slurm 25.11). Build order:</p>
           <ol>
-            <li><code>arch/cn-rockylinux</code> &mdash; base (Slurm + Munge + SSSD + SPANK plugins)</li>
-            <li><code>arch/slurm-munge</code> &mdash; munge key init</li>
-            <li><code>arch/slurmdbd</code> &mdash; accounting daemon</li>
-            <li><code>arch/slurmctld</code> &mdash; controller</li>
-            <li><code>arch/slurmd</code> &mdash; worker/login node</li>
-            <li><code>arch/slurmrestd</code> &mdash; REST API</li>
+            <li><code>cloack/cn-rockylinux</code> &mdash; base (Slurm + Munge + SSSD + SPANK plugins)</li>
+            <li><code>cloack/slurm-munge</code> &mdash; munge key init</li>
+            <li><code>cloack/slurmdbd</code> &mdash; accounting daemon</li>
+            <li><code>cloack/slurmctld</code> &mdash; controller</li>
+            <li><code>cloack/slurmd</code> &mdash; worker/login node</li>
+            <li><code>cloack/slurmrestd</code> &mdash; REST API</li>
           </ol>
 
           <h6>Startup Dependencies</h6>
           <p><code>munge-init</code> &rarr; <code>slurmdbd</code> (needs munge + MariaDB) &rarr; <code>slurmctld</code> &rarr; <code>slurmd</code> nodes &rarr; <code>slurmrestd</code> (needs JWT key)</p>
 
           <h6>Compose Project Isolation</h6>
-          <p>Core services run under project <code>arch</code> (from <code>docker-compose.yml</code>). Slurm runs under project <code>arch-slurm</code> (from <code>docker-compose-slurm-*.yml</code>). This means <code>start.sh stop</code> only stops core services, and <code>start.sh slurm stop</code> only stops Slurm &mdash; they don't interfere with each other.</p>
+          <p>Core services run under project <code>my_cluster</code> (from <code>docker-compose.yml</code>). Slurm runs under project <code>my_cluster-slurm</code> (from <code>docker-compose-slurm-*.yml</code>). This means <code>start.sh stop</code> only stops core services, and <code>start.sh slurm stop</code> only stops Slurm &mdash; they don't interfere with each other.</p>
 
           <h6>Dev vs Prod</h6>
           <table class="table table-sm table-bordered">
             <thead><tr><th>Aspect</th><th>Dev</th><th>Prod</th></tr></thead>
             <tbody>
-              <tr><td>Slurm</td><td>Docker-managed cluster (<code>docker-compose-slurm-arch-dev.yml</code>)</td><td>Bare metal with host path mounts</td></tr>
+              <tr><td>Slurm</td><td>Docker-managed cluster (<code>docker-compose-slurm-my_cluster-dev.yml</code>)</td><td>Bare metal with host path mounts</td></tr>
               <tr><td>Overlay</td><td>Auto-generated by <code>start.sh slurm dev create</code></td><td>Deployed from ColdFront UI</td></tr>
               <tr><td>Email</td><td>File backend (<code>coldfront/report/emails/</code>)</td><td>SMTP via mgmt01</td></tr>
               <tr><td>SLURM_NOOP</td><td>Allowed (<code>=1</code> for testing)</td><td><code>=0</code> (real Slurm commands)</td></tr>
@@ -1498,7 +1498,7 @@ Slurm secret.</p>
 ./start.sh slurm dev start    # Start Slurm cluster
 ./start.sh slurm dev status   # Node status + job queue
 ./start.sh test dev           # Run Django unit tests
-./start.sh clean-all dev      # Full cleanup (arch volumes only, safe for co-hosted services)</code></pre>
+./start.sh clean-all dev      # Full cleanup (my_cluster volumes only, safe for co-hosted services)</code></pre>
 
           <div class="alert alert-info">
             <strong>Tip:</strong> After <code>clean-all</code>, all data is lost (databases, LDAP, Slurm state). Use <code>init dev &amp;&amp; start dev &amp;&amp; slurm dev start</code> to rebuild from scratch. The seed auto-creates ToS v1.0, default partitions, QOS, and billing rates.</div></div>
@@ -1599,13 +1599,13 @@ Slurm secret.</p>
 
 <h6>Model A &mdash; Single Cluster (both affiliations)</h6>
 <p>
-  <code>root_account = "root"</code> or <code>"arch"</code> (any value other than
+  <code>root_account = "root"</code> or <code>"my_cluster"</code> (any value other than
   <code>"orga"</code> or <code>"orgb"</code>).<br>
   Both OrgA and OrgB PI accounts are created under the same cluster root.
   The sync creates <code>orga</code> and <code>orgb</code> as sub-accounts
   under the cluster root.
 </p>
-<pre>cluster_root (root/arch)
+<pre>cluster_root (root/my_cluster)
 ├── orga → school → dept → PI → project
 └── orgb → orgb-* PIs</pre>
 
@@ -1623,19 +1623,19 @@ Slurm secret.</p>
 <h6>Model C &mdash; Hardware Split (both affiliations, multiple clusters)</h6>
 <p>
   Same as Model A but with separate clusters per hardware type (CPU, GPU).
-  Each cluster has <code>root_account = "arch"</code> (or similar) and serves
+  Each cluster has <code>root_account = "my_cluster"</code> (or similar) and serves
   both affiliations.
 </p>
 <pre>slurmdbd (shared)
-├── arch-cpu (root_account=arch) → both OrgA + OrgB
-└── arch-gpu (root_account=arch) → both OrgA + OrgB</pre>
+├── my_cluster-cpu (root_account=my_cluster) → both OrgA + OrgB
+└── my_cluster-gpu (root_account=my_cluster) → both OrgA + OrgB</pre>
 
 <h6>Admin Presets</h6>
 <table class="table table-sm table-bordered">
   <thead><tr><th>Preset</th><th>root_account</th><th>Model</th></tr></thead>
   <tbody>
     <tr><td>Dev / Docker Compose</td><td><code>root</code></td><td>A</td></tr>
-    <tr><td>Production — ARCH</td><td><code>arch</code></td><td>A/C</td></tr>
+    <tr><td>Production — CLOACK</td><td><code>my_cluster</code></td><td>A/C</td></tr>
     <tr><td>Production — OrgA</td><td><code>orga</code></td><td>B</td></tr>
     <tr><td>Production — OrgB</td><td><code>orgb</code></td><td>B</td></tr>
   </tbody>
@@ -1707,7 +1707,7 @@ Slurm secret.</p>
 
 <h6>Import Terms of Service</h6>
 <p>Go to <strong>Admin Tools &gt; Import ToS</strong>. Upload a semicolon-delimited CSV with sections:</p>
-<pre>"ARCH Cluster Usage Policy";"Section 1 content...";"Section 2 content..."</pre></div>
+<pre>"CLOACK Cluster Usage Policy";"Section 1 content...";"Section 2 content..."</pre></div>
                   </div>
                 </div>
                 
@@ -1818,13 +1818,13 @@ configured"</em>, the token file is likely empty or stale.</p>
       content, it's the <em>virtiofs cache</em> pitfall &mdash; restart
       coldfront: <code>docker restart coldfront</code>.</li>
   <li>Regenerate manually:
-      <pre>docker exec arch-dev-slurmctld scontrol token lifespan=2592000 \
+      <pre>docker exec my_cluster-dev-slurmctld scontrol token lifespan=2592000 \
   | grep SLURM_JWT | cut -d= -f2 &gt; base/slurm/slurm_jwt.token
 docker restart coldfront</pre></li>
   <li>Smoke-test from inside coldfront:
       <pre>docker exec coldfront python -c "
-from coldfront.plugins.arch_sync.models import SlurmCluster
-from coldfront.plugins.arch_sync.slurm_client import SlurmClient
+from coldfront.plugins.cloack_sync.models import SlurmCluster
+from coldfront.plugins.cloack_sync.slurm_client import SlurmClient
 c = SlurmCluster.objects.first()
 SlurmClient.from_cluster(c).ping()
 print('REST ping OK')
@@ -1907,7 +1907,7 @@ docker exec dev-&lt;name&gt; tail -5 /var/log/slurm/slurmd.log</pre>
     <tr>
       <td>TCP fails (<code>Connection refused</code>) or DNS fails.</td>
       <td>Check the Docker network
-          (<code>docker network inspect arch_default</code>) and recreate
+          (<code>docker network inspect cloack_default</code>) and recreate
           the node container.</td>
     </tr>
     <tr>
@@ -2019,7 +2019,7 @@ GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/?week_start=2026-05-04
                     </h5>
                   </div>
                   <div id="c27" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>ARCH clusters expose Slurm <strong>partitions</strong> by purpose and <strong>QoS</strong> by use case.
+                    <div class="card-body"><p>CLOACK clusters expose Slurm <strong>partitions</strong> by purpose and <strong>QoS</strong> by use case.
 Pick the partition that matches your workload, and the QoS that matches the priority you need.</p>
 
 <h6>Partition naming convention</h6>
@@ -2097,7 +2097,7 @@ Run the populate command after creating a new cluster, or use the admin to add p
                     <div class="card-body"><p>End-to-end billing pipeline. Each link in the chain is editable from Django Admin.</p>
 
 <h6>1. <code>BillingRate</code> — rate catalog</h6>
-<p><a href="/admin/arch_sync/billingrate/">/admin/arch_sync/billingrate/</a></p>
+<p><a href="/admin/cloack_sync/billingrate/">/admin/cloack_sync/billingrate/</a></p>
 <ul>
   <li><strong>cluster / partition_name</strong> — scope (blank = all clusters / all partitions)</li>
   <li><strong>rate_type</strong> — <code>cpu_full</code>, <code>cpu_om</code>, <code>gpu_full</code>, <code>gpu_om</code>, <code>storage</code>, <code>backup</code></li>
@@ -2107,7 +2107,7 @@ Run the populate command after creating a new cluster, or use the admin to add p
 <p>Two-track pricing: <code>*_full</code> for pay-per-use PIs (compute + O&amp;M bundled). <code>*_om</code> for hardware-credit holders (lower — O&amp;M only).</p>
 
 <h6>2. <code>AllocationBilling</code> — per-allocation config (one per Allocation)</h6>
-<p><a href="/admin/arch_sync/allocationbilling/">/admin/arch_sync/allocationbilling/</a> — auto-created by signal <code>_ensure_allocation_billing</code> on allocation save.</p>
+<p><a href="/admin/cloack_sync/allocationbilling/">/admin/cloack_sync/allocationbilling/</a> — auto-created by signal <code>_ensure_allocation_billing</code> on allocation save.</p>
 <ul>
   <li><strong>io_number</strong> — OrgA service-center cost code. No IO &rarr; <code>is_billable=False</code> automatically.</li>
   <li><strong>department</strong> — drives the Slurm account hierarchy (root &rarr; school &rarr; dept &rarr; PI &rarr; project)</li>
@@ -2119,7 +2119,7 @@ Run the populate command after creating a new cluster, or use the admin to add p
 <p>Auto-flags <code>is_billable=False</code> + <code>billing_type=no_charge</code> for: default allocations, OrgB PIs (<code>orgb-*</code>), allocations without IO Number.</p>
 
 <h6>3. <code>HardwareCreditPool</code> — prepaid credits from hardware purchase</h6>
-<p><a href="/admin/arch_sync/hardwarecreditpool/">/admin/arch_sync/hardwarecreditpool/</a></p>
+<p><a href="/admin/cloack_sync/hardwarecreditpool/">/admin/cloack_sync/hardwarecreditpool/</a></p>
 <ul>
   <li><strong>allocation</strong> — FK to the Allocation receiving the credits</li>
   <li><strong>hardware_value</strong> — dollar value of the hardware</li>
@@ -2130,7 +2130,7 @@ Run the populate command after creating a new cluster, or use the admin to add p
 <p>Credits cover <strong>compute only</strong>. O&amp;M is always billed in cash via <code>*_om</code> rates.</p>
 
 <h6>4. <code>SlurmPartition.tres_billing_weights</code> — per-partition multiplier</h6>
-<p><a href="/admin/arch_sync/slurmpartition/">/admin/arch_sync/slurmpartition/</a></p>
+<p><a href="/admin/cloack_sync/slurmpartition/">/admin/cloack_sync/slurmpartition/</a></p>
 <p>Injected as <code>TRESBillingWeights=</code> in <code>slurm.conf</code>. Example: <code>CPU=1.0,Mem=0.25G,GRES/gpu=2.0</code> &rarr; 1 GPU-hour = 2 billing units. Combined with <code>BillingRate</code> at sreport time.</p>
 
 <h6>5. <code>SlurmAccountUsagePeriod</code> — monthly usage aggregate</h6>
@@ -2230,7 +2230,7 @@ controls how it can be used on an Allocation Request:</p>
 </ul>
 
 <p>Manage your Cost Centers / IO Numbers from the Project Detail page (PI-only),
-or via Django Admin &rarr; <a href="/admin/arch_sync/costcenter/">/admin/arch_sync/costcenter/</a>.</p></div>
+or via Django Admin &rarr; <a href="/admin/cloack_sync/costcenter/">/admin/cloack_sync/costcenter/</a>.</p></div>
                   </div>
                 </div>
                 

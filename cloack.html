@@ -113,7 +113,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </tr>
 <tr>
 <td>coldfront/custom/README.md</td>
-<td>Custom configurations (ARCH OrgA PartnerInst OrgB)</td>
+<td>Custom configurations (CLOACK OrgA PartnerInst OrgB)</td>
 </tr>
 <tr>
 <td>coldfront/BILLING_SETUP_GUIDE.md</td>
@@ -837,14 +837,14 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Sidebar links route to correct realm; <code>home_or_sso</code> view + realm-skip guard in OIDC backends. Edge/subdomain mode: helpdesk auto-SSO entry (<code>home_or_sso</code>/<code>LOGIN_URL</code> → host-aware <code>realm_dispatch_login</code>) and the portal ARCH Helpdesk card are per-affiliation (<code>helpdesk.&lt;base&gt;</code> → matching realm), not OrgA-hardcoded</td>
+<td>Sidebar links route to correct realm; <code>home_or_sso</code> view + realm-skip guard in OIDC backends. Edge/subdomain mode: helpdesk auto-SSO entry (<code>home_or_sso</code>/<code>LOGIN_URL</code> → host-aware <code>realm_dispatch_login</code>) and the portal Helpdesk card are per-affiliation (<code>helpdesk.&lt;base&gt;</code> → matching realm), not OrgA-hardcoded</td>
 </tr>
 <tr>
 <td>Portal landing page</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>/</code> redirects anonymous users to <code>/portal/</code> (OrgA + OrgB + ARCH Helpdesk cards); legacy <code>/user/login/</code> picker kept for tests; logout lands on <code>/</code></td>
+<td><code>/</code> redirects anonymous users to <code>/portal/</code> (OrgA + OrgB + Helpdesk cards); legacy <code>/user/login/</code> picker kept for tests; logout lands on <code>/</code></td>
 </tr>
 <tr>
 <td>OIDC username normalization (portal+helpdesk)</td>
@@ -935,7 +935,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>TicketCategory.show_on_submit</code> renders opt-in "Feature feedback?" dropdown on the public submit form; <code>TicketCategory.default_assignee</code> auto-routes the ticket to the product owner. <code>TicketCategory.default_queue</code> (FK) moves the ticket to a dedicated <strong>Feedback &amp; Suggestions</strong> queue (slug <code>feedback</code>, owner=<code>ARCH_SUPERUSERS[0]</code>) regardless of the queue the submitter picked. Seeded by migration 0029; ColdFront + Helpdesk feedback categories both routed to the feedback queue.</td>
+<td><code>TicketCategory.show_on_submit</code> renders opt-in "Feature feedback?" dropdown on the public submit form; <code>TicketCategory.default_assignee</code> auto-routes the ticket to the product owner. <code>TicketCategory.default_queue</code> (FK) moves the ticket to a dedicated <strong>Feedback &amp; Suggestions</strong> queue (slug <code>feedback</code>, owner=<code>CLOACK_SUPERUSERS[0]</code>) regardless of the queue the submitter picked. Seeded by migration 0029; ColdFront + Helpdesk feedback categories both routed to the feedback queue.</td>
 </tr>
 <tr>
 <td>Django admin save-at-top</td>
@@ -1142,7 +1142,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td>Full containerized Slurm: slurmctld, slurmd, slurmdbd, slurmrestd</td>
 </tr>
 <tr>
-<td>Unit tests (arch_sync)</td>
+<td>Unit tests (cloack_sync)</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
@@ -1160,7 +1160,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>NVIDIA Pyxis SPANK in base image (<code>spank_pyxis.so</code> v0.20.0); NVIDIA enroot runtime on compute + login nodes (<code>arch/slurmd</code> v3.5.0). Enables <code>sbatch --container-image=...</code>. GPU support (<code>libnvidia-container-tools</code>) installed via Ansible on bare-metal GPU nodes only.</td>
+<td>NVIDIA Pyxis SPANK in base image (<code>spank_pyxis.so</code> v0.20.0); NVIDIA enroot runtime on compute + login nodes (<code>cloack/slurmd</code> v3.5.0). Enables <code>sbatch --container-image=...</code>. GPU support (<code>libnvidia-container-tools</code>) installed via Ansible on bare-metal GPU nodes only.</td>
 </tr>
 <tr>
 <td>cli_filter.lua (cost estimation)</td>

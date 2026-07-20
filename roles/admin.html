@@ -141,7 +141,7 @@ and PAM stack.</p>
 <td>macOS arm64</td>
 <td><code>./start.sh deploy dev -y --paid-accounts</code></td>
 <td>Full local dev stack with test data</td>
-<td><code>arch/&lt;svc&gt;</code> built locally</td>
+<td><code>cloack/&lt;svc&gt;</code> built locally</td>
 </tr>
 <tr>
 <td><strong>1</strong>→<strong>2</strong></td>
@@ -161,8 +161,8 @@ and PAM stack.</p>
 <td><strong>2</strong></td>
 <td>Proxmox</td>
 <td><code>./start.sh start dev</code></td>
-<td>Local build matching prod arch</td>
-<td><code>arch/&lt;svc&gt;</code> built locally on amd64</td>
+<td>Local build matching prod my_cluster</td>
+<td><code>cloack/&lt;svc&gt;</code> built locally on amd64</td>
 </tr>
 <tr>
 <td><strong>2</strong></td>
@@ -303,7 +303,7 @@ maximum lifetime).</p>
 </tbody>
 </table>
 <p>Note that <code>cn-rockylinux</code> is consumed at <strong>build time</strong> by the other
-Slurm images (each does a <code>FROM arch/cn-rockylinux</code>). Once a Slurm
+Slurm images (each does a <code>FROM cloack/cn-rockylinux</code>). Once a Slurm
 service image is pushed, the cn-rockylinux layers travel inside it —
 runtime hosts (Stage 3 + 4) never pull cn-rockylinux as a standalone
 image.</p>
@@ -376,7 +376,7 @@ in Mode A.</p>
 <tr>
 <td><code>publish [--tag &lt;tag&gt;] [--check]</code></td>
 <td>2</td>
-<td>Retag local <code>arch/&lt;svc&gt;</code> as <code>ghcr.io/...:&lt;tag&gt;</code> + <code>:sha-&lt;short&gt;</code> and push. Refuses dirty working tree.</td>
+<td>Retag local <code>cloack/&lt;svc&gt;</code> as <code>ghcr.io/...:&lt;tag&gt;</code> + <code>:sha-&lt;short&gt;</code> and push. Refuses dirty working tree.</td>
 </tr>
 <tr>
 <td><code>promote [--from &lt;tag&gt;] [--rc &lt;label&gt;] [--check] [--rollback &lt;rc-tag&gt;] [--skip-verify]</code></td>
@@ -455,7 +455,7 @@ to keep current behaviour.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>ARCH_PUBLIC_HOST</code></td>
+<td><code>CLOACK_PUBLIC_HOST</code></td>
 <td>The portal FQDN (<code>portal.hpc.example.edu</code>). Used everywhere.</td>
 </tr>
 <tr>
@@ -549,7 +549,7 @@ to keep current behaviour.</p>
 <td>Track <code>$DEPLOY_PID</code> directly with <code>wait $DEPLOY_PID</code>; see memory <code>feedback_pgrep_self_match_deadlock</code></td>
 </tr>
 <tr>
-<td>Slurm overlay still emits <code>arch/&lt;svc&gt;</code> after <code>--from-ghcr</code></td>
+<td>Slurm overlay still emits <code>cloack/&lt;svc&gt;</code> after <code>--from-ghcr</code></td>
 <td><code>CLOACK_FROM_GHCR</code> was not exported when <code>write_compose_overlay</code> ran</td>
 <td>Re-run <code>./start.sh slurm create &lt;name&gt;</code> after exporting the var</td>
 </tr>

@@ -70,7 +70,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </tr>
 <tr>
 <td><strong>O</strong>penLDAP</td>
-<td>Single OpenLDAP instance with three naming contexts (<code>dc=arch</code>, <code>ou=orga</code>, <code>ou=orgb</code>)</td>
+<td>Single OpenLDAP instance with three naming contexts (<code>dc=my_cluster</code>, <code>ou=orga</code>, <code>ou=orgb</code>)</td>
 </tr>
 <tr>
 <td><strong>A</strong>uth (OIDC/SSSD)</td>
@@ -87,7 +87,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </tbody>
 </table>
 <blockquote>
-<p>Deployed on the ARCH cluster, supporting both OrgA and OrgB Sciences (ORGB) research groups.</p>
+<p>Deployed on the CLOACK cluster, supporting both OrgA and OrgB Sciences (ORGB) research groups.</p>
 <p><strong><a href="https://example-org.github.io/cloack-stack/architecture.html">Interactive Architecture Diagram</a></strong> — click any component for details.</p>
 </blockquote>
 <hr />
@@ -95,9 +95,9 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <p>We are using Coldfront as Orchestrator. It making LDAP and Slurm synchronization, as well user's home directory and softlink point to PI scratch folder where they are members.</p>
 <p>Use three separate LDAP naming contexts (suffixes) and disjoint uid/gid ranges; create cross-domain admin/group entries (DN-based) that include members from any suffix; configure Open Source Identity and Access Management "Keycloak" realms so each realm points to the correct subtree(s) or adds multiple LDAP providers.</p>
 <p>Three suffixes on one OpenLDAP instance:
-- Domain A (arch.cluster): ARCH Admins suffix <code>dc=arch,dc=cluster</code> — UID/GID range starting 1000
-- Domain B (orga.arch.cluster): suffix <code>ou=orga,dc=arch,dc=cluster</code> — UID/GID range starting 10000
-- Domain C (orgb.arch.cluster): suffix <code>ou=orgb,dc=arch,dc=cluster</code> — UID/GID range starting 30000</p>
+- Domain A (my_cluster.cluster): CLOACK Admins suffix <code>dc=my_cluster,dc=cluster</code> — UID/GID range starting 1000
+- Domain B (orga.my_cluster.cluster): suffix <code>ou=orga,dc=my_cluster,dc=cluster</code> — UID/GID range starting 10000
+- Domain C (orgb.my_cluster.cluster): suffix <code>ou=orgb,dc=my_cluster,dc=cluster</code> — UID/GID range starting 30000</p>
 <p>Keep UID/GID ranges non-overlapping.</p>
 <p><strong>ColdFront as Directory Ground Truth:</strong> UID and GID allocation is centralized in the ColdFront database via <code>Affiliation.next_uid</code> / <code>next_gid</code> counters (atomic, race-condition free). <code>UserProfile</code> stores <code>ldap_uid</code>, <code>ldap_gid</code>, and <code>ldap_groups</code> (readonly, cached from LDAP sync). The Django Admin "Change User" and "UserProfile" pages show a "Directory (LDAP)" fieldset with this information. On ColdFront startup, <code>sync_ldap</code> automatically pushes users/groups to LDAP. The Import Users page supports two modes: <strong>New Users</strong> (CSV, allocate new UIDs) and <strong>Migration</strong> (LDIF slapcat dump, preserve existing UIDs/GIDs/passwords). New Users mode also has an optional <strong>Course code</strong> field for disposable class accounts — set e.g. <code>en540</code> and each CSV <code>uid</code> becomes <code>en540-&lt;uid&gt;</code> with a per-course synthetic email (so a student who already has an account gets a separate, UID-distinct identity); the whole cohort is removed at term end via the "Delete Course Accounts" card or <code>coldfront delete_course_users --course en540 --yes</code> (drops Slurm associations, the user's home dir, LDAP entry, and ColdFront user — shared per-PI scratch is never touched). To tear down <strong>specific</strong> accounts by name (not a course prefix), use the generic sibling <code>coldfront delete_users -u &lt;user1&gt; &lt;user2&gt; --dry-run</code> then <code>--yes</code> — same four-step teardown, but it refuses system accounts and blocks deleting a PI (which would cascade-delete their projects/allocations) unless <code>--force-pi</code> is passed. The page also has an <strong>Export Users</strong> card that streams the directory as CSV (<code>full_name,email,uid,is_pi,members,member_of</code>, filterable by scope and affiliation) — <code>members</code> lists a PI's LDAP group members and <code>member_of</code> lists the PI(s) a user belongs to.</p>
 <p><strong>Minimal LDAP Bootstrap:</strong> <code>install.sh</code> creates only the bare minimum (root DN, cn=root, munge/slurm system accounts). OUs (<code>ou=orga</code>, <code>ou=orgb</code>, etc.) and user accounts are <strong>not</strong> hardcoded — they come from ColdFront via:
@@ -108,7 +108,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <ul>
 <li><strong>Cluster admin (<code>cn=admin</code>)</strong> is driven by the Django group <code>Cluster (LDAP admin)</code> (seeded by migration <code>0089_admin_django_group</code>). Staff manage membership at <code>/admin/auth/group/</code> — same UX as the helpdesk groups. <code>signals._sync_helpdesk_ldap_groups</code> publishes adds/removes into <code>cn=admin,ou=Groups,ou=&lt;aff&gt;</code> via <code>m2m_changed</code> on <code>auth.User_groups</code>; <code>utils/ldap_sync._sync_cluster_admin_members()</code> runs an additive reconciliation during every <code>run_ldap_sync</code> to self-heal any missed signal. <code>User.is_staff</code> no longer affects <code>cn=admin</code>.</li>
 <li><strong>ColdFront portal admin</strong> is <code>User.is_staff=True</code> (sidebar Administration + Django Admin access). <code>seed_initial_data.sync_admin_group_to_is_staff</code> still promotes every LDAP <code>cn=admin</code> member to <code>is_staff=True</code> at boot (and adds them to the <code>Helpdesk Staff (LDAP helpdesk-staff)</code> Django group), so LDIF-imported admins keep portal access on first deploy. Going forward the two can be toggled independently.</li>
-<li>Only usernames listed in the <code>ARCH_SUPERUSERS</code> env var (comma-separated, seeded into <code>.env</code> by <code>start.sh init</code> — dev default: <code>admin1,admin2,admin3,admin4</code>) additionally receive <code>is_superuser=True</code>. This gates the "Delete User" button and every other permission bypass to an explicit allow-list, so putting a PI in LDAP <code>cn=admin</code> does not silently grant full Django Admin power.</li>
+<li>Only usernames listed in the <code>CLOACK_SUPERUSERS</code> env var (comma-separated, seeded into <code>.env</code> by <code>start.sh init</code> — dev default: <code>admin1,admin2,admin3,admin4</code>) additionally receive <code>is_superuser=True</code>. This gates the "Delete User" button and every other permission bypass to an explicit allow-list, so putting a PI in LDAP <code>cn=admin</code> does not silently grant full Django Admin power.</li>
 <li>System accounts (<code>SYSTEM_USERNAMES</code> = <code>admin</code>, <code>coldfront</code>, <code>root</code>) are never promoted by these helpers, and <code>utils/ldap_sync._scrub_system_accounts_from_privilege_groups</code> runs at the tail of every <code>run_ldap_sync()</code> to <code>MODIFY_DELETE</code> them from <code>cn=admin</code>, <code>cn=helpdesk-admin</code>, <code>cn=helpdesk-staff</code>. The migration LDIF can safely list <code>coldfront</code> in <code>cn=admin</code>; the scrub neutralizes it on every sync.</li>
 </ul>
 <p>Put the cross-domain admin group (e.g., <code>PI_XX</code>) as a DN-based group (for example <code>groupOfNames</code> or <code>groupOfUniqueNames</code>) and include member DNs from any suffix so membership is unambiguous.</p>
@@ -116,14 +116,14 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 - Disjoint numeric ranges prevent collisions for NSS/PAM and NFS.
 - DN-based group membership is unambiguous across suffixes and works well with Keycloak group mappers.</p>
 <pre><code class="language-markdown">Minimal LDIF example:
-dn: cn=PI_XX,ou=Groups,dc=arch,dc=cluster
+dn: cn=PI_XX,ou=Groups,dc=my_cluster,dc=cluster
 objectClass: top
 objectClass: groupOfNames
 cn: PI_XX
-member: uid=alice,ou=People,ou=orga,dc=arch,dc=cluster
-member: uid=bob,ou=People,dc=orgb,dc=arch,dc=cluster
+member: uid=alice,ou=People,ou=orga,dc=my_cluster,dc=cluster
+member: uid=bob,ou=People,dc=orgb,dc=my_cluster,dc=cluster
 
-Recommendation: place that group in a shared container (e.g., ou=Groups,ou=orga,dc=arch,dc=cluster) and configure Keycloak group search to include it or add the group provider to each realm.
+Recommendation: place that group in a shared container (e.g., ou=Groups,ou=orga,dc=my_cluster,dc=cluster) and configure Keycloak group search to include it or add the group provider to each realm.
 ````
 
 Additional recommendations:
@@ -152,7 +152,7 @@ realm the user is already authenticated in.
 | URL | Purpose |
 |---|---|
 | `/` | `home_or_sso` — authenticated users go to home; anonymous → `/portal/` |
-| `/portal/` | Branded landing (OrgA + OrgB + ARCH Helpdesk cards) — default front door |
+| `/portal/` | Branded landing (OrgA + OrgB + Helpdesk cards) — default front door |
 | `/login/` | Legacy picker (OrgA + OrgB buttons) — kept for tests |
 | `/user/login/` | Same picker (alias) — kept for tests |
 | `/orga/login/` | Direct to OrgA OIDC |
@@ -171,7 +171,7 @@ to `/portal/` when they arrive anonymous. `LOGOUT_REDIRECT_URL` defaults to
 
 **Routing logic:**
 - ColdFront sidebar `Help` link uses `UserProfile.affiliation.code` →
-  [context_processors.py](coldfront/custom/plugins/arch_sync/context_processors.py)
+  [context_processors.py](coldfront/custom/plugins/cloack_sync/context_processors.py)
   appends `/orga/login/` or `/orgb/login/` to `SiteConfiguration.help_url`.
 - Helpdesk sidebar `Portal` link uses `session['helpdesk_oidc_realm']`
   (or falls back to `orgb-*` username prefix) —
@@ -201,16 +201,16 @@ Use `start.sh` to manage the full CLOACK stack. It wraps `docker compose` with i
 | `./start.sh rebuild [dev]` | Stop, rebuild all images from scratch (`--no-cache`), then start |
 | `./start.sh populate dev [--partitions p1,p2,...]` | Import departments, setup billing, generate `SlurmJob` (dev only). Flags: `--skip-billing`, `--with-usage` |
 | `./start.sh ldap-reinit [dev]` | If `migration/ldap-*.cat` exists: restore LDAP from backup (passwords patched from `.env`). Otherwise: reinitialize via `install.sh`. Both sync passwords and re-seed ColdFront |
-| `./start.sh cleanup [dev]` | Remove unused `arch/*` images not referenced by any container |
+| `./start.sh cleanup [dev]` | Remove unused `cloack/*` images not referenced by any container |
 | `./start.sh prune-volumes [dev]` | Stop services and delete OpenLDAP named volumes (data loss — use with care) |
 | `./start.sh prune-slurm [dev]` | Stop Slurm containers and delete all Slurm volumes (munge key reset) |
-| `./start.sh prune-images` | Remove all Slurm Docker images (`arch/cn-rockylinux`, `arch/slurmd`, etc.) |
-| `./start.sh clean-all` | Full cleanup: stop, destroy, remove arch volumes/images/networks only (safe for co-hosted services). In dev mode also removes home/scratch data. Fresh start |
+| `./start.sh prune-images` | Remove all Slurm Docker images (`cloack/cn-rockylinux`, `cloack/slurmd`, etc.) |
+| `./start.sh clean-all` | Full cleanup: stop, destroy, remove my_cluster volumes/images/networks only (safe for co-hosted services). In dev mode also removes home/scratch data. Fresh start |
 | `./start.sh log [SERVICE]` | Tail logs for a service (default: `coldfront`) |
 | `./start.sh reconf` | Push updated `slurm.conf` to all nodes (`scontrol reconfigure`) |
-| `./start.sh test [dev] [MODULE]` | Run Django unit tests (default: all arch_sync tests). Example: `./start.sh test coldfront.plugins.arch_sync.tests.test_billing` |
+| `./start.sh test [dev] [MODULE]` | Run Django unit tests (default: all cloack_sync tests). Example: `./start.sh test coldfront.plugins.cloack_sync.tests.test_billing` |
 | `./start.sh helpdesk {start\|stop\|restart\|status\|destroy\|log\|populate}` | Manage the Helpdesk service. `populate` creates sample queues and tickets (idempotent) |
-| `./start.sh mta {create\|start\|stop\|status\|log}` | Manage the inbound-email MTA (`arch-mta` postfix, edge profile). Receives SMTP via the NPM `:25` stream → Maildir → Helpdesk tickets. `--from-ghcr` pulls the published image |
+| `./start.sh mta {create\|start\|stop\|status\|log}` | Manage the inbound-email MTA (`my_cluster-mta` postfix, edge profile). Receives SMTP via the NPM `:25` stream → Maildir → Helpdesk tickets. `--from-ghcr` pulls the published image |
 | `./start.sh help` | Show usage |
 
 ### Quick start
@@ -354,7 +354,7 @@ SLURM_NOOP=0
 <td>macOS: <code>~/.docker/run/docker.sock</code>, Linux: <code>/var/run/docker.sock</code></td>
 </tr>
 <tr>
-<td><code>ARCH_HOST_PROJECT_ROOT</code></td>
+<td><code>CLOACK_HOST_PROJECT_ROOT</code></td>
 <td>Host project root for bind mounts</td>
 <td><code>$(pwd)</code></td>
 </tr>
@@ -362,7 +362,7 @@ SLURM_NOOP=0
 </table>
 <h3>JWT token for slurmrestd</h3>
 <p><code>start.sh slurm start</code> generates a 30-day JWT token and writes it to <code>${BASE_ETC}/slurm/slurm_jwt.token</code>. This file is bind-mounted into coldfront and qcluster containers. The <code>SlurmClient</code> reads the token for REST API authentication. A crontab entry (installed by <code>init</code>) renews it daily at 3am.</p>
-<p>In dev mode, if no <code>docker-compose-slurm-*.yml</code> overlay exists, <code>slurm start</code> auto-generates a default <code>docker-compose-slurm-arch-dev.yml</code> with the standard 4-node cluster (login01, cn-01, cn-02, cn-03) and default partitions (premium, scavenger). In production, the overlay must be deployed from the ColdFront UI.</p>
+<p>In dev mode, if no <code>docker-compose-slurm-*.yml</code> overlay exists, <code>slurm start</code> auto-generates a default <code>docker-compose-slurm-my_cluster-dev.yml</code> with the standard 4-node cluster (login01, cn-01, cn-02, cn-03) and default partitions (premium, scavenger). In production, the overlay must be deployed from the ColdFront UI.</p>
 <p><strong>Note:</strong> JWT auth requires Slurm 23.x+. Docker dev currently uses Slurm 22.05 which has a known JWT bug — upgrade to 25.11 is planned.</p>
 <h3>Compose project isolation</h3>
 <table>
@@ -375,13 +375,13 @@ SLURM_NOOP=0
 </thead>
 <tbody>
 <tr>
-<td><code>arch</code></td>
+<td><code>my_cluster</code></td>
 <td><code>docker-compose-dev.yml</code> (or <code>docker-compose.yml</code> + <code>prod.yml</code>)</td>
 <td>postgres, openldap, coldfront, keycloak, qcluster, phpldapadmin</td>
 </tr>
 <tr>
-<td><code>arch-slurm</code></td>
-<td><code>docker-compose-slurm-arch-dev.yml</code></td>
+<td><code>my_cluster-slurm</code></td>
+<td><code>docker-compose-slurm-my_cluster-dev.yml</code></td>
 <td>slurmctld, slurmdbd, slurmrestd, slurm-db, cn-<em>, login</em></td>
 </tr>
 </tbody>
@@ -400,7 +400,7 @@ SLURM_NOOP=0
 <tbody>
 <tr>
 <td><code>LDAP_ADMIN_PASS</code></td>
-<td>Bind DN password (<code>cn=admin,dc=arch,dc=cluster</code>) — full LDAP admin access</td>
+<td>Bind DN password (<code>cn=admin,dc=my_cluster,dc=cluster</code>) — full LDAP admin access</td>
 <td>ColdFront LDAP bind, Keycloak LDAP federation, <code>ldapmodify</code> operations</td>
 </tr>
 <tr>
@@ -552,11 +552,11 @@ docker start openldap
 </code></pre>
 <h4>A. Fresh deploy (no migration)</h4>
 <p>Full ordered sequence:</p>
-<pre><code class="language-bash">./start.sh clean-all                                                # wipe arch volumes/images
+<pre><code class="language-bash">./start.sh clean-all                                                # wipe my_cluster volumes/images
 ./start.sh init dev                                                 # write .env, prep dirs
 ./start.sh start dev                                                # bring up coldfront + ldap + keycloak + postgres
-./start.sh slurm create arch-dev                                    # generate Slurm overlay
-./start.sh slurm start arch-dev                                     # start slurmctld + slurmd + slurmdbd + slurmrestd
+./start.sh slurm create my_cluster-dev                                    # generate Slurm overlay
+./start.sh slurm start my_cluster-dev                                     # start slurmctld + slurmd + slurmdbd + slurmrestd
 ./start.sh ldap-reinit dev                                          # seed minimal LDAP + sync to ColdFront
 ./start.sh populate dev --partitions a100,l40s,h100,h200            # import depts + seed partitions (no billing)
 ./start.sh helpdesk start                                           # build + start helpdesk (+ helpdesk-qcluster worker + ai-engine)
@@ -572,8 +572,8 @@ docker start openldap
 ./start.sh init dev
 ./start.sh start dev
 ./start.sh ldap-reinit dev           # restore LDAP from migration/ldap-*.cat
-./start.sh slurm create arch-dev
-./start.sh slurm start arch-dev
+./start.sh slurm create my_cluster-dev
+./start.sh slurm start my_cluster-dev
 </code></pre>
 <p><strong>Option 2: UI</strong> (after <code>init + start</code>)
 1. <strong>Import Users → Migration</strong> — upload slapcat <code>.cat</code> file (creates LDAP structure + users + groups + projects)
@@ -586,7 +586,7 @@ docker start openldap
 <p><strong>How <code>ldap-reinit</code> works:</strong>
 - If <code>migration/ldap-*.cat</code> exists → restores from backup via <code>slapadd</code>, patches all passwords (<code>cn=root</code>, <code>cn=readonlyroot</code>, <code>uid=admin</code>) with SSHA hashes from <code>.env</code>, <strong>dedupes LDIF by <code>mail</code></strong> before <code>slapadd</code> (keeps the posixAccount with lowest <code>uidNumber</code> per email, drops matching <code>cn=&lt;uid&gt;</code> PI groups, scrubs dangling <code>member:</code>/<code>memberUid:</code> refs), syncs <code>olcRootPW</code> (config DB), seeds ColdFront
 - If no cat file → removes init marker, restarts openldap (re-runs <code>install.sh</code>), syncs passwords, seeds ColdFront</p>
-<p>The mail-dedup mirrors the <strong>Import Users → Migration</strong> preview UI (<a href="coldfront/custom/plugins/arch_sync/staff_views.py">coldfront/custom/plugins/arch_sync/staff_views.py</a> <code>ImportUsersView</code>): the UI shows a dual-list of Available vs. Chosen entries with per-row conflict flags and blocks commits that still carry duplicates (admin can override via "Confirm anyway"). The CLI path is non-interactive and applies the same rule deterministically — so CI/scripts never fail <code>ModelDuplicateException</code> at Keycloak sync time. Keycloak realms <code>orga</code> and <code>orgb</code> keep <code>duplicateEmailsAllowed=false</code> as a hard-asserted invariant (<a href="keycloak/configure-keycloak.sh">keycloak/configure-keycloak.sh</a> <code>configure_realm_themes</code>).</p>
+<p>The mail-dedup mirrors the <strong>Import Users → Migration</strong> preview UI (<a href="coldfront/custom/plugins/cloack_sync/staff_views.py">coldfront/custom/plugins/cloack_sync/staff_views.py</a> <code>ImportUsersView</code>): the UI shows a dual-list of Available vs. Chosen entries with per-row conflict flags and blocks commits that still carry duplicates (admin can override via "Confirm anyway"). The CLI path is non-interactive and applies the same rule deterministically — so CI/scripts never fail <code>ModelDuplicateException</code> at Keycloak sync time. Keycloak realms <code>orga</code> and <code>orgb</code> keep <code>duplicateEmailsAllowed=false</code> as a hard-asserted invariant (<a href="keycloak/configure-keycloak.sh">keycloak/configure-keycloak.sh</a> <code>configure_realm_themes</code>).</p>
 <h4>D. LDAP cleanup (after migration restore)</h4>
 <p>Migration dumps may contain test accounts not in <code>install.sh</code>. Use <code>ldap-cleanup.sh</code> to find and remove them:</p>
 <pre><code class="language-bash"># Dry-run — compare migration dump against install.sh, save extras to scripts/ldap-extras.txt
@@ -599,8 +599,8 @@ docker start openldap
 <pre><code class="language-bash"># Verify LDAP entries
 source .env
 docker exec openldap ldapsearch -H ldapi:/// -x \
-  -D &quot;cn=admin,dc=arch,dc=cluster&quot; -w &quot;${LDAP_ADMIN_PASS}&quot; \
-  -b &quot;dc=arch,dc=cluster&quot; &quot;(uid=*)&quot; uid | grep &quot;^uid:&quot;
+  -D &quot;cn=admin,dc=my_cluster,dc=cluster&quot; -w &quot;${LDAP_ADMIN_PASS}&quot; \
+  -b &quot;dc=my_cluster,dc=cluster&quot; &quot;(uid=*)&quot; uid | grep &quot;^uid:&quot;
 
 # Force LDAP → ColdFront re-sync
 ./start.sh ldap-reinit dev
@@ -738,7 +738,7 @@ superuser or staff with the cluster's <code>Resource</code> in their
 Source-tarball assembler: <a href="scripts/build_rpm_source.py">scripts/build_rpm_source.py</a>.</p>
 <hr />
 <h2>Docker Images</h2>
-<p>All images use the <code>arch/</code> namespace. Build order matters for Slurm images (base first).</p>
+<p>All images use the <code>cloack/</code> namespace. Build order matters for Slurm images (base first).</p>
 <h3>Component Versions</h3>
 <table>
 <thead>
@@ -802,37 +802,37 @@ Source-tarball assembler: <a href="scripts/build_rpm_source.py">scripts/build_rp
 </thead>
 <tbody>
 <tr>
-<td><code>arch/coldfront</code></td>
+<td><code>cloack/coldfront</code></td>
 <td><code>coldfront/Dockerfile</code></td>
 <td><code>python:3.10-slim</code></td>
 <td>Django portal + django-q worker. Runs ColdFront with custom plugins</td>
 </tr>
 <tr>
-<td><code>arch/openldap</code></td>
+<td><code>cloack/openldap</code></td>
 <td><code>openldap/Dockerfile</code></td>
 <td><code>osixia/openldap:1.5.0</code></td>
-<td>OpenLDAP server with multi-arch support (amd64/arm64)</td>
+<td>OpenLDAP server with multi-my_cluster support (amd64/arm64)</td>
 </tr>
 <tr>
-<td><code>arch/keycloak</code></td>
+<td><code>cloack/keycloak</code></td>
 <td><code>keycloak/Dockerfile</code></td>
 <td><code>keycloak:latest</code></td>
 <td>Keycloak OIDC with custom themes and LDAP providers</td>
 </tr>
 <tr>
-<td><code>arch/keycloak-config</code></td>
+<td><code>cloack/keycloak-config</code></td>
 <td><code>keycloak/Dockerfile.config</code></td>
 <td><code>debian:bookworm-slim</code></td>
 <td>One-shot: configures Keycloak realms and LDAP federation</td>
 </tr>
 <tr>
-<td><code>arch/postgres</code></td>
+<td><code>cloack/postgres</code></td>
 <td><code>postgres/Dockerfile</code></td>
 <td><code>postgres:16</code></td>
 <td>PostgreSQL with multi-database init (coldfront, keycloak, slurm_jobs)</td>
 </tr>
 <tr>
-<td><code>arch/phpldapadmin</code></td>
+<td><code>cloack/phpldapadmin</code></td>
 <td><code>phpldapadmin/Dockerfile</code></td>
 <td><code>osixia/phpldapadmin:latest</code></td>
 <td>phpLDAPadmin web UI for LDAP browsing</td>
@@ -851,43 +851,43 @@ Source-tarball assembler: <a href="scripts/build_rpm_source.py">scripts/build_rp
 </thead>
 <tbody>
 <tr>
-<td><code>arch/cn-rockylinux</code></td>
+<td><code>cloack/cn-rockylinux</code></td>
 <td><code>slurm/base/Dockerfile</code></td>
 <td><code>rockylinux:9</code></td>
 <td>Base image: Rocky 9 + Slurm 25.11 + Munge + SSSD + SPANK plugins (myspank, spank_reemit_cost, pyxis)</td>
 </tr>
 <tr>
-<td><code>arch/slurm-munge</code></td>
+<td><code>cloack/slurm-munge</code></td>
 <td><code>slurm/munge/Dockerfile</code></td>
-<td><code>arch/cn-rockylinux</code></td>
+<td><code>cloack/cn-rockylinux</code></td>
 <td>One-shot: generates shared munge key in <code>munge-key</code> volume</td>
 </tr>
 <tr>
-<td><code>arch/slurmdbd</code></td>
+<td><code>cloack/slurmdbd</code></td>
 <td><code>slurm/slurmdbd/Dockerfile</code></td>
-<td><code>arch/cn-rockylinux</code></td>
+<td><code>cloack/cn-rockylinux</code></td>
 <td>Slurm accounting daemon (connects to MariaDB)</td>
 </tr>
 <tr>
-<td><code>arch/slurmctld</code></td>
+<td><code>cloack/slurmctld</code></td>
 <td><code>slurm/slurmctld/Dockerfile</code></td>
-<td><code>arch/cn-rockylinux</code></td>
+<td><code>cloack/cn-rockylinux</code></td>
 <td>Slurm controller daemon</td>
 </tr>
 <tr>
-<td><code>arch/slurmd</code></td>
+<td><code>cloack/slurmd</code></td>
 <td><code>slurm/slurmd/Dockerfile</code></td>
-<td><code>arch/cn-rockylinux</code></td>
+<td><code>cloack/cn-rockylinux</code></td>
 <td>Slurm worker/login node daemon — also ships NVIDIA enroot runtime for <code>--container-image</code></td>
 </tr>
 <tr>
-<td><code>arch/slurmrestd</code></td>
+<td><code>cloack/slurmrestd</code></td>
 <td><code>slurm/slurmrestd/Dockerfile</code></td>
-<td><code>arch/cn-rockylinux</code></td>
+<td><code>cloack/cn-rockylinux</code></td>
 <td>Slurm REST API daemon</td>
 </tr>
 <tr>
-<td><code>arch/mariadb</code></td>
+<td><code>cloack/mariadb</code></td>
 <td><code>slurm/mariadb/Dockerfile</code></td>
 <td><code>mariadb:10.11</code></td>
 <td>MariaDB for Slurm accounting (port 3307)</td>
@@ -906,7 +906,7 @@ Source-tarball assembler: <a href="scripts/build_rpm_source.py">scripts/build_rp
 </thead>
 <tbody>
 <tr>
-<td><code>arch/ondemand</code></td>
+<td><code>cloack/ondemand</code></td>
 <td><code>ondemand/Dockerfile</code></td>
 <td><code>rockylinux:9</code></td>
 <td>Open OnDemand web portal</td>
@@ -915,7 +915,7 @@ Source-tarball assembler: <a href="scripts/build_rpm_source.py">scripts/build_rp
 </table>
 <hr />
 <h2>Partitions &amp; Allocation Tiers</h2>
-<p>ARCH standardizes partition and QoS naming across all clusters so users submit jobs the same way regardless of which cluster they target.</p>
+<p>CLOACK standardizes partition and QoS naming across all clusters so users submit jobs the same way regardless of which cluster they target.</p>
 <h3>Partition naming convention</h3>
 <table>
 <thead>
@@ -972,7 +972,7 @@ srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
 <p><code>SlurmPartition</code> records are created per <code>SlurmCluster</code> from the <code>--partitions</code> CSV. <code>SlurmQOS</code> records (scavenger / interactive / normal / premium) are seeded automatically by <code>slurm_sync</code> and do not require a CLI flag. Multi-cluster federation: each <code>SlurmCluster</code> gets its own copy.</p>
 <hr />
 <h2>Billing &amp; Invoicing System</h2>
-<p>ARCH includes a comprehensive billing system built into ColdFront to track resource usage (compute, GPU, storage, backup) and manage invoicing for OrgA and OrgB Sciences allocations.</p>
+<p>CLOACK includes a comprehensive billing system built into ColdFront to track resource usage (compute, GPU, storage, backup) and manage invoicing for OrgA and OrgB Sciences allocations.</p>
 <h3>Key Features</h3>
 <h4><strong>Two-Track Billing Model</strong></h4>
 <p>The system supports three billing types:</p>
@@ -1052,7 +1052,7 @@ srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
 <li>
 <p><strong>Create billing rates</strong> (Django Admin or CLI):
    <code>bash
-   # Via Admin: /admin/arch_sync/billingrate/add/
+   # Via Admin: /admin/cloack_sync/billingrate/add/
    # Create rates for cpu_full, gpu_full, cpu_om, gpu_om, storage, backup</code></p>
 </li>
 <li>
@@ -1417,7 +1417,7 @@ SLURM_NOOP=0
 <p><strong>Create initial rates</strong> via Django Admin:</p>
 </li>
 <li>Log in as superuser</li>
-<li>Go to <code>/admin/arch_sync/billingrate/add/</code></li>
+<li>Go to <code>/admin/cloack_sync/billingrate/add/</code></li>
 <li>
 <p>Add rates for each service type and effective period</p>
 </li>
@@ -1529,8 +1529,8 @@ SLURM_NOOP=0
 </tbody>
 </table>
 <h3>Defining billing manually (Admin)</h3>
-<p>For real (non-fake) data, use Django Admin (<code>/admin/arch_sync/...</code>). The full pricing pipeline:</p>
-<h4>1. <code>BillingRate</code> — <code>/admin/arch_sync/billingrate/</code></h4>
+<p>For real (non-fake) data, use Django Admin (<code>/admin/cloack_sync/...</code>). The full pricing pipeline:</p>
+<h4>1. <code>BillingRate</code> — <code>/admin/cloack_sync/billingrate/</code></h4>
 <p>Catalog of rates with effective-date history. One row per rate type per cluster/partition.</p>
 <table>
 <thead>
@@ -1563,7 +1563,7 @@ SLURM_NOOP=0
 </tbody>
 </table>
 <p>Two-track pricing: <code>*_full</code> for pay-per-use PIs, <code>*_om</code> (O&amp;M only, lower) for hardware-credit holders.</p>
-<h4>2. <code>AllocationBilling</code> — <code>/admin/arch_sync/allocationbilling/</code> (one per Allocation)</h4>
+<h4>2. <code>AllocationBilling</code> — <code>/admin/cloack_sync/allocationbilling/</code> (one per Allocation)</h4>
 <p>Per-allocation billing config. Created/updated only when staff runs <strong>Compute Billing</strong> on <code>/billing/report/</code> or the <code>coldfront recalculate_billing</code> management command — no signal auto-creates these rows.</p>
 <table>
 <thead>
@@ -1599,7 +1599,7 @@ SLURM_NOOP=0
 </tr>
 </tbody>
 </table>
-<h4>3. <code>HardwareCreditPool</code> — <code>/admin/arch_sync/hardwarecreditpool/</code></h4>
+<h4>3. <code>HardwareCreditPool</code> — <code>/admin/cloack_sync/hardwarecreditpool/</code></h4>
 <p>When a PI buys hardware, the dollar value is converted into prepaid compute credits. Credits cover compute hours only; O&amp;M is billed in cash via <code>*_om</code> rates.</p>
 <table>
 <thead>
@@ -1636,7 +1636,7 @@ SLURM_NOOP=0
 </tbody>
 </table>
 <p><code>credits_used</code> is gated by <code>allocation.billing.billing_type == 'credit_holder'</code>: a pool on a pay-per-use or no_charge allocation reports 0.0 even when <code>SlurmAccountUsagePeriod</code> rows exist. Staff flipping <code>billing_type</code> away from credit_holder after the fact does not double-bill historical usage.</p>
-<h4>4. <code>SlurmPartition.tres_billing_weights</code> — <code>/admin/arch_sync/slurmpartition/</code></h4>
+<h4>4. <code>SlurmPartition.tres_billing_weights</code> — <code>/admin/cloack_sync/slurmpartition/</code></h4>
 <p>Per-partition multiplier injected as <code>TRESBillingWeights=</code> in <code>slurm.conf</code>. Combined with <code>BillingRate</code> to compute the actual charge. Example: <code>CPU=1.0,Mem=0.25G,GRES/gpu=2.0</code> → 1 GPU-hour = 2 billing units.</p>
 <h4>5. <code>SlurmAccountUsagePeriod</code> — <code>/billing/report/</code>, <code>/billing/my-usage/</code></h4>
 <p>Per-day aggregation (allocation × account × date) of CPU hours, GPU hours, and job count. Drives invoices and PI dashboards. <strong>Not auto-populated.</strong> Rows appear only after staff presses <strong>Compute Billing</strong> on <code>/billing/report/</code>, which runs <code>coldfront sync_job_usage</code> internally.</p>
@@ -1667,12 +1667,12 @@ SLURM_NOOP=0
 </tr>
 </tbody>
 </table>
-<p>Helpers: <code>coldfront/custom/plugins/arch_sync/billing_queries.py</code> exports <code>dollars_to_grptres_mins</code>, <code>grptres_mins_to_dollars</code>, <code>hours_to_dollars</code>.</p>
+<p>Helpers: <code>coldfront/custom/plugins/cloack_sync/billing_queries.py</code> exports <code>dollars_to_grptres_mins</code>, <code>grptres_mins_to_dollars</code>, <code>hours_to_dollars</code>.</p>
 <h3>Individual commands (via docker exec)</h3>
 <p><strong>Import departments only:</strong></p>
 <pre><code class="language-bash"># From default CSV
 docker exec -it coldfront python -m django import_departments \
-  /opt/arch/coldfront/templates/departments.csv
+  /opt/cloack/coldfront/templates/departments.csv
 
 # From custom CSV (copy file first)
 docker cp /path/to/my_departments.csv coldfront:/tmp/departments.csv
@@ -1681,8 +1681,8 @@ docker exec -it coldfront python -m django import_departments /tmp/departments.c
 </code></pre>
 <p><strong>Regenerate SlurmJob records only:</strong></p>
 <pre><code class="language-bash">docker exec -it -e SLURM_PARTITIONS=&quot;premium,scavenger,gpu&quot; coldfront bash -c &quot;
-  python -m django shell &lt; /opt/arch/coldfront/templates/generate_sacct_dump.py &amp;&amp; \
-  python -m django collect_sacct --clear --from-file /opt/arch/coldfront/templates/sacct_dump.txt
+  python -m django shell &lt; /opt/cloack/coldfront/templates/generate_sacct_dump.py &amp;&amp; \
+  python -m django collect_sacct --clear --from-file /opt/cloack/coldfront/templates/sacct_dump.txt
 &quot;
 </code></pre>
 <p><strong>Clear all SlurmJob records:</strong></p>
@@ -1691,7 +1691,7 @@ docker exec -it coldfront python -m django import_departments /tmp/departments.c
 <p><strong>Assign departments to PIs:</strong></p>
 <pre><code class="language-bash"># CSV format: username,department_names (semicolon-separated)
 docker exec -it coldfront python -m django assign_pi_departments \
-  /opt/arch/coldfront/templates/pi_departments.csv
+  /opt/cloack/coldfront/templates/pi_departments.csv
 </code></pre>
 <h3>Expected Results</h3>
 <p>After populating, you should see:</p>
@@ -1728,7 +1728,7 @@ orgb-huan,Data Science;Computational Biology
 &quot;Data Science&quot;,&quot;DS&quot;,&quot;OrgB Sciences Institute&quot;,&quot;orgb&quot;,&quot;orgb&quot;
 </code></pre>
 <h4><strong>Billing Report Files</strong> (Generated by <code>generate_billing_report</code> command)</h4>
-<p>The billing system generates three complementary CSV reports plus a formatted PDF saved to <code>/opt/arch/coldfront/report/</code>:</p>
+<p>The billing system generates three complementary CSV reports plus a formatted PDF saved to <code>/opt/cloack/coldfront/report/</code>:</p>
 <p><strong>1. billing_YYYY-MM_detail.csv</strong> — Full breakdown per allocation</p>
 <pre><code class="language-csv">PI,Project,Allocation ID,Department,IO Number,Month,Jobs,CPU Hours,GPU Hours,CPU Cost,GPU Cost,Storage (TB),Storage Cost,Backup (TB),Backup Cost,Total Cost
 pi001,pi001,1299,Computer Science,NO_IO,2026-03,10,3532.70,0.00,176.63,0.00,0.00,0.00,0.00,0.00,176.63
@@ -1789,7 +1789,7 @@ for month_offset in range(6):  # 6 months → change to 12 for 1 year
 - Verify allocations are marked as billable (Allocation Detail → Billing Info → check box)
 - Run: <code>docker compose -f docker-compose-dev.yml exec coldfront python manage.py shell</code>
   <code>python
-  from coldfront.plugins.arch_sync.models import SlurmAccountUsagePeriod
+  from coldfront.plugins.cloack_sync.models import SlurmAccountUsagePeriod
   SlurmAccountUsagePeriod.objects.count()  # should be &gt; 1000</code></p>
 <p><strong>"Import says 'allocation not found'"</strong>
 - Verify allocations were created by populate_fake_billing_data
@@ -1799,7 +1799,7 @@ for month_offset in range(6):  # 6 months → change to 12 for 1 year
 - Check that allocations have <code>billing__is_billable=True</code></p>
 <hr />
 <h2>10. Slurm CLI Utilities</h2>
-<p>These utilities are installed in the base Slurm image (<code>arch/cn-rockylinux</code>) at <code>/usr/local/bin/</code> and available on all nodes. All ARCH tools support <code>-M &lt;cluster&gt;</code> for multi-cluster queries.</p>
+<p>These utilities are installed in the base Slurm image (<code>cloack/cn-rockylinux</code>) at <code>/usr/local/bin/</code> and available on all nodes. All CLOACK tools support <code>-M &lt;cluster&gt;</code> for multi-cluster queries.</p>
 <h3>stree — Account Hierarchy</h3>
 <pre><code class="language-bash"># Show your own account tree (auto-detects $USER)
 stree
@@ -1831,7 +1831,7 @@ stree -r root --full
 |   |       +-- pi001   [100000]
 |   |           +-- pi001
 |   +-- it   (school)
-|       +-- arch   (department)
+|       +-- my_cluster   (department)
 |           +-- bblanch6   [100000]
 |               +-- bblanch6
 +-- orgb   [Fairshare=80]
@@ -2032,13 +2032,13 @@ run. <code>sacctmgr list account format=ParentName</code> is likewise empty; use
 ./start.sh test --help
 
 # Run a specific test module
-./start.sh test coldfront.plugins.arch_sync.tests.test_billing
+./start.sh test coldfront.plugins.cloack_sync.tests.test_billing
 
 # Run a specific test class
-./start.sh test coldfront.plugins.arch_sync.tests.test_models.CoreHoursResetSettingsTest
+./start.sh test coldfront.plugins.cloack_sync.tests.test_models.CoreHoursResetSettingsTest
 
 # Run a specific test method
-./start.sh test coldfront.plugins.arch_sync.tests.test_signals.DepartmentSignalTest.test_billing_dept_propagates_to_project
+./start.sh test coldfront.plugins.cloack_sync.tests.test_signals.DepartmentSignalTest.test_billing_dept_propagates_to_project
 </code></pre>
 <h3>Available Test Modules</h3>
 <table>
@@ -2051,27 +2051,27 @@ run. <code>sacctmgr list account format=ParentName</code> is likewise empty; use
 </thead>
 <tbody>
 <tr>
-<td><code>arch_sync.tests.test_billing</code></td>
+<td><code>cloack_sync.tests.test_billing</code></td>
 <td>SimpleTestCase</td>
 <td><code>dollars_to_grptres_mins</code>, <code>grptres_mins_to_dollars</code>, <code>hours_to_dollars</code>, <code>SYSTEM_USERNAMES</code></td>
 </tr>
 <tr>
-<td><code>arch_sync.tests.test_models</code></td>
+<td><code>cloack_sync.tests.test_models</code></td>
 <td>TestCase</td>
 <td><code>CoreHoursResetSettings.compute_next_reset()</code> (6 periods), <code>PaymentStatus</code> ordering</td>
 </tr>
 <tr>
-<td><code>arch_sync.tests.test_slurm_sync</code></td>
+<td><code>cloack_sync.tests.test_slurm_sync</code></td>
 <td>TestCase</td>
 <td><code>SlurmNode/SlurmPartition.slurm_conf_line</code> (AllowQos, TRESBillingWeights), weekly cap conversion</td>
 </tr>
 <tr>
-<td><code>arch_sync.tests.test_signals</code></td>
+<td><code>cloack_sync.tests.test_signals</code></td>
 <td>TestCase</td>
 <td>Department propagation signals, AllocationBilling auto-creation</td>
 </tr>
 <tr>
-<td><code>arch_sync.tests.test_ldap</code></td>
+<td><code>cloack_sync.tests.test_ldap</code></td>
 <td>SimpleTestCase</td>
 <td>DN parsing, SSHA hash, tree config, UID/GID allocation, email comparison</td>
 </tr>
@@ -2082,18 +2082,18 @@ run. <code>sacctmgr list account format=ParentName</code> is likewise empty; use
 </tr>
 </tbody>
 </table>
-<p>Full module path prefix: <code>coldfront.plugins.</code> (for arch_sync) or <code>coldfront.</code> (for core).</p>
+<p>Full module path prefix: <code>coldfront.plugins.</code> (for cloack_sync) or <code>coldfront.</code> (for core).</p>
 <h3>Example Output</h3>
 <pre><code>$ ./start.sh test
-[+] Running Django tests: coldfront.plugins.arch_sync.tests
+[+] Running Django tests: coldfront.plugins.cloack_sync.tests
 
   ✓  Applying contenttypes.0001_initial
   ✓  Applying auth.0001_initial
   ...
-  ✓  test_decimal (coldfront.plugins.arch_sync.tests.test_billing.DollarsToGrpTRESminsTest)
-  ✓  test_one_dollar (coldfront.plugins.arch_sync.tests.test_billing.DollarsToGrpTRESminsTest)
+  ✓  test_decimal (coldfront.plugins.cloack_sync.tests.test_billing.DollarsToGrpTRESminsTest)
+  ✓  test_one_dollar (coldfront.plugins.cloack_sync.tests.test_billing.DollarsToGrpTRESminsTest)
   ✓  test_dept_propagates_to_default_project (...) — Setting billing dept propagates to Project.department.
-  ✓  test_simple_dn (coldfront.plugins.arch_sync.tests.test_ldap.UidFromDnTest)
+  ✓  test_simple_dn (coldfront.plugins.cloack_sync.tests.test_ldap.UidFromDnTest)
   ...
 
 ----------------------------------------------------------------------
@@ -2298,7 +2298,7 @@ OK
                            │
                     ┌──────┴──────┐
                     │  slurmctld  │
-                    │   &quot;arch&quot;    │
+                    │   &quot;my_cluster&quot;    │
                     └──────┬──────┘
               ┌────────────┼────────────┐
               ▼            ▼            ▼
@@ -2367,7 +2367,7 @@ Partitions: scavenger, premium, gpu-a100, high-memory, dev
               ▼            ▼            ▼
         ┌──────────┐ ┌──────────┐ ┌──────────┐
         │slurmctld │ │slurmctld │ │slurmctld │
-        │&quot;arch-cpu&quot;│ │&quot;arch-gpu&quot;│ │&quot;arch-dev&quot;│
+        │&quot;my_cluster-cpu&quot;│ │&quot;my_cluster-gpu&quot;│ │&quot;my_cluster-dev&quot;│
         └────┬─────┘ └────┬─────┘ └────┬─────┘
              ▼            ▼            ▼
         ┌────────┐  ┌──────────┐  ┌────────┐
@@ -2390,7 +2390,7 @@ Partitions: scavenger, premium, gpu-a100, high-memory, dev
 <tbody>
 <tr>
 <td>Fault isolation</td>
-<td>arch-gpu crash does not affect arch-cpu jobs</td>
+<td>my_cluster-gpu crash does not affect my_cluster-cpu jobs</td>
 </tr>
 <tr>
 <td>Independent maintenance</td>
@@ -2414,7 +2414,7 @@ Partitions: scavenger, premium, gpu-a100, high-memory, dev
 </tr>
 <tr>
 <td>Cross-cluster submission</td>
-<td><code>sbatch -M arch-gpu</code> from any login node</td>
+<td><code>sbatch -M my_cluster-gpu</code> from any login node</td>
 </tr>
 </tbody>
 </table>
@@ -2436,7 +2436,7 @@ Partitions: scavenger, premium, gpu-a100, high-memory, dev
 </tr>
 <tr>
 <td>Resource fragmentation</td>
-<td>Scheduler in arch-cpu cannot use idle arch-gpu nodes</td>
+<td>Scheduler in my_cluster-cpu cannot use idle my_cluster-gpu nodes</td>
 </tr>
 </tbody>
 </table>
@@ -2510,7 +2510,7 @@ Partitions: scavenger, premium, gpu-a100, high-memory, dev
 </thead>
 <tbody>
 <tr>
-<td><code>root</code> / <code>arch</code> / other</td>
+<td><code>root</code> / <code>my_cluster</code> / other</td>
 <td>Model A/C</td>
 <td>Both OrgA + OrgB</td>
 <td>Single cluster or hardware split</td>
@@ -2530,15 +2530,15 @@ Partitions: scavenger, premium, gpu-a100, high-memory, dev
 </tbody>
 </table>
 <pre><code class="language-python"># Model A: single cluster (both affiliations)
-SlurmCluster(name=&quot;arch&quot;, root_account=&quot;root&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+SlurmCluster(name=&quot;my_cluster&quot;, root_account=&quot;root&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
 
 # Model B: federation — one cluster per affiliation
 SlurmCluster(name=&quot;orga-cluster&quot;, root_account=&quot;orga&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
 SlurmCluster(name=&quot;orgb-cluster&quot;, root_account=&quot;orgb&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
 
 # Model C: hardware split (both affiliations per cluster)
-SlurmCluster(name=&quot;arch-cpu&quot;, root_account=&quot;arch&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
-SlurmCluster(name=&quot;arch-gpu&quot;, root_account=&quot;arch&quot;, slurmrestd_url=&quot;http://restd-2:6820&quot;)
+SlurmCluster(name=&quot;my_cluster-cpu&quot;, root_account=&quot;my_cluster&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+SlurmCluster(name=&quot;my_cluster-gpu&quot;, root_account=&quot;my_cluster&quot;, slurmrestd_url=&quot;http://restd-2:6820&quot;)
 </code></pre>
 <p>The <code>slurm_sync</code> respects <code>root_account</code> automatically:
 - <strong>Model A/C</strong> (<code>root_account</code> ≠ orga/orgb): creates both <code>orga</code> and <code>orgb</code> root accounts under <code>cluster_root</code>, syncs all allocations
@@ -2560,7 +2560,7 @@ SlurmCluster(name=&quot;arch-gpu&quot;, root_account=&quot;arch&quot;, slurmrest
 <li><a href="monitoring/scrape_configs/"><code>monitoring/scrape_configs/layout_{a,b,c,d}.yml</code></a> — per-layout target snippets to hand to the <code>dash</code> operator</li>
 </ul>
 <p>Covered daemons: coldfront + qcluster + helpdesk (django-prometheus + custom view), postgres (<code>:5432</code>), mariadb (Slurm acct DB on the non-standard <code>:3307</code>), openldap, keycloak (built-in <code>/metrics</code>), slurmctld/slurmdbd/slurmrestd (single exporter via REST + rotating JWT), munge (textfile collector), cli_filter (login nodes only), plus node_exporter + cadvisor everywhere. Compute nodes (<code>cn-XX</code>) are intentionally out of scope.</p>
-<p>The <code>slurm_exporter</code> reuses the rotating token that <code>start.sh</code> already keeps fresh at <code>${BASE_ETC}/slurm/slurm_jwt.token</code> (cron 03:00 daily, lifespan 30 days) — no manual token generation. See memory <a href=".claude/projects/-Users-ricardo-arch-orga-partnerinst-orgb/memory/project_monitoring_dash.md"><code>project_monitoring_dash</code></a> for the full handoff details.</p>
+<p>The <code>slurm_exporter</code> reuses the rotating token that <code>start.sh</code> already keeps fresh at <code>${BASE_ETC}/slurm/slurm_jwt.token</code> (cron 03:00 daily, lifespan 30 days) — no manual token generation. See memory <a href=".claude/projects/-Users-ricardo-my_cluster-orga-partnerinst-orgb/memory/project_monitoring_dash.md"><code>project_monitoring_dash</code></a> for the full handoff details.</p>
 <hr /></div>
     </main>
   </div>

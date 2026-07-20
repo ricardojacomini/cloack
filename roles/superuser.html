@@ -74,7 +74,7 @@ TOTP via the Keycloak account console (same as every other regular
 Slurm account hierarchy via REST in real time. ToS gate still applies:
 PI association is created only if they have accepted the current ToS.</p>
 <h3>2. Drain / resume a Slurm node</h3>
-<pre><code>/admin/arch_sync/slurmnode/
+<pre><code>/admin/cloack_sync/slurmnode/
   → select node → action &quot;Drain selected nodes&quot; / &quot;Resume&quot;
   → reason is logged on the SlurmNode row
 </code></pre>
@@ -196,7 +196,7 @@ failure, duration, and result snippet.</p>
 <td>Mirrors <code>cn=admin</code> membership for the Django side. Manage at <code>/admin/auth/group/</code>.</td>
 </tr>
 <tr>
-<td><code>ARCH_SUPERUSERS</code> env var</td>
+<td><code>CLOACK_SUPERUSERS</code> env var</td>
 <td>n/a</td>
 <td>Comma-separated usernames auto-promoted to <code>is_superuser=True</code> when they land in <code>cn=admin</code>.</td>
 </tr>
@@ -245,12 +245,12 @@ failure, duration, and result snippet.</p>
 <td>Approves an allocation, fires real-time Slurm provisioning</td>
 </tr>
 <tr>
-<td><code>/admin/arch_sync/slurmnode/</code></td>
+<td><code>/admin/cloack_sync/slurmnode/</code></td>
 <td>Drain / Resume</td>
 <td>Slurm node state via REST</td>
 </tr>
 <tr>
-<td><code>/admin/arch_sync/slurmcluster/</code></td>
+<td><code>/admin/cloack_sync/slurmcluster/</code></td>
 <td>Action "Action import from slurmrestd" / "Update from slurmrestd" / "Check drift"</td>
 <td>Mirror Slurm topology into ColdFront DB</td>
 </tr>
@@ -293,7 +293,7 @@ failure, duration, and result snippet.</p>
 </tr>
 <tr>
 <td><code>/admin/</code> login alert email not received</td>
-<td><code>ARCH_ADMIN_ALERT_EMAILS</code> not set in <code>.env</code>, OR recipient flagged the SMTP</td>
+<td><code>CLOACK_ADMIN_ALERT_EMAILS</code> not set in <code>.env</code>, OR recipient flagged the SMTP</td>
 <td>Set the env var; check <code>admin_login_alert_task</code> LogEntry for the dispatch result</td>
 </tr>
 <tr>
