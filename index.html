@@ -82,6 +82,53 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
           <strong>Help</strong><br><small style="color:#5a6d7f;">User &amp; PI Guide</small>
         </a>
       </div>
+
+      <!-- hero banner — inline SVG so it renders with zero external assets -->
+      <div style="margin:44px auto 10px; max-width:960px;">
+        <svg viewBox="0 0 1200 630" role="img" aria-label="CLOACK Stack — Multi-Tenant HPC Platform"
+             style="width:100%; height:auto; border-radius:14px; display:block; box-shadow:0 10px 40px rgba(0,0,0,0.45);">
+          <defs>
+            <linearGradient id="heroBg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#123e77"/>
+              <stop offset="0.28" stop-color="#0b1f42"/>
+              <stop offset="1" stop-color="#0a1730"/>
+            </linearGradient>
+          </defs>
+          <rect width="1200" height="630" fill="url(#heroBg)"/>
+          <text x="90" y="130" fill="#5a7fae" font-size="24" letter-spacing="10"
+                font-family="'SF Mono', Menlo, Consolas, monospace">RESEARCH COMPUTING INFRASTRUCTURE</text>
+          <text x="86" y="252" font-family="-apple-system, 'Segoe UI', sans-serif" font-size="112">
+            <tspan fill="#ffffff" font-weight="800">CLOACK</tspan><tspan fill="#8fb8ff" font-weight="300"> Stack</tspan>
+          </text>
+          <text x="90" y="326" fill="#dce7f5" font-size="42"
+                font-family="-apple-system, 'Segoe UI', sans-serif">Multi-Tenant HPC Platform</text>
+          <rect x="90" y="362" width="92" height="7" rx="3.5" fill="#2fd6b0"/>
+          <text x="90" y="432" fill="#9fc3ff" font-size="31"
+                font-family="'SF Mono', Menlo, Consolas, monospace">ColdFront&#160;&#160;&#183;&#160;&#160;Keycloak&#160;&#160;&#183;&#160;&#160;Slurm&#160;&#160;&#183;&#160;&#160;OpenLDAP</text>
+          <g font-family="-apple-system, 'Segoe UI', sans-serif" font-size="27" fill="#cfe0f5">
+            <rect x="90" y="515" width="238" height="56" rx="28" fill="none" stroke="#4a6f9f" stroke-width="2"/>
+            <text x="209" y="551" text-anchor="middle">Federated Identity</text>
+            <rect x="348" y="515" width="222" height="56" rx="28" fill="none" stroke="#4a6f9f" stroke-width="2"/>
+            <text x="459" y="551" text-anchor="middle">Docker Compose</text>
+          </g>
+          <g stroke="#33507a" stroke-width="2">
+            <line x1="985" y1="148" x2="905" y2="256"/><line x1="985" y1="148" x2="1085" y2="236"/>
+            <line x1="905" y1="256" x2="1010" y2="310"/><line x1="1085" y1="236" x2="1010" y2="310"/>
+            <line x1="905" y1="256" x2="905" y2="405"/><line x1="1010" y1="310" x2="905" y2="405"/>
+            <line x1="1010" y1="310" x2="1095" y2="400"/><line x1="905" y1="405" x2="1012" y2="478"/>
+            <line x1="1095" y1="400" x2="1012" y2="478"/>
+          </g>
+          <g>
+            <circle cx="985" cy="148" r="11" fill="#5aa2ff"/>
+            <circle cx="1085" cy="236" r="9" fill="#5aa2ff"/>
+            <circle cx="905" cy="256" r="10" fill="#5aa2ff"/>
+            <circle cx="1010" cy="310" r="17" fill="#3d8ef7" stroke="#7db8ff" stroke-width="4"/>
+            <circle cx="905" cy="405" r="12" fill="#f0a832"/>
+            <circle cx="1095" cy="400" r="12" fill="#f0a832"/>
+            <circle cx="1012" cy="478" r="9" fill="#5aa2ff"/>
+          </g>
+        </svg>
+      </div>
     </div>
     
     </main>
