@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ARCH Portal — README</title>
+  <title>Portal — README</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
   <style>
 body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
@@ -43,15 +43,15 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
   <div class="site-shell">
     
     <aside class="site-sidebar">
-      <div class="sidebar-brand">ARCH Portal</div>
+      <div class="sidebar-brand">Portal</div>
       <div class="sidebar-links">
         <a href="index.html">Home</a><a href="readme.html" class="active">README</a><a href="cloack.html">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="roles/index.html">User Guide (by role)</a>
       </div>
     </aside>
     
     <main class="page-content">
-      <div class="md-content"><h1>ARCH Portal</h1>
-<p>The ARCH Portal is built on the CLOACK Stack, a containerized identity and resource management framework for HPC clusters at Johns Hopkins University. It integrates ColdFront, OpenLDAP, Keycloak, and Slurm into a container-based platform for user provisioning, job scheduling, and billing.</p>
+      <div class="md-content"><h1>Portal</h1>
+<p>The Portal is built on the CLOACK Stack, a containerized identity and resource management framework for HPC clusters. It integrates ColdFront, OpenLDAP, Keycloak, and Slurm into a container-based platform for user provisioning, job scheduling, and billing.</p>
 <table>
 <thead>
 <tr>
@@ -66,11 +66,11 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </tr>
 <tr>
 <td><strong>L</strong>DAP / Open<strong>L</strong>DAP</td>
-<td>Central directory — users, groups, PIs across JHU and Schmidt (SSCI) domains</td>
+<td>Central directory — users, groups, PIs across OrgA and OrgB (ORGB) domains</td>
 </tr>
 <tr>
 <td><strong>O</strong>penLDAP</td>
-<td>Single OpenLDAP instance with three naming contexts (<code>dc=arch</code>, <code>ou=jhu</code>, <code>ou=schmidt</code>)</td>
+<td>Single OpenLDAP instance with three naming contexts (<code>dc=arch</code>, <code>ou=orga</code>, <code>ou=orgb</code>)</td>
 </tr>
 <tr>
 <td><strong>A</strong>uth (OIDC/SSSD)</td>
@@ -87,8 +87,8 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </tbody>
 </table>
 <blockquote>
-<p>Deployed on the ARCH cluster at Johns Hopkins University, supporting both JHU and Schmidt Sciences (SSCI) research groups.</p>
-<p><strong><a href="https://jhu-arch.github.io/arch_jhu_schmidt/architecture.html">Interactive Architecture Diagram</a></strong> — click any component for details.</p>
+<p>Deployed on the ARCH cluster, supporting both OrgA and OrgB Sciences (ORGB) research groups.</p>
+<p><strong><a href="https://example-org.github.io/cloack-stack/architecture.html">Interactive Architecture Diagram</a></strong> — click any component for details.</p>
 </blockquote>
 <hr />
 <h2>High-level design (draft) - Authentication + Scheduler stack</h2>
@@ -96,11 +96,11 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <p>Use three separate LDAP naming contexts (suffixes) and disjoint uid/gid ranges; create cross-domain admin/group entries (DN-based) that include members from any suffix; configure Open Source Identity and Access Management "Keycloak" realms so each realm points to the correct subtree(s) or adds multiple LDAP providers.</p>
 <p>Three suffixes on one OpenLDAP instance:
 - Domain A (arch.cluster): ARCH Admins suffix <code>dc=arch,dc=cluster</code> — UID/GID range starting 1000
-- Domain B (jhu.arch.cluster): suffix <code>ou=jhu,dc=arch,dc=cluster</code> — UID/GID range starting 10000
-- Domain C (schmidt.arch.cluster): suffix <code>ou=schmidt,dc=arch,dc=cluster</code> — UID/GID range starting 30000</p>
+- Domain B (orga.arch.cluster): suffix <code>ou=orga,dc=arch,dc=cluster</code> — UID/GID range starting 10000
+- Domain C (orgb.arch.cluster): suffix <code>ou=orgb,dc=arch,dc=cluster</code> — UID/GID range starting 30000</p>
 <p>Keep UID/GID ranges non-overlapping.</p>
 <p><strong>ColdFront as Directory Ground Truth:</strong> UID and GID allocation is centralized in the ColdFront database via <code>Affiliation.next_uid</code> / <code>next_gid</code> counters (atomic, race-condition free). <code>UserProfile</code> stores <code>ldap_uid</code>, <code>ldap_gid</code>, and <code>ldap_groups</code> (readonly, cached from LDAP sync). The Django Admin "Change User" and "UserProfile" pages show a "Directory (LDAP)" fieldset with this information. On ColdFront startup, <code>sync_ldap</code> automatically pushes users/groups to LDAP. The Import Users page supports two modes: <strong>New Users</strong> (CSV, allocate new UIDs) and <strong>Migration</strong> (LDIF slapcat dump, preserve existing UIDs/GIDs/passwords). New Users mode also has an optional <strong>Course code</strong> field for disposable class accounts — set e.g. <code>en540</code> and each CSV <code>uid</code> becomes <code>en540-&lt;uid&gt;</code> with a per-course synthetic email (so a student who already has an account gets a separate, UID-distinct identity); the whole cohort is removed at term end via the "Delete Course Accounts" card or <code>coldfront delete_course_users --course en540 --yes</code> (drops Slurm associations, the user's home dir, LDAP entry, and ColdFront user — shared per-PI scratch is never touched). To tear down <strong>specific</strong> accounts by name (not a course prefix), use the generic sibling <code>coldfront delete_users -u &lt;user1&gt; &lt;user2&gt; --dry-run</code> then <code>--yes</code> — same four-step teardown, but it refuses system accounts and blocks deleting a PI (which would cascade-delete their projects/allocations) unless <code>--force-pi</code> is passed. The page also has an <strong>Export Users</strong> card that streams the directory as CSV (<code>full_name,email,uid,is_pi,members,member_of</code>, filterable by scope and affiliation) — <code>members</code> lists a PI's LDAP group members and <code>member_of</code> lists the PI(s) a user belongs to.</p>
-<p><strong>Minimal LDAP Bootstrap:</strong> <code>install.sh</code> creates only the bare minimum (root DN, cn=root, munge/slurm system accounts). OUs (<code>ou=jhu</code>, <code>ou=schmidt</code>, etc.) and user accounts are <strong>not</strong> hardcoded — they come from ColdFront via:
+<p><strong>Minimal LDAP Bootstrap:</strong> <code>install.sh</code> creates only the bare minimum (root DN, cn=root, munge/slurm system accounts). OUs (<code>ou=orga</code>, <code>ou=orgb</code>, etc.) and user accounts are <strong>not</strong> hardcoded — they come from ColdFront via:
 - <strong>Option A:</strong> Import Users → Migration (LDIF upload via UI) — replays structural entries + users + groups + creates projects/allocations
 - <strong>Option B:</strong> <code>./start.sh ldap-reinit</code> (CLI) — restores full slapcat dump
 - <strong>Option C:</strong> <code>sync_ldap</code> — pushes users/groups from ColdFront DB to LDAP</p>
@@ -108,7 +108,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <ul>
 <li><strong>Cluster admin (<code>cn=admin</code>)</strong> is driven by the Django group <code>Cluster (LDAP admin)</code> (seeded by migration <code>0089_admin_django_group</code>). Staff manage membership at <code>/admin/auth/group/</code> — same UX as the helpdesk groups. <code>signals._sync_helpdesk_ldap_groups</code> publishes adds/removes into <code>cn=admin,ou=Groups,ou=&lt;aff&gt;</code> via <code>m2m_changed</code> on <code>auth.User_groups</code>; <code>utils/ldap_sync._sync_cluster_admin_members()</code> runs an additive reconciliation during every <code>run_ldap_sync</code> to self-heal any missed signal. <code>User.is_staff</code> no longer affects <code>cn=admin</code>.</li>
 <li><strong>ColdFront portal admin</strong> is <code>User.is_staff=True</code> (sidebar Administration + Django Admin access). <code>seed_initial_data.sync_admin_group_to_is_staff</code> still promotes every LDAP <code>cn=admin</code> member to <code>is_staff=True</code> at boot (and adds them to the <code>Helpdesk Staff (LDAP helpdesk-staff)</code> Django group), so LDIF-imported admins keep portal access on first deploy. Going forward the two can be toggled independently.</li>
-<li>Only usernames listed in the <code>ARCH_SUPERUSERS</code> env var (comma-separated, seeded into <code>.env</code> by <code>start.sh init</code> — dev default: <code>rdesouz4,jbiondo2,mprotzm2,jasonw</code>) additionally receive <code>is_superuser=True</code>. This gates the "Delete User" button and every other permission bypass to an explicit allow-list, so putting a PI in LDAP <code>cn=admin</code> does not silently grant full Django Admin power.</li>
+<li>Only usernames listed in the <code>ARCH_SUPERUSERS</code> env var (comma-separated, seeded into <code>.env</code> by <code>start.sh init</code> — dev default: <code>admin1,admin2,admin3,admin4</code>) additionally receive <code>is_superuser=True</code>. This gates the "Delete User" button and every other permission bypass to an explicit allow-list, so putting a PI in LDAP <code>cn=admin</code> does not silently grant full Django Admin power.</li>
 <li>System accounts (<code>SYSTEM_USERNAMES</code> = <code>admin</code>, <code>coldfront</code>, <code>root</code>) are never promoted by these helpers, and <code>utils/ldap_sync._scrub_system_accounts_from_privilege_groups</code> runs at the tail of every <code>run_ldap_sync()</code> to <code>MODIFY_DELETE</code> them from <code>cn=admin</code>, <code>cn=helpdesk-admin</code>, <code>cn=helpdesk-staff</code>. The migration LDIF can safely list <code>coldfront</code> in <code>cn=admin</code>; the scrub neutralizes it on every sync.</li>
 </ul>
 <p>Put the cross-domain admin group (e.g., <code>PI_XX</code>) as a DN-based group (for example <code>groupOfNames</code> or <code>groupOfUniqueNames</code>) and include member DNs from any suffix so membership is unambiguous.</p>
@@ -120,10 +120,10 @@ dn: cn=PI_XX,ou=Groups,dc=arch,dc=cluster
 objectClass: top
 objectClass: groupOfNames
 cn: PI_XX
-member: uid=alice,ou=People,ou=jhu,dc=arch,dc=cluster
-member: uid=bob,ou=People,dc=schmidt,dc=arch,dc=cluster
+member: uid=alice,ou=People,ou=orga,dc=arch,dc=cluster
+member: uid=bob,ou=People,dc=orgb,dc=arch,dc=cluster
 
-Recommendation: place that group in a shared container (e.g., ou=Groups,ou=jhu,dc=arch,dc=cluster) and configure Keycloak group search to include it or add the group provider to each realm.
+Recommendation: place that group in a shared container (e.g., ou=Groups,ou=orga,dc=arch,dc=cluster) and configure Keycloak group search to include it or add the group provider to each realm.
 ````
 
 Additional recommendations:
@@ -135,30 +135,30 @@ Additional recommendations:
 
 ## Cross-app SSO (ColdFront ↔ Helpdesk)
 
-Both apps share the same Keycloak realms (`jhu`, `schmidt`). Silent SSO
+Both apps share the same Keycloak realms (`orga`, `orgb`). Silent SSO
 between them works when the second app's sidebar link routes to the
 realm the user is already authenticated in.
 
 | From → To | Sidebar link | Behaviour |
 |---|---|---|
 | ColdFront ↔ Helpdesk (both logged in) | any icon | Silent login on the correct realm |
-| ColdFront (Schmidt) → Helpdesk | Help icon → `/schmidt/login/` | Schmidt SSO → `/tickets/my-tickets/` |
-| ColdFront (JHU) → Helpdesk | Help icon → `/jhu/login/` | JHU SSO → `/dashboard/` (staff) |
-| Helpdesk (Schmidt) → ColdFront | Portal icon → `/schmidt/login/` | Schmidt SSO → home |
-| Helpdesk (JHU) → ColdFront | Portal icon → `/jhu/login/` | JHU SSO → home |
+| ColdFront (OrgB) → Helpdesk | Help icon → `/orgb/login/` | OrgB SSO → `/tickets/my-tickets/` |
+| ColdFront (OrgA) → Helpdesk | Help icon → `/orga/login/` | OrgA SSO → `/dashboard/` (staff) |
+| Helpdesk (OrgB) → ColdFront | Portal icon → `/orgb/login/` | OrgB SSO → home |
+| Helpdesk (OrgA) → ColdFront | Portal icon → `/orga/login/` | OrgA SSO → home |
 
 **URLs available on both apps:**
 
 | URL | Purpose |
 |---|---|
 | `/` | `home_or_sso` — authenticated users go to home; anonymous → `/portal/` |
-| `/portal/` | Branded landing (JHU + Schmidt + ARCH Helpdesk cards) — default front door |
-| `/login/` | Legacy picker (JHU + Schmidt buttons) — kept for tests |
+| `/portal/` | Branded landing (OrgA + OrgB + ARCH Helpdesk cards) — default front door |
+| `/login/` | Legacy picker (OrgA + OrgB buttons) — kept for tests |
 | `/user/login/` | Same picker (alias) — kept for tests |
-| `/jhu/login/` | Direct to JHU OIDC |
-| `/schmidt/login/` | Direct to Schmidt OIDC |
-| `/oidc/jhu/authenticate/` | mozilla_django_oidc view for JHU |
-| `/oidc/schmidt/authenticate/` | mozilla_django_oidc view for Schmidt |
+| `/orga/login/` | Direct to OrgA OIDC |
+| `/orgb/login/` | Direct to OrgB OIDC |
+| `/oidc/orga/authenticate/` | mozilla_django_oidc view for OrgA |
+| `/oidc/orgb/authenticate/` | mozilla_django_oidc view for OrgB |
 | `/oidc/callback/` | Realm-aware callback (backend skips wrong realm) |
 
 Logout path (`oidc_logout_view`) drops the user back on `/`, which forwards
@@ -172,18 +172,18 @@ to `/portal/` when they arrive anonymous. `LOGOUT_REDIRECT_URL` defaults to
 **Routing logic:**
 - ColdFront sidebar `Help` link uses `UserProfile.affiliation.code` →
   [context_processors.py](coldfront/custom/plugins/arch_sync/context_processors.py)
-  appends `/jhu/login/` or `/schmidt/login/` to `SiteConfiguration.help_url`.
+  appends `/orga/login/` or `/orgb/login/` to `SiteConfiguration.help_url`.
 - Helpdesk sidebar `Portal` link uses `session['helpdesk_oidc_realm']`
-  (or falls back to `ssci-*` username prefix) —
+  (or falls back to `orgb-*` username prefix) —
   [helpdesk_extensions/context_processors.py](helpdesk/config/helpdesk_extensions/context_processors.py)
   appends the same shortcut to `COLDFRONT_URL`.
 
 **Cross-realm token exchange:** both apps' OIDC backends
-(`JHU*Backend`, `Schmidt*Backend`) check `session[SESSION_REALM_KEY]`
+(`OrgA*Backend`, `OrgB*Backend`) check `session[SESSION_REALM_KEY]`
 and return `None` when the code came from a different realm. Without
 this guard, the first backend in `AUTHENTICATION_BACKENDS` would try
-to exchange a Schmidt code at the JHU token endpoint and raise
-`HTTPError 400` before the Schmidt backend got a chance to handle it.
+to exchange a OrgB code at the OrgA token endpoint and raise
+`HTTPError 400` before the OrgB backend got a chance to handle it.
 
 ## start.sh — Stack Lifecycle Management
 
@@ -404,7 +404,7 @@ SLURM_NOOP=0
 <td>ColdFront LDAP bind, Keycloak LDAP federation, <code>ldapmodify</code> operations</td>
 </tr>
 <tr>
-<td><code>JHU_ADMIN_PASSWORD</code></td>
+<td><code>OrgA_ADMIN_PASSWORD</code></td>
 <td>User login password (<code>uid=admin</code>) — ColdFront web login</td>
 <td>Staff browser login to ColdFront admin</td>
 </tr>
@@ -432,7 +432,7 @@ SLURM_NOOP=0
 <tr>
 <td><code>./start.sh deploy dev -y</code></td>
 <td>Initial bootstrap, full reset for dev/test, or fresh install on a new machine</td>
-<td><strong>Destructive by design.</strong> Wipes containers/volumes/BASE_DATA/BASE_ETC and rebuilds everything. ~5–10 min. Scavenger-only test-jobs (billing manual). Seeds 4 login-ready test users (<code>ext-staff</code>/<code>ext-user</code>/<code>ssci-staff</code>/<code>ssci-user</code>, LDAP password <code>123</code>).</td>
+<td><strong>Destructive by design.</strong> Wipes containers/volumes/BASE_DATA/BASE_ETC and rebuilds everything. ~5–10 min. Scavenger-only test-jobs (billing manual). Seeds 4 login-ready test users (<code>ext-staff</code>/<code>ext-user</code>/<code>orgb-staff</code>/<code>orgb-user</code>, LDAP password <code>123</code>).</td>
 </tr>
 <tr>
 <td><code>./start.sh deploy dev -y --paid-accounts</code></td>
@@ -586,7 +586,7 @@ docker start openldap
 <p><strong>How <code>ldap-reinit</code> works:</strong>
 - If <code>migration/ldap-*.cat</code> exists → restores from backup via <code>slapadd</code>, patches all passwords (<code>cn=root</code>, <code>cn=readonlyroot</code>, <code>uid=admin</code>) with SSHA hashes from <code>.env</code>, <strong>dedupes LDIF by <code>mail</code></strong> before <code>slapadd</code> (keeps the posixAccount with lowest <code>uidNumber</code> per email, drops matching <code>cn=&lt;uid&gt;</code> PI groups, scrubs dangling <code>member:</code>/<code>memberUid:</code> refs), syncs <code>olcRootPW</code> (config DB), seeds ColdFront
 - If no cat file → removes init marker, restarts openldap (re-runs <code>install.sh</code>), syncs passwords, seeds ColdFront</p>
-<p>The mail-dedup mirrors the <strong>Import Users → Migration</strong> preview UI (<a href="coldfront/custom/plugins/arch_sync/staff_views.py">coldfront/custom/plugins/arch_sync/staff_views.py</a> <code>ImportUsersView</code>): the UI shows a dual-list of Available vs. Chosen entries with per-row conflict flags and blocks commits that still carry duplicates (admin can override via "Confirm anyway"). The CLI path is non-interactive and applies the same rule deterministically — so CI/scripts never fail <code>ModelDuplicateException</code> at Keycloak sync time. Keycloak realms <code>jhu</code> and <code>schmidt</code> keep <code>duplicateEmailsAllowed=false</code> as a hard-asserted invariant (<a href="keycloak/configure-keycloak.sh">keycloak/configure-keycloak.sh</a> <code>configure_realm_themes</code>).</p>
+<p>The mail-dedup mirrors the <strong>Import Users → Migration</strong> preview UI (<a href="coldfront/custom/plugins/arch_sync/staff_views.py">coldfront/custom/plugins/arch_sync/staff_views.py</a> <code>ImportUsersView</code>): the UI shows a dual-list of Available vs. Chosen entries with per-row conflict flags and blocks commits that still carry duplicates (admin can override via "Confirm anyway"). The CLI path is non-interactive and applies the same rule deterministically — so CI/scripts never fail <code>ModelDuplicateException</code> at Keycloak sync time. Keycloak realms <code>orga</code> and <code>orgb</code> keep <code>duplicateEmailsAllowed=false</code> as a hard-asserted invariant (<a href="keycloak/configure-keycloak.sh">keycloak/configure-keycloak.sh</a> <code>configure_realm_themes</code>).</p>
 <h4>D. LDAP cleanup (after migration restore)</h4>
 <p>Migration dumps may contain test accounts not in <code>install.sh</code>. Use <code>ldap-cleanup.sh</code> to find and remove them:</p>
 <pre><code class="language-bash"># Dry-run — compare migration dump against install.sh, save extras to scripts/ldap-extras.txt
@@ -610,7 +610,7 @@ docker exec openldap ldapsearch -H ldapi:/// -x \
 stage has a clear responsibility; tagged GHCR images flow under explicit
 operator control. Full strategy in
 <a href="docs/deploy-pipeline-4-stages.md"><code>docs/deploy-pipeline-4-stages.md</code></a>.</p>
-<pre><code>[1] dev laptop          [2] dev VM Proxmox       [3] edulogin bare-metal    [4] portal bare-metal
+<pre><code>[1] dev laptop          [2] dev VM Proxmox       [3] val-login bare-metal    [4] portal bare-metal
     macOS arm64             Linux amd64               Linux amd64                Linux amd64
     build local             build local               pull GHCR :dev             pull GHCR :prod
     git push code           git pull code             git pull code              git pull code
@@ -639,7 +639,7 @@ operator control. Full strategy in
 <td><code>:dev</code></td>
 <td>Stage 2 (publish)</td>
 <td>Mutable head</td>
-<td>Latest Stage 2 build. What edulogin pulls.</td>
+<td>Latest Stage 2 build. What val-login pulls.</td>
 </tr>
 <tr>
 <td><code>:rc-YYYY-MM-DD-HHMM</code></td>
@@ -692,7 +692,7 @@ source images must pull successfully before any push). See
 <p><strong>Phase 2 multi-FQDN compat (2026-06-10):</strong> <code>KC_HOSTNAME_STRICT</code> +
 <code>KC_HOSTNAME_BACKCHANNEL_DYNAMIC</code> env vars on Keycloak,
 <code>HELPDESK_SCRIPT_NAME</code> for helpdesk subpath mount, per-realm
-<code>KEYCLOAK_HOSTNAME_JHU</code> / <code>_SCHMIDT</code> driving
+<code>KEYCLOAK_HOSTNAME_OrgA</code> / <code>_ORGB</code> driving
 <code>configure_realm_frontend_urls</code> in <code>configure-keycloak.sh</code>. All defaults
 preserve single-FQDN dev behaviour. See
 <code>docs/deploy-pipeline-4-stages.md</code> Phase 2 for the full operator
@@ -717,8 +717,8 @@ and systemd find it without touching <code>/etc/profile.d/</code>.</p>
 <pre><code class="language-bash"># 1. Install on a deploy workstation (Rocky 9)
 dnf install cloack-deploy
 
-# 2. Point at your ARCH Portal and get a DRF token
-export CLOACK_API_URL=https://coldfront.jhu.edu
+# 2. Point at your Portal and get a DRF token
+export CLOACK_API_URL=https://example.edu
 export CLOACK_API_TOKEN=&lt;token from /api/v1/auth/token/&gt;
 
 # 3. Fetch the per-cluster inventory + run the read-only pre-flight
@@ -972,7 +972,7 @@ srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
 <p><code>SlurmPartition</code> records are created per <code>SlurmCluster</code> from the <code>--partitions</code> CSV. <code>SlurmQOS</code> records (scavenger / interactive / normal / premium) are seeded automatically by <code>slurm_sync</code> and do not require a CLI flag. Multi-cluster federation: each <code>SlurmCluster</code> gets its own copy.</p>
 <hr />
 <h2>Billing &amp; Invoicing System</h2>
-<p>ARCH includes a comprehensive billing system built into ColdFront to track resource usage (compute, GPU, storage, backup) and manage invoicing for JHU and Schmidt Sciences allocations.</p>
+<p>ARCH includes a comprehensive billing system built into ColdFront to track resource usage (compute, GPU, storage, backup) and manage invoicing for OrgA and OrgB Sciences allocations.</p>
 <h3>Key Features</h3>
 <h4><strong>Two-Track Billing Model</strong></h4>
 <p>The system supports three billing types:</p>
@@ -997,7 +997,7 @@ srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
 </tr>
 <tr>
 <td><strong>No Charge</strong></td>
-<td>Default, scavenger, and Schmidt allocations</td>
+<td>Default, scavenger, and OrgB allocations</td>
 <td>Usage tracked but not billed ($0 total)</td>
 </tr>
 </tbody>
@@ -1037,7 +1037,7 @@ srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
 - Set expiry dates if credits sunset</p>
 <h4><strong>IOS Numbers &amp; Department Tracking</strong></h4>
 <p>Allocations can have:
-- <strong>IOS Number</strong> — cost center / account number for JHU service center
+- <strong>IOS Number</strong> — cost center / account number for OrgA service center
 - <strong>Department</strong> — organizational affiliation (e.g., "Computer Science", "Biology")
 - <strong>Billing Type</strong> — pay-per-use, credit holder, or no charge
 - <strong>Provisioned Storage/Backup</strong> — manual entry for non-compute charges</p>
@@ -1176,9 +1176,9 @@ coldfront sync_job_usage
 - Whiting School of Engineering: CS, ECE, Applied Physics, ME, BME
 - Krieger School of Arts &amp; Sciences: Biology, Chemistry, Physics
 - School of Medicine: Neuroscience, MBG
-- Schmidt Science: Structural Biology, Computational Biology</p>
+- OrgB Science: Structural Biology, Computational Biology</p>
 <p><strong>PIs included (10 total):</strong>
-- rdesouz4 (Computer Science)
+- admin1 (Computer Science)
 - jsmith5 (Biology), mchen2 (Applied Physics), agarcia7 (ECE)
 - bpatel9 (Chemistry), kwilson3 (Neuroscience)
 - dgonzalez1 (Structural Biology), hjones8 (Computational Biology)
@@ -1469,7 +1469,7 @@ SLURM_NOOP=0
 <tbody>
 <tr>
 <td><code>Affiliation</code></td>
-<td>Organizational domain (JHU, Schmidt) — managed via Admin, FK on UserProfile/Department/School. Includes <code>next_uid</code>/<code>next_gid</code> counters for centralized UID/GID allocation</td>
+<td>Organizational domain (OrgA, OrgB) — managed via Admin, FK on UserProfile/Department/School. Includes <code>next_uid</code>/<code>next_gid</code> counters for centralized UID/GID allocation</td>
 <td>Admin</td>
 </tr>
 <tr>
@@ -1575,7 +1575,7 @@ SLURM_NOOP=0
 <tbody>
 <tr>
 <td><code>io_number</code></td>
-<td>JHU service-center cost code (no IO → <code>is_billable=False</code>)</td>
+<td>OrgA service-center cost code (no IO → <code>is_billable=False</code>)</td>
 </tr>
 <tr>
 <td><code>department</code></td>
@@ -1718,34 +1718,34 @@ docker exec -it coldfront python -m django assign_pi_departments \
 </code></pre>
 <h4><strong>pi_departments.csv</strong></h4>
 <pre><code class="language-csv">username,department_names
-jbiondo2,Computer Science;Applied Physics
-rdesouz4,Computer Science;Biomedical Engineering
-ssci-huan,Data Science;Computational Biology
+admin2,Computer Science;Applied Physics
+admin1,Computer Science;Biomedical Engineering
+orgb-huan,Data Science;Computational Biology
 </code></pre>
 <h4><strong>departments.csv</strong> (for import_departments command)</h4>
 <pre><code class="language-csv">name,code,school,school_code,affiliation
-&quot;Computer Science&quot;,&quot;CS&quot;,&quot;Whiting School of Engineering&quot;,&quot;wse&quot;,&quot;jhu&quot;
-&quot;Data Science&quot;,&quot;DS&quot;,&quot;Schmidt Sciences Institute&quot;,&quot;schmidt&quot;,&quot;schmidt&quot;
+&quot;Computer Science&quot;,&quot;CS&quot;,&quot;Whiting School of Engineering&quot;,&quot;wse&quot;,&quot;orga&quot;
+&quot;Data Science&quot;,&quot;DS&quot;,&quot;OrgB Sciences Institute&quot;,&quot;orgb&quot;,&quot;orgb&quot;
 </code></pre>
 <h4><strong>Billing Report Files</strong> (Generated by <code>generate_billing_report</code> command)</h4>
 <p>The billing system generates three complementary CSV reports plus a formatted PDF saved to <code>/opt/arch/coldfront/report/</code>:</p>
 <p><strong>1. billing_YYYY-MM_detail.csv</strong> — Full breakdown per allocation</p>
 <pre><code class="language-csv">PI,Project,Allocation ID,Department,IO Number,Month,Jobs,CPU Hours,GPU Hours,CPU Cost,GPU Cost,Storage (TB),Storage Cost,Backup (TB),Backup Cost,Total Cost
-arochab1,arochab1,1299,Computer Science,NO_IO,2026-03,10,3532.70,0.00,176.63,0.00,0.00,0.00,0.00,0.00,176.63
+pi001,pi001,1299,Computer Science,NO_IO,2026-03,10,3532.70,0.00,176.63,0.00,0.00,0.00,0.00,0.00,176.63
 bblanch6,bblanch6,1300,Computer Science,NO_IO,2026-03,28,5404.41,0.00,270.22,0.00,0.00,0.00,0.00,0.00,270.22
 </code></pre>
 <p><strong>Use case:</strong> Detailed allocation-level tracking for finance/compliance audits.</p>
 <p><strong>2. billing_YYYY-MM_summary.csv</strong> — Simplified format (PI, IO, Total ONLY)</p>
 <pre><code class="language-csv">PI,IO,Total
-arochab1,NO_IO,$176.63
+pi001,NO_IO,$176.63
 bblanch6,NO_IO,$270.22
 jperafa1,NO_IO,$874.96
-ssci-adityag,NO_IO,$1740.32
+orgb-adityag,NO_IO,$1740.32
 </code></pre>
 <p><strong>Use case:</strong> Quick summary for executive reports, dashboard displays, or simplified invoicing.</p>
 <p><strong>3. billing_YYYY-MM_by_io.csv</strong> — Aggregated by IO number with all metrics</p>
 <pre><code class="language-csv">PI,IO Number,Jobs,CPU Hours,GPU Hours,Node Hours,CPU Cost,GPU Cost,Storage (TB),Storage Cost,Backup (TB),Backup Cost,Total Cost
-arochab1,NO_IO,10,3532.70,0.00,180.60,$176.63,$0.00,0.00,$0.00,0.00,$0.00,$176.63
+pi001,NO_IO,10,3532.70,0.00,180.60,$176.63,$0.00,0.00,$0.00,0.00,$0.00,$176.63
 bblanch6,NO_IO,28,5404.41,0.00,289.80,$270.22,$0.00,0.00,$0.00,0.00,$0.00,$270.22
 </code></pre>
 <p><strong>Use case:</strong> IO-based billing analysis, cost allocation by infrastructure component.</p>
@@ -1808,7 +1808,7 @@ stree
 stree --full
 
 # Show subtree (admin or own accounts only)
-stree -r jhu
+stree -r orga
 
 # Full hierarchy from root (admin only)
 stree -r root --full
@@ -1818,28 +1818,28 @@ stree -r root --full
 </blockquote>
 <p>Run <code>stree -r root</code> on a login node to see the live hierarchy. Example output:</p>
 <pre><code>root
-|-- jhu   [Fairshare=20]
+|-- orga   [Fairshare=20]
 |   |-- wse   (school)
 |   |   +-- cs   (department)
-|   |       |-- rdesouz4   [100000]  &lt;- PI default (QOS: scavenger)
-|   |       |   +-- rdesouz4
-|   |       |   +-- rdesouz4_proj1   [100000]  &lt;- custom project (QOS: normal,premium)
-|   |       |       |-- rdesouz4_proj1_A   [100000]  &lt;- subproject
-|   |       |       |   +-- rdesouz4, arochab1
-|   |       |       +-- rdesouz4_proj1_B   [100000]
-|   |       |           +-- rdesouz4
-|   |       +-- arochab1   [100000]
-|   |           +-- arochab1
+|   |       |-- admin1   [100000]  &lt;- PI default (QOS: scavenger)
+|   |       |   +-- admin1
+|   |       |   +-- admin1_proj1   [100000]  &lt;- custom project (QOS: normal,premium)
+|   |       |       |-- admin1_proj1_A   [100000]  &lt;- subproject
+|   |       |       |   +-- admin1, pi001
+|   |       |       +-- admin1_proj1_B   [100000]
+|   |       |           +-- admin1
+|   |       +-- pi001   [100000]
+|   |           +-- pi001
 |   +-- it   (school)
 |       +-- arch   (department)
 |           +-- bblanch6   [100000]
 |               +-- bblanch6
-+-- schmidt   [Fairshare=80]
-    +-- ss   (Schmidt Sciences)
-        |-- ssci-jdoe   [100000]  &lt;- always free (ssci-* prefix)
-        |   +-- ssci-jdoe
-        +-- ssci-gomes   [100000]
-            +-- ssci-gomes
++-- orgb   [Fairshare=80]
+    +-- ss   (OrgB Sciences)
+        |-- orgb-jdoe   [100000]  &lt;- always free (orgb-* prefix)
+        |   +-- orgb-jdoe
+        +-- orgb-pi003   [100000]
+            +-- orgb-pi003
 
 [N] = Core Usage (Hours) / Fairshare weight
 Use stree --full to include users
@@ -1870,8 +1870,8 @@ sbalance
 sbalance --week
 
 # Show usage for a specific PI or user
-sbalance -p rdesouz4
-sbalance -u rdesouz4
+sbalance -p admin1
+sbalance -u admin1
 
 # Hide accounts with zero usage
 sbalance --hide-zero
@@ -1887,8 +1887,8 @@ sqos all
 sqos name=normal
 
 # Show QOS for a specific account or user
-sqos account=rdesouz4
-sqos rdesouz4
+sqos account=admin1
+sqos admin1
 </code></pre>
 <blockquote>
 <p>Old name <code>slurmqos</code> still works as a symlink.</p>
@@ -1944,18 +1944,18 @@ sacctmgr -n -P list assoc where account=ACCOUNT format=Cluster,Account,User,Part
 sacctmgr -n -P show assoc where user= format=Account,ParentName,ParentID,ID,Share
 
 # List accounts under a specific parent
-sacctmgr -n list account where parent=schmidt format=Account,Description
+sacctmgr -n list account where parent=orgb format=Account,Description
 
 # Show account details
-sacctmgr show account name=rdesouz4 withassoc format=Account,User,QOS,GrpTRESMins
+sacctmgr show account name=admin1 withassoc format=Account,User,QOS,GrpTRESMins
 
 # Reparent an account (requires 'where' keyword!)
-sacctmgr modify account where name=rdesouz4 set parent=nodep -i
+sacctmgr modify account where name=admin1 set parent=nodep -i
 </code></pre>
 <blockquote>
 <p><strong>Note:</strong> In Slurm 25.11, <code>ParentName</code> is reported <strong>empty</strong> for every account whose
-parent is not <code>root</code> — even when <code>ParentID</code> is correct (e.g. <code>noschool→jhu</code> shows
-<code>ParentName=''</code> but <code>ParentID</code> = jhu's <code>ID</code>). The hierarchy is still intact and the
+parent is not <code>root</code> — even when <code>ParentID</code> is correct (e.g. <code>noschool→orga</code> shows
+<code>ParentName=''</code> but <code>ParentID</code> = orga's <code>ID</code>). The hierarchy is still intact and the
 scheduler enforces it; only the display string is blank. Build/verify trees from
 <code>ParentID→ID</code>, not <code>ParentName</code> (this is what <code>stree</code>'s <code>build_tree</code> does). Do <strong>not</strong>
 "heal" empty <code>ParentName</code> by reparenting in sync — it churns a modify per account every
@@ -2512,20 +2512,20 @@ Partitions: scavenger, premium, gpu-a100, high-memory, dev
 <tr>
 <td><code>root</code> / <code>arch</code> / other</td>
 <td>Model A/C</td>
-<td>Both JHU + Schmidt</td>
+<td>Both OrgA + OrgB</td>
 <td>Single cluster or hardware split</td>
 </tr>
 <tr>
-<td><code>jhu</code></td>
+<td><code>orga</code></td>
 <td>Model B</td>
-<td>JHU only</td>
-<td>Federation — JHU-dedicated cluster</td>
+<td>OrgA only</td>
+<td>Federation — OrgA-dedicated cluster</td>
 </tr>
 <tr>
-<td><code>schmidt</code></td>
+<td><code>orgb</code></td>
 <td>Model B</td>
-<td>Schmidt only</td>
-<td>Federation — Schmidt-dedicated cluster</td>
+<td>OrgB only</td>
+<td>Federation — OrgB-dedicated cluster</td>
 </tr>
 </tbody>
 </table>
@@ -2533,25 +2533,25 @@ Partitions: scavenger, premium, gpu-a100, high-memory, dev
 SlurmCluster(name=&quot;arch&quot;, root_account=&quot;root&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
 
 # Model B: federation — one cluster per affiliation
-SlurmCluster(name=&quot;jhu-cluster&quot;, root_account=&quot;jhu&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
-SlurmCluster(name=&quot;schmidt-cluster&quot;, root_account=&quot;schmidt&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+SlurmCluster(name=&quot;orga-cluster&quot;, root_account=&quot;orga&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
+SlurmCluster(name=&quot;orgb-cluster&quot;, root_account=&quot;orgb&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
 
 # Model C: hardware split (both affiliations per cluster)
 SlurmCluster(name=&quot;arch-cpu&quot;, root_account=&quot;arch&quot;, slurmrestd_url=&quot;http://slurmrestd:6820&quot;)
 SlurmCluster(name=&quot;arch-gpu&quot;, root_account=&quot;arch&quot;, slurmrestd_url=&quot;http://restd-2:6820&quot;)
 </code></pre>
 <p>The <code>slurm_sync</code> respects <code>root_account</code> automatically:
-- <strong>Model A/C</strong> (<code>root_account</code> ≠ jhu/schmidt): creates both <code>jhu</code> and <code>schmidt</code> root accounts under <code>cluster_root</code>, syncs all allocations
-- <strong>Model B</strong> (<code>root_account</code> = jhu): creates only <code>jhu</code> root, filters out Schmidt PI allocations
-- <strong>Model B</strong> (<code>root_account</code> = schmidt): creates only <code>schmidt</code> root, filters out JHU PI allocations</p>
+- <strong>Model A/C</strong> (<code>root_account</code> ≠ orga/orgb): creates both <code>orga</code> and <code>orgb</code> root accounts under <code>cluster_root</code>, syncs all allocations
+- <strong>Model B</strong> (<code>root_account</code> = orga): creates only <code>orga</code> root, filters out OrgB PI allocations
+- <strong>Model B</strong> (<code>root_account</code> = orgb): creates only <code>orgb</code> root, filters out OrgA PI allocations</p>
 <p>Admin presets in the Django Admin pre-fill the correct <code>root_account</code> for each deployment model.</p>
 <h3>Real-time Account Provisioning</h3>
 <p>When an allocation transitions to <strong>Active</strong> (staff approval), the system immediately creates the Slurm account hierarchy via REST API — no waiting for the periodic sync. This is best-effort: if the REST API is unavailable, the periodic sync (every 3 hours) acts as a safety net.</p>
-<p>The provisioning respects Model B affiliation filtering: a JHU PI allocation approved on a Schmidt-only cluster is silently skipped.</p>
-<p><strong>Recommendation for JHU (1000 nodes, 10K users):</strong> Start with Model A (single cluster with partitions). Migrate to Model B when hardware diversity or operational isolation justifies the complexity. The migration is infrastructure-only — add another slurmctld, create a new <code>SlurmCluster</code> in Django Admin with the appropriate <code>root_account</code>, no code changes needed.</p>
+<p>The provisioning respects Model B affiliation filtering: an OrgA PI allocation approved on a OrgB-only cluster is silently skipped.</p>
+<p><strong>Recommendation for OrgA (1000 nodes, 10K users):</strong> Start with Model A (single cluster with partitions). Migrate to Model B when hardware diversity or operational isolation justifies the complexity. The migration is infrastructure-only — add another slurmctld, create a new <code>SlurmCluster</code> in Django Admin with the appropriate <code>root_account</code>, no code changes needed.</p>
 <hr />
 <h2>Monitoring</h2>
-<p>External Grafana + Prometheus at https://dash.arch.jhu.edu/ scrape our hosts in <strong>pull mode</strong> over the JHU LAN. Exporters and scrape configs live under <a href="monitoring/"><code>monitoring/</code></a>:</p>
+<p>External Grafana + Prometheus at https://dash.hpc.example.edu/ scrape our hosts in <strong>pull mode</strong> over the OrgA LAN. Exporters and scrape configs live under <a href="monitoring/"><code>monitoring/</code></a>:</p>
 <ul>
 <li><a href="monitoring/README.md"><code>monitoring/README.md</code></a> — entry point, daemon × layout matrix</li>
 <li><a href="monitoring/catalog.md"><code>monitoring/catalog.md</code></a> — canonical exporter inventory (image, port, DSN shape)</li>
@@ -2560,7 +2560,7 @@ SlurmCluster(name=&quot;arch-gpu&quot;, root_account=&quot;arch&quot;, slurmrest
 <li><a href="monitoring/scrape_configs/"><code>monitoring/scrape_configs/layout_{a,b,c,d}.yml</code></a> — per-layout target snippets to hand to the <code>dash</code> operator</li>
 </ul>
 <p>Covered daemons: coldfront + qcluster + helpdesk (django-prometheus + custom view), postgres (<code>:5432</code>), mariadb (Slurm acct DB on the non-standard <code>:3307</code>), openldap, keycloak (built-in <code>/metrics</code>), slurmctld/slurmdbd/slurmrestd (single exporter via REST + rotating JWT), munge (textfile collector), cli_filter (login nodes only), plus node_exporter + cadvisor everywhere. Compute nodes (<code>cn-XX</code>) are intentionally out of scope.</p>
-<p>The <code>slurm_exporter</code> reuses the rotating token that <code>start.sh</code> already keeps fresh at <code>${BASE_ETC}/slurm/slurm_jwt.token</code> (cron 03:00 daily, lifespan 30 days) — no manual token generation. See memory <a href=".claude/projects/-Users-ricardo-arch-jhu-dsai-schmidt/memory/project_monitoring_dash.md"><code>project_monitoring_dash</code></a> for the full handoff details.</p>
+<p>The <code>slurm_exporter</code> reuses the rotating token that <code>start.sh</code> already keeps fresh at <code>${BASE_ETC}/slurm/slurm_jwt.token</code> (cron 03:00 daily, lifespan 30 days) — no manual token generation. See memory <a href=".claude/projects/-Users-ricardo-arch-orga-partnerinst-orgb/memory/project_monitoring_dash.md"><code>project_monitoring_dash</code></a> for the full handoff details.</p>
 <hr /></div>
     </main>
   </div>

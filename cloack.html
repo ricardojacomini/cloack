@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ARCH Portal — CLOACK Stack</title>
+  <title>Portal — CLOACK Stack</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
   <style>
 body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
@@ -43,7 +43,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
   <div class="site-shell">
     
     <aside class="site-sidebar">
-      <div class="sidebar-brand">ARCH Portal</div>
+      <div class="sidebar-brand">Portal</div>
       <div class="sidebar-links">
         <a href="index.html">Home</a><a href="readme.html">README</a><a href="cloack.html" class="active">CLOACK</a><a href="architecture.html">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="roles/index.html">User Guide (by role)</a>
       </div>
@@ -52,7 +52,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     <main class="page-content">
       <div class="md-content"><h1>CLOACK Stack — Feature Comparison</h1>
 <p><strong>CLOACK</strong> = <strong>C</strong>oldFront + <strong>L</strong>DAP + <strong>O</strong>IDC + <strong>A</strong>RCH + <strong>C</strong>luster/<strong>C</strong>ontainers + <strong>K</strong>eycloak</p>
-<p>Containerized identity and resource management for HPC clusters at Johns Hopkins University.</p>
+<p>Containerized identity and resource management for HPC clusters.</p>
 <hr />
 <h2>Branch Overview</h2>
 <table>
@@ -85,7 +85,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </tr>
 </tbody>
 </table>
-<p>Repository: https://github.com/jhu-arch/arch_jhu_schmidt</p>
+<p>Repository: https://github.com/example-org/cloack</p>
 <h2>Documentation Index</h2>
 <table>
 <thead>
@@ -97,7 +97,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <tbody>
 <tr>
 <td>README.md</td>
-<td>ARCH Portal — stack overview, components, architecture</td>
+<td>Portal — stack overview, components, architecture</td>
 </tr>
 <tr>
 <td>CLOACK.md</td>
@@ -113,7 +113,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </tr>
 <tr>
 <td>coldfront/custom/README.md</td>
-<td>Custom configurations (ARCH JHU DSAI Schmidt)</td>
+<td>Custom configurations (ARCH OrgA PartnerInst OrgB)</td>
 </tr>
 <tr>
 <td>coldfront/BILLING_SETUP_GUIDE.md</td>
@@ -353,24 +353,24 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </thead>
 <tbody>
 <tr>
-<td><code>arochab1_f01_a</code></td>
+<td><code>pi001_f01_a</code></td>
 <td>$30/week</td>
 <td><code>billing=1800000</code></td>
 </tr>
 <tr>
-<td><code>arochab1_f01_b</code></td>
+<td><code>pi001_f01_b</code></td>
 <td>$20/week</td>
 <td><code>billing=1200000</code></td>
 </tr>
 <tr>
-<td><code>bgermro1</code></td>
+<td><code>pi002</code></td>
 <td>No cap</td>
 <td>(not set = unlimited)</td>
 </tr>
 </tbody>
 </table>
 <p>Instead of creating per-allocation QOS (<code>wk_{id}</code>), the cap is enforced at the <strong>account association level</strong>:</p>
-<pre><code class="language-bash">sacctmgr modify account where name=arochab1_f01_a set GrpTRESMins=billing=1800000
+<pre><code class="language-bash">sacctmgr modify account where name=pi001_f01_a set GrpTRESMins=billing=1800000
 </code></pre>
 <h3>Storage &amp; Backup</h3>
 <table>
@@ -788,7 +788,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">Partial</td>
 <td style="text-align: center;">Yes</td>
 <td style="text-align: center;">Yes</td>
-<td>JhuOIDCBackend + SchmidtOIDCBackend with separate realms</td>
+<td>OrgAOIDCBackend + OrgBOIDCBackend with separate realms</td>
 </tr>
 <tr>
 <td>LDAP sync (daily + on-demand)</td>
@@ -826,46 +826,46 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td>dev: enhanced with department propagation</td>
 </tr>
 <tr>
-<td>Entra ID integration (JHU)</td>
+<td>Entra ID integration (OrgA)</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>JHU_ENTRA_ENABLED</code> flag for Azure AD federation</td>
+<td><code>OrgA_ENTRA_ENABLED</code> flag for Azure AD federation</td>
 </tr>
 <tr>
 <td>Cross-app SSO (ColdFront ↔ Helpdesk)</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Sidebar links route to correct realm; <code>home_or_sso</code> view + realm-skip guard in OIDC backends. Edge/subdomain mode: helpdesk auto-SSO entry (<code>home_or_sso</code>/<code>LOGIN_URL</code> → host-aware <code>realm_dispatch_login</code>) and the portal ARCH Helpdesk card are per-affiliation (<code>helpdesk.&lt;base&gt;</code> → matching realm), not JHU-hardcoded</td>
+<td>Sidebar links route to correct realm; <code>home_or_sso</code> view + realm-skip guard in OIDC backends. Edge/subdomain mode: helpdesk auto-SSO entry (<code>home_or_sso</code>/<code>LOGIN_URL</code> → host-aware <code>realm_dispatch_login</code>) and the portal ARCH Helpdesk card are per-affiliation (<code>helpdesk.&lt;base&gt;</code> → matching realm), not OrgA-hardcoded</td>
 </tr>
 <tr>
 <td>Portal landing page</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>/</code> redirects anonymous users to <code>/portal/</code> (JHU + Schmidt + ARCH Helpdesk cards); legacy <code>/user/login/</code> picker kept for tests; logout lands on <code>/</code></td>
+<td><code>/</code> redirects anonymous users to <code>/portal/</code> (OrgA + OrgB + ARCH Helpdesk cards); legacy <code>/user/login/</code> picker kept for tests; logout lands on <code>/</code></td>
 </tr>
 <tr>
 <td>OIDC username normalization (portal+helpdesk)</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Both backends strip <code>@domain</code> from claims and dedupe JHU alias domains (<code>jhu.edu</code> ↔ <code>jhmi.edu</code> ↔ <code>jh.edu</code>); <code>normalize_oidc_usernames</code> Django command collapses legacy <code>user@domain</code> rows on every <code>start.sh helpdesk start</code></td>
+<td>Both backends strip <code>@domain</code> from claims and dedupe OrgA alias domains (<code>example.edu</code> ↔ <code>med.example.edu</code> ↔ <code>alt.example.edu</code>); <code>normalize_oidc_usernames</code> Django command collapses legacy <code>user@domain</code> rows on every <code>start.sh helpdesk start</code></td>
 </tr>
 <tr>
 <td>LDAP cn=admin → Keycloak master console</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>OIDC brokering from JHU realm into master; composite role <code>limited-admin</code> (45 sub-roles across master/jhu/schmidt <code>*-realm</code> clients, no super-admin/create-realm/impersonation); <code>admin-only-gate</code> IdP mapper gates on inbound JHU <code>realm_access.roles</code> containing <code>admin</code>; non-admin JHU users get zero master roles → Forbidden; unconditional amber policy banner on the admin console</td>
+<td>OIDC brokering from OrgA realm into master; composite role <code>limited-admin</code> (45 sub-roles across master/orga/orgb <code>*-realm</code> clients, no super-admin/create-realm/impersonation); <code>admin-only-gate</code> IdP mapper gates on inbound OrgA <code>realm_access.roles</code> containing <code>admin</code>; non-admin OrgA users get zero master roles → Forbidden; unconditional amber policy banner on the admin console</td>
 </tr>
 <tr>
 <td>SSH OTP via Keycloak</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Per-login-node <code>otp_mode</code> (disabled/mixed/device_only/ropc_only); <code>mixed</code>: ssci-<em>/ext-</em>/JHU admins (cn=admin group) via ROPC terminal (password + OTP), JHED via Device Flow browser; 2-prompt PAM via <code>pam_kc_ssh.so</code>; Keycloak Direct Grant + OTP Form automated in <code>configure-keycloak.sh</code></td>
+<td>Per-login-node <code>otp_mode</code> (disabled/mixed/device_only/ropc_only); <code>mixed</code>: orgb-<em>/ext-</em>/OrgA admins (cn=admin group) via ROPC terminal (password + OTP), campus ID via Device Flow browser; 2-prompt PAM via <code>pam_kc_ssh.so</code>; Keycloak Direct Grant + OTP Form automated in <code>configure-keycloak.sh</code></td>
 </tr>
 <tr>
 <td>Fake GPU support (dev)</td>
@@ -984,7 +984,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>No <code>userPassword</code> written to LDAP for any non-system user. JHED (incl. cn=admin) authenticate via Entra Federation → MFA from JHU; ext-<em>/ssci-</em> enrol TOTP in the Keycloak Account Console (Schmidt realm browser flow rewritten to Username Form → OTP Form only, no password page). <code>CONFIGURE_TOTP</code> required action <code>enabled=true defaultAction=true</code> on both realms → first login forces enrolment. ColdFront banner block in <code>base_black.html</code> + <code>base_light_sidebar.html</code> checks <code>UserProfile.totp_enrolled</code> (synced every 30 min by <code>sync_totp_status</code> qcluster task polling Keycloak admin REST). <code>/admin/</code> break-glass stays local-password + <code>django-axes</code> brute-force lockout + <code>AdminLoginRateLimitMiddleware</code> per-IP throttle + <code>admin_login_alert_task</code> email on every superuser login. Quarterly rotation automated by <code>scripts/rotate-admin-password.sh</code>. Merged to dev 2026-06-09 (commit <code>aef43b6</code>).</td>
+<td>No <code>userPassword</code> written to LDAP for any non-system user. campus ID (incl. cn=admin) authenticate via Entra Federation → MFA from OrgA; ext-<em>/orgb-</em> enrol TOTP in the Keycloak Account Console (OrgB realm browser flow rewritten to Username Form → OTP Form only, no password page). <code>CONFIGURE_TOTP</code> required action <code>enabled=true defaultAction=true</code> on both realms → first login forces enrolment. ColdFront banner block in <code>base_black.html</code> + <code>base_light_sidebar.html</code> checks <code>UserProfile.totp_enrolled</code> (synced every 30 min by <code>sync_totp_status</code> qcluster task polling Keycloak admin REST). <code>/admin/</code> break-glass stays local-password + <code>django-axes</code> brute-force lockout + <code>AdminLoginRateLimitMiddleware</code> per-IP throttle + <code>admin_login_alert_task</code> email on every superuser login. Quarterly rotation automated by <code>scripts/rotate-admin-password.sh</code>. Merged to dev 2026-06-09 (commit <code>aef43b6</code>).</td>
 </tr>
 </tbody>
 </table>
@@ -1205,11 +1205,11 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td><code>QueueRoutingOverride</code> sidecar pins the starting tier per queue (e.g. <code>storage → se</code>, <code>software → sse</code>). Signal precedence: <code>TicketCategory.default_policy &gt; Queue.routing_override &gt; first_tier</code>. Admin at <code>/admin/helpdesk_extensions/queueroutingoverride/</code>.</td>
 </tr>
 <tr>
-<td>Per-ticket affiliation (JHU/Schmidt)</td>
+<td>Per-ticket affiliation (OrgA/OrgB)</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>TicketAffiliation</code> OneToOne sidecar populated on ticket creation by 4-tier detect: gateway queue (<code>ssci → schmidt</code>, <code>skipjack → jhu</code>) &gt; authenticated OIDC user profile &gt; email domain (<code>jhu.edu</code>, <code>schmidtsciences.org</code> etc.) &gt; <code>unknown</code>. Admin filter on Ticket list; override maps via <code>HELPDESK_GATEWAY_QUEUE_AFFILIATION</code> / <code>HELPDESK_AFFILIATION_DOMAINS</code> settings.</td>
+<td><code>TicketAffiliation</code> OneToOne sidecar populated on ticket creation by 4-tier detect: gateway queue (<code>orgb → orgb</code>, <code>cluster-x → orga</code>) &gt; authenticated OIDC user profile &gt; email domain (<code>example.edu</code>, <code>orgb.example.org</code> etc.) &gt; <code>unknown</code>. Admin filter on Ticket list; override maps via <code>HELPDESK_GATEWAY_QUEUE_AFFILIATION</code> / <code>HELPDESK_AFFILIATION_DOMAINS</code> settings.</td>
 </tr>
 <tr>
 <td>FQR / SLA timers</td>
@@ -1363,8 +1363,8 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td>Always free — preemptable jobs</td>
 </tr>
 <tr>
-<td><code>ssci-*</code> accounts</td>
-<td>Schmidt Sciences PIs — always free</td>
+<td><code>orgb-*</code> accounts</td>
+<td>OrgB Sciences PIs — always free</td>
 </tr>
 </tbody>
 </table>
@@ -1382,17 +1382,17 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <tr>
 <td>Default PI project</td>
 <td><code>&lt;pi_username&gt;</code></td>
-<td><code>rdesouz4</code></td>
+<td><code>admin1</code></td>
 </tr>
 <tr>
 <td>Custom project</td>
 <td><code>&lt;pi_username&gt;_&lt;abbreviation&gt;</code></td>
-<td><code>rdesouz4_proj1</code></td>
+<td><code>admin1_proj1</code></td>
 </tr>
 <tr>
 <td>SubProject</td>
 <td><code>&lt;pi_username&gt;_&lt;abbreviation&gt;_&lt;seq&gt;</code></td>
-<td><code>rdesouz4_proj1_A</code></td>
+<td><code>admin1_proj1_A</code></td>
 </tr>
 </tbody>
 </table>
@@ -1408,11 +1408,11 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </thead>
 <tbody>
 <tr>
-<td>JHU users</td>
+<td>OrgA users</td>
 <td>10000+</td>
 </tr>
 <tr>
-<td>Schmidt users</td>
+<td>OrgB users</td>
 <td>30000+</td>
 </tr>
 <tr>

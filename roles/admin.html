@@ -42,7 +42,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     <div class="site-shell">
       
         <aside class="site-sidebar">
-          <div class="sidebar-brand">ARCH Portal</div>
+          <div class="sidebar-brand">Portal</div>
           <div class="sidebar-links">
             <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html" class="active">Admin</a>
           </div>
@@ -51,8 +51,8 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
       <main class="page-content">
         <div class="md-content"><h1>Admin — cluster / DevOps operator running start.sh and Ansible</h1>
 <h2>Who you are + scope</h2>
-<p>You operate the ARCH Portal stack on <strong>physical hosts</strong>: the dev VM on
-Proxmox, the <strong>edulogin</strong> bare-metal validation host, and the
+<p>You operate the Portal stack on <strong>physical hosts</strong>: the dev VM on
+Proxmox, the <strong>val-login</strong> bare-metal validation host, and the
 production <strong>portal</strong> bare-metal host. You run <code>./start.sh deploy /
 start / publish / promote</code>, you ship images to GHCR, you run
 <code>ansible-playbook</code> for the bare-metal Slurm cluster install, and you
@@ -67,16 +67,16 @@ other user does (<a href="user.md"><code>user.md</code></a>).</p>
 already <code>git clone</code>'d the repo at the canonical path on whatever host
 you are on.</p>
 <h3>1. Local laptop dev (Stage 1)</h3>
-<pre><code class="language-bash">cd ~/arch_jhu_dsai_schmidt
+<pre><code class="language-bash">cd ~/cloack-stack
 ./start.sh deploy dev -y --paid-accounts   # full clean + reseed dev stack
 bash scripts/verify-deploy.sh              # confirm 8/8 checks green
 </code></pre>
 <p>Use this when you want a clean known-good state. It wipes named
 volumes and reseeds 4 test users (<code>ext-staff</code>, <code>ext-user</code>,
-<code>ssci-staff</code>, <code>ssci-user</code>, password <code>123</code>).</p>
+<code>orgb-staff</code>, <code>orgb-user</code>, password <code>123</code>).</p>
 <h3>2. Build and publish on the Proxmox VM (Stage 2)</h3>
 <pre><code class="language-bash">ssh proxmox-vm
-cd ~/jhu-arch
+cd ~/example-org
 git pull origin dev
 ./start.sh start dev          # local build, no GHCR
 bash scripts/verify-deploy.sh # optional smoke
@@ -85,9 +85,9 @@ bash scripts/verify-deploy.sh # optional smoke
 <p>Publish refuses with a clear error when the working tree is dirty
 (the <code>:sha-*</code> tag would lie about content). Override with
 <code>--tag &lt;something-other-than-dev&gt;</code> if you genuinely want a throwaway tag.</p>
-<h3>3. Promote on edulogin (Stage 3)</h3>
-<pre><code class="language-bash">ssh edulogin
-cd ~/jhu-arch
+<h3>3. Promote on val-login (Stage 3)</h3>
+<pre><code class="language-bash">ssh val-login
+cd ~/example-org
 git pull origin dev                          # configs / templates only
 ./start.sh start --from-ghcr dev             # docker pull :dev, no build
 bash scripts/verify-deploy.sh                # mandatory pre-flight
@@ -101,7 +101,7 @@ deploy --from-ghcr</code> — it is hard-refused. Stages 3 and 4 must never
 populate test data (the deploy command's job).</p>
 <h3>4. Deploy on prod portal (Stage 4)</h3>
 <pre><code class="language-bash">ssh portal
-cd ~/jhu-arch
+cd ~/example-org
 git pull origin dev                          # configs only
 ./start.sh start --from-ghcr prod            # docker pull :prod, no build
 bash scripts/verify-deploy.sh
@@ -111,7 +111,7 @@ bash scripts/verify-deploy.sh
 bare-metal Ansible (see playbook recipes below). The compose overlay
 controls which one is active.</p>
 <h3>5. Bare-metal Slurm via Ansible</h3>
-<pre><code class="language-bash">cd ~/jhu-arch
+<pre><code class="language-bash">cd ~/example-org
 ./start.sh slurm ansible all                 # regenerate ansible/ tree
 ansible-playbook -i ansible/clusters/&lt;name&gt;/inventory.ini \
   ansible/slurm-server/playbook.yml          # slurmctld + slurmdbd + slurmrestd
@@ -169,32 +169,32 @@ and PAM stack.</p>
 <td>Proxmox</td>
 <td><code>./start.sh publish</code></td>
 <td><code>:dev</code> + <code>:sha-*</code> pushed to GHCR</td>
-<td><code>ghcr.io/jhu-arch/cloack/&lt;svc&gt;:dev</code> + <code>:sha-&lt;git-short&gt;</code></td>
+<td><code>ghcr.io/example-org/cloack/&lt;svc&gt;:dev</code> + <code>:sha-&lt;git-short&gt;</code></td>
 </tr>
 <tr>
-<td><strong>3</strong> edulogin bare-metal</td>
+<td><strong>3</strong> val-login bare-metal</td>
 <td>Linux amd64</td>
 <td><code>git pull origin dev</code></td>
-<td>Configs / templates on edulogin</td>
+<td>Configs / templates on val-login</td>
 <td>—</td>
 </tr>
 <tr>
 <td><strong>3</strong></td>
-<td>edulogin</td>
+<td>val-login</td>
 <td><code>./start.sh start --from-ghcr dev</code></td>
 <td>Stack runs the <code>:dev</code> images, no build</td>
 <td><code>ghcr.io/...:dev</code> pulled</td>
 </tr>
 <tr>
 <td><strong>3</strong></td>
-<td>edulogin</td>
+<td>val-login</td>
 <td><code>bash scripts/verify-deploy.sh</code></td>
 <td>8-check validation result</td>
 <td>—</td>
 </tr>
 <tr>
 <td><strong>3</strong></td>
-<td>edulogin</td>
+<td>val-login</td>
 <td><code>./start.sh promote</code></td>
 <td><code>:dev</code> retagged → <code>:prod</code> + <code>:rc-&lt;UTC&gt;</code></td>
 <td><code>ghcr.io/...:prod</code> + <code>:rc-*</code> pushed</td>
@@ -229,7 +229,7 @@ laptop ──push──&gt; origin            Stage 2 ──push :dev, :sha-*─
        ↑                                    ↓
 proxmox ──pull──&gt; origin           Stage 3 ──pull :dev, push :prod, :rc-*─&gt; GHCR
        ↑                                    ↓
-edulogin ──pull──&gt; origin          Stage 4 ──pull :prod
+val-login ──pull──&gt; origin          Stage 4 ──pull :prod
        ↑                                    ↑
 portal ──pull──&gt; origin            (portal never pushes)
 </code></pre>
@@ -254,7 +254,7 @@ portal ──pull──&gt; origin            (portal never pushes)
 <td><code>docker push :dev</code> + <code>:sha-*</code></td>
 </tr>
 <tr>
-<td>3 (edulogin)</td>
+<td>3 (val-login)</td>
 <td><code>GHCR_BUILDER_PAT</code> (write)</td>
 <td><code>docker pull :dev</code>, <code>docker push :prod</code> + <code>:rc-*</code></td>
 </tr>
@@ -265,10 +265,10 @@ portal ──pull──&gt; origin            (portal never pushes)
 </tr>
 </tbody>
 </table>
-<p>Registry path: <code>ghcr.io/jhu-arch/cloack/&lt;image&gt;:&lt;tag&gt;</code>.</p>
+<p>Registry path: <code>ghcr.io/example-org/cloack/&lt;image&gt;:&lt;tag&gt;</code>.</p>
 <p>Cross-org topology: the repo lives in the <code>cloack</code> GitHub org, packages
-live in the <code>jhu-arch</code> org. The two PATs are <strong>fine-grained</strong>, scoped
-to the <code>jhu-arch</code> org, and <strong>SSO-authorized</strong> for Johns Hopkins
+live in the <code>example-org</code> org. The two PATs are <strong>fine-grained</strong>, scoped
+to the <code>example-org</code> org, and <strong>SSO-authorized</strong> for the host institution
 University Enterprise. Rotation cadence: ≤ 1 year (fine-grained PAT
 maximum lifetime).</p>
 <h3>Image inventory (13 runtime — 7 cloack apps + 6 Slurm services; +<code>cn-rockylinux</code> build-only = 14 published)</h3>
@@ -456,15 +456,15 @@ to keep current behaviour.</p>
 <tbody>
 <tr>
 <td><code>ARCH_PUBLIC_HOST</code></td>
-<td>The portal FQDN (<code>portal.arch.jhu.edu</code>). Used everywhere.</td>
+<td>The portal FQDN (<code>portal.hpc.example.edu</code>). Used everywhere.</td>
 </tr>
 <tr>
-<td><code>KEYCLOAK_HOSTNAME_JHU</code></td>
-<td>JHU realm FQDN (<code>auth.arch.jhu.edu</code>). Empty → single-FQDN.</td>
+<td><code>KEYCLOAK_HOSTNAME_OrgA</code></td>
+<td>OrgA realm FQDN (<code>auth.hpc.example.edu</code>). Empty → single-FQDN.</td>
 </tr>
 <tr>
-<td><code>KEYCLOAK_HOSTNAME_SCHMIDT</code></td>
-<td>Schmidt realm FQDN. Empty → single-FQDN.</td>
+<td><code>KEYCLOAK_HOSTNAME_ORGB</code></td>
+<td>OrgB realm FQDN. Empty → single-FQDN.</td>
 </tr>
 <tr>
 <td><code>KC_HOSTNAME</code></td>
@@ -476,7 +476,7 @@ to keep current behaviour.</p>
 </tr>
 <tr>
 <td><code>HELPDESK_SCRIPT_NAME</code></td>
-<td><code>/helpdesk</code> in prod to route <code>portal.arch.jhu.edu/helpdesk</code> to the helpdesk container. Empty → no prefix.</td>
+<td><code>/helpdesk</code> in prod to route <code>portal.hpc.example.edu/helpdesk</code> to the helpdesk container. Empty → no prefix.</td>
 </tr>
 <tr>
 <td><code>CLOACK_IMAGE_TAG</code></td>
@@ -555,7 +555,7 @@ to keep current behaviour.</p>
 </tr>
 <tr>
 <td><code>configure_realm_frontend_urls</code> did nothing visible</td>
-<td><code>KEYCLOAK_HOSTNAME_JHU</code> / <code>_SCHMIDT</code> are empty</td>
+<td><code>KEYCLOAK_HOSTNAME_OrgA</code> / <code>_ORGB</code> are empty</td>
 <td>Set them in <code>.env</code> for multi-FQDN, or leave them empty for single-FQDN — the function is a no-op then by design</td>
 </tr>
 </tbody>

@@ -42,18 +42,18 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     <div class="site-shell">
       
         <aside class="site-sidebar">
-          <div class="sidebar-brand">ARCH Portal</div>
+          <div class="sidebar-brand">Portal</div>
           <div class="sidebar-links">
             <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html" class="active">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a>
           </div>
         </aside>
         
       <main class="page-content">
-        <div class="md-content"><h1>User — researcher running jobs on ARCH Portal</h1>
+        <div class="md-content"><h1>User — researcher running jobs on Portal</h1>
 <h2>Who you are + scope</h2>
-<p>You are a researcher with an ARCH Portal account: a JHU faculty / staff /
-student authenticating with <strong>JHED</strong>, an <strong>external collaborator</strong> with
-an <code>ext-*</code> username, or a <strong>Schmidt Sciences</strong> member with an <code>ssci-*</code>
+<p>You are a researcher with a Portal account: an OrgA faculty / staff /
+student authenticating with <strong>campus ID</strong>, an <strong>external collaborator</strong> with
+an <code>ext-*</code> username, or a <strong>OrgB Sciences</strong> member with an <code>orgb-*</code>
 username. Your day-to-day is submitting Slurm jobs, checking quotas
 and bills, and managing the data in your own <code>/home/</code> and <code>/scratch/</code>.</p>
 <p>If you also <strong>manage allocations</strong> for a project (request a new paid
@@ -72,31 +72,31 @@ If you are a member of the helpdesk team handling tickets, see
 </thead>
 <tbody>
 <tr>
-<td>JHED ID (e.g. <code>rdesouz4</code>)</td>
-<td>the JHU portal card</td>
-<td>Entra Federation → MFA from JHU (no separate password)</td>
+<td>campus ID (e.g. <code>admin1</code>)</td>
+<td>the OrgA portal card</td>
+<td>Entra Federation → MFA from OrgA (no separate password)</td>
 </tr>
 <tr>
 <td><code>ext-jsmith</code></td>
-<td>the JHU portal card</td>
+<td>the OrgA portal card</td>
 <td>LDAP password (set during registration) + TOTP (Keycloak account console)</td>
 </tr>
 <tr>
-<td><code>ssci-jsmith</code></td>
-<td>the Schmidt portal card</td>
+<td><code>orgb-jsmith</code></td>
+<td>the OrgB portal card</td>
 <td>LDAP password (set during registration) + TOTP (Keycloak account console)</td>
 </tr>
 </tbody>
 </table>
 <p>If you do not have an account yet:</p>
 <ul>
-<li><strong>JHED users</strong> — no registration form; just sign in via JHU SSO and
+<li><strong>campus ID users</strong> — no registration form; just sign in via OrgA SSO and
   the account is created on first login.</li>
-<li><strong><code>ext-*</code> users</strong> — open <code>/user/jhu/register/</code> on the portal, fill in
+<li><strong><code>ext-*</code> users</strong> — open <code>/user/orga/register/</code> on the portal, fill in
   the form (the username <strong>must</strong> start with <code>ext-</code>), then wait for your
   PI to add you to their project / allocation.</li>
-<li><strong><code>ssci-*</code> users</strong> — same flow but on <code>/user/schmidt/register/</code>, and
-  the username <strong>must</strong> start with <code>ssci-</code>.</li>
+<li><strong><code>orgb-*</code> users</strong> — same flow but on <code>/user/orgb/register/</code>, and
+  the username <strong>must</strong> start with <code>orgb-</code>.</li>
 </ul>
 <p>After your first successful login a banner at the top of every page
 prompts you to <strong>enrol TOTP</strong> in the Keycloak account console. Click
@@ -108,9 +108,9 @@ within 30 minutes once the periodic sync picks up the new credential.</p>
 </code></pre>
 <p>Authentication on login nodes uses the same identity as the portal:</p>
 <ul>
-<li><strong>JHED</strong> — browser-based Device Flow opens automatically; approve
+<li><strong>campus ID</strong> — browser-based Device Flow opens automatically; approve
   in your browser, complete MFA in Entra, the SSH session unblocks.</li>
-<li><strong><code>ext-*</code> / <code>ssci-*</code> / <code>cn=admin</code></strong> — terminal asks for your LDAP
+<li><strong><code>ext-*</code> / <code>orgb-*</code> / <code>cn=admin</code></strong> — terminal asks for your LDAP
   password and then a TOTP code (2 PAM prompts via <code>pam_kc_ssh.so</code>).</li>
 </ul>
 <h3>3. Submit your first job</h3>
@@ -122,12 +122,12 @@ before the job is admitted. Press <code>y</code> to confirm or <code>n</code> to
 <p>For longer jobs, use a script:</p>
 <pre><code class="language-bash">#!/bin/bash
 #SBATCH --partition=high
-#SBATCH --account=rdesouz4_proj1
+#SBATCH --account=admin1_proj1
 #SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --job-name=myrun
-#SBATCH --output=/home/jhu/rdesouz4/logs/%x-%j.out
+#SBATCH --output=/home/orga/admin1/logs/%x-%j.out
 
 module load anaconda
 python my_analysis.py
@@ -280,10 +280,10 @@ jobs. Storage charges show up on your PI's billing report under
 <td>Higher priority on <code>premium</code> partition.</td>
 </tr>
 <tr>
-<td><code>ssci</code></td>
+<td><code>orgb</code></td>
 <td>normal</td>
 <td>per partition</td>
-<td>Free QoS for <code>ssci-*</code> accounts on paid partitions (Schmidt Sciences funded).</td>
+<td>Free QoS for <code>orgb-*</code> accounts on paid partitions (OrgB Sciences funded).</td>
 </tr>
 </tbody>
 </table>
@@ -451,7 +451,7 @@ runaways well before the bill bites.</p>
 </tr>
 <tr>
 <td><code>sbatch: error: Invalid account or account/partition combination</code></td>
-<td>The account you passed (e.g. <code>rdesouz4_proj1</code>) has no QoS that admits jobs on that partition</td>
+<td>The account you passed (e.g. <code>admin1_proj1</code>) has no QoS that admits jobs on that partition</td>
 <td>Use <code>sassoc</code> to see which <code>account × partition</code> pairs you can submit to</td>
 </tr>
 <tr>
@@ -475,7 +475,7 @@ runaways well before the bill bites.</p>
 <td>This is by design — GPU jobs charge GPU only; CPU hours are shown for transparency</td>
 </tr>
 <tr>
-<td><code>Permission denied</code> editing <code>/scratch/jhu/myproject</code></td>
+<td><code>Permission denied</code> editing <code>/scratch/orga/myproject</code></td>
 <td>The directory belongs to the PI, not you</td>
 <td>Ask your PI to add you to the project / allocation in ColdFront</td>
 </tr>

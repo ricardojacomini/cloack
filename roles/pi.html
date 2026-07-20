@@ -42,7 +42,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     <div class="site-shell">
       
         <aside class="site-sidebar">
-          <div class="sidebar-brand">ARCH Portal</div>
+          <div class="sidebar-brand">Portal</div>
           <div class="sidebar-links">
             <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html" class="active">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a>
           </div>
@@ -51,7 +51,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
       <main class="page-content">
         <div class="md-content"><h1>PI — managing a project, its allocations, and billing</h1>
 <h2>Who you are + scope</h2>
-<p>You are a <strong>Principal Investigator</strong> with an ARCH Portal account that has the
+<p>You are a <strong>Principal Investigator</strong> with a Portal account that has the
 PI flag on your <code>UserProfile</code>. You own one or more <strong>Projects</strong>, request
 <strong>Allocations</strong> against them (default scavenger / paid Pay-Per-Use /
 condo Hardware-Credit), set Weekly Caps, add users to your projects,
@@ -89,8 +89,8 @@ etc.) when you create it.</p>
 <h3>3. Add users to a project</h3>
 <pre><code>/project/&lt;id&gt;/ → &quot;Add Users&quot;
 </code></pre>
-<p>Users must already have an ARCH Portal account (registered via
-<code>/user/jhu/register/</code> or <code>/user/schmidt/register/</code>) and they must have
+<p>Users must already have a Portal account (registered via
+<code>/user/orga/register/</code> or <code>/user/orgb/register/</code>) and they must have
 accepted the current ToS. Once you add them, the Slurm associations
 provision in real time via the post-save signal — they can submit
 jobs against the allocation immediately.</p>
@@ -164,8 +164,8 @@ are excluded from the total due (the GPU-only billing rule, sourced in
 <td><strong>No Charge</strong> — auto-set by <code>_ensure_allocation_billing</code> signal</td>
 </tr>
 <tr>
-<td>Schmidt PI (<code>ssci-*</code>)</td>
-<td><strong>No Charge</strong> — funded by the Schmidt programme</td>
+<td>OrgB PI (<code>orgb-*</code>)</td>
+<td><strong>No Charge</strong> — funded by the OrgB programme</td>
 </tr>
 <tr>
 <td>Paid project, IO number, no upfront hardware purchase</td>
@@ -184,7 +184,7 @@ are excluded from the total due (the GPU-only billing rule, sourced in
   → Link Cost Center to a project       → ProjectCostCenter M2M
   → Assign a Cost Center to an allocation → AllocationCostCenter M2M
 </code></pre>
-<p>ColdFront enforces the Slurm gate: a paid JHU allocation without a
+<p>ColdFront enforces the Slurm gate: a paid OrgA allocation without a
 <strong>pay-role</strong> Cost Center linked at the project AND allocation level is
 silently skipped by <code>slurm_sync</code> (no Slurm account created).</p>
 <h3>Weekly Cap: dollars vs hours</h3>

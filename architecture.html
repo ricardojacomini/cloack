@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ARCH Portal — Architecture (dev v0.3)</title>
+  <title>Portal — Architecture (dev v0.3)</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
   <style>
 body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
@@ -43,7 +43,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
   <div class="site-shell">
     
     <aside class="site-sidebar">
-      <div class="sidebar-brand">ARCH Portal</div>
+      <div class="sidebar-brand">Portal</div>
       <div class="sidebar-links">
         <a href="index.html">Home</a><a href="readme.html">README</a><a href="cloack.html">CLOACK</a><a href="architecture.html" class="active">Architecture</a><a href="cluster-models.html">Cluster Models</a><a href="help.html">Help</a><a href="help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="roles/index.html">User Guide (by role)</a>
       </div>
@@ -211,12 +211,12 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     <div class="ca-block b-orange" data-toggle="modal" data-target="#modal-dev-keycloak">
       <span class="ca-badge bg-orange">OIDC</span>
       <h6>Keycloak</h6>
-      <small>JHU + Schmidt realms<br>:8080</small>
+      <small>OrgA + OrgB realms<br>:8080</small>
     </div>
     <div class="ca-block b-blue" data-toggle="modal" data-target="#modal-dev-ldap">
       <span class="ca-badge bg-blue">Directory</span>
       <h6>OpenLDAP</h6>
-      <small>ou=jhu &middot; ou=schmidt<br>:636</small>
+      <small>ou=orga &middot; ou=orgb<br>:636</small>
     </div>
     <div class="ca-block b-green" data-toggle="modal" data-target="#modal-dev-postgres">
       <span class="ca-badge bg-green">Database</span>
@@ -323,15 +323,15 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
   <div class="ca-layer-title">Slurm Account Hierarchy</div>
   <div style="font-family: monospace; font-size: 0.85rem; color: #c8d6e5; line-height: 1.7; padding: 8px;">
     <span style="color:#4a9eff;">root</span><br>
-    &ensp;&#9500;&#9472; <span style="color:#f39c12;">jhu</span> [20] <span style="color:#5a6d7f;">(organization)</span><br>
+    &ensp;&#9500;&#9472; <span style="color:#f39c12;">orga</span> [20] <span style="color:#5a6d7f;">(organization)</span><br>
     &ensp;&#9474;&ensp;&ensp;&#9500;&#9472; <span style="color:#9b59b6;">it</span> <span style="color:#5a6d7f;">(school)</span><br>
     &ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9500;&#9472; <span style="color:#00cec9;">arch</span> <span style="color:#5a6d7f;">(department)</span><br>
-    &ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9500;&#9472; <span style="color:#27ae60;">rdesouz4</span> <span style="color:#5a6d7f;">&larr; default (scavenger)</span><br>
-    &ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9492;&#9472; <span style="color:#f39c12;">rdesouz4_proj1</span> <span style="color:#5a6d7f;">&larr; paid (premium)</span><br>
-    &ensp;&#9492;&#9472; <span style="color:#f39c12;">schmidt</span> [80] <span style="color:#5a6d7f;">(organization)</span><br>
-    &ensp;&ensp;&ensp;&ensp;&#9492;&#9472; <span style="color:#9b59b6;">ssci</span> <span style="color:#5a6d7f;">(school)</span><br>
+    &ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9500;&#9472; <span style="color:#27ae60;">admin1</span> <span style="color:#5a6d7f;">&larr; default (scavenger)</span><br>
+    &ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9474;&ensp;&ensp;&#9492;&#9472; <span style="color:#f39c12;">admin1_proj1</span> <span style="color:#5a6d7f;">&larr; paid (premium)</span><br>
+    &ensp;&#9492;&#9472; <span style="color:#f39c12;">orgb</span> [80] <span style="color:#5a6d7f;">(organization)</span><br>
+    &ensp;&ensp;&ensp;&ensp;&#9492;&#9472; <span style="color:#9b59b6;">orgb</span> <span style="color:#5a6d7f;">(school)</span><br>
     &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&#9492;&#9472; <span style="color:#00cec9;">ss</span> <span style="color:#5a6d7f;">(department)</span><br>
-    &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&#9492;&#9472; <span style="color:#27ae60;">ssci-gomes</span> <span style="color:#5a6d7f;">&larr; always free (ssci-*)</span>
+    &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&#9492;&#9472; <span style="color:#27ae60;">orgb-pi003</span> <span style="color:#5a6d7f;">&larr; always free (orgb-*)</span>
   </div>
 </div>
 
@@ -426,7 +426,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
   <div class="modal-header"><h5 class="modal-title" style="color:#27ae60;">&#128100; User</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
   <div class="modal-body">
     <ul>
-      <li>Login via Keycloak (OIDC) &mdash; JHU Entra ID or Schmidt LDAP</li>
+      <li>Login via Keycloak (OIDC) &mdash; OrgA Entra ID or OrgB LDAP</li>
       <li>Submit jobs via CLI (<code>sbatch</code>) or ColdFront UI</li>
       <li>View job metrics and usage dashboard</li>
       <li>Scoped to PI&rsquo;s allocation and Slurm account</li>
@@ -474,17 +474,17 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
       <tr><td>Port</td><td><code>8080</code></td></tr>
       <tr><td>Protocol</td><td>OpenID Connect (OIDC)</td></tr>
     </table>
-    <h6>JHU Realm</h6>
+    <h6>OrgA Realm</h6>
     <ul>
       <li>Entra ID (Azure AD) identity federation</li>
-      <li>LDAP user federation (ou=jhu)</li>
-      <li>Backend: <code>JhuOIDCBackend</code></li>
+      <li>LDAP user federation (ou=orga)</li>
+      <li>Backend: <code>OrgAOIDCBackend</code></li>
     </ul>
-    <h6>Schmidt Realm</h6>
+    <h6>OrgB Realm</h6>
     <ul>
-      <li>LDAP user federation only (ou=schmidt)</li>
-      <li>Backend: <code>SchmidtOIDCBackend</code></li>
-      <li>Accounts: <code>ssci-*</code> prefix (always free)</li>
+      <li>LDAP user federation only (ou=orgb)</li>
+      <li>Backend: <code>OrgBOIDCBackend</code></li>
+      <li>Accounts: <code>orgb-*</code> prefix (always free)</li>
     </ul>
   </div>
 </div></div></div>
@@ -499,8 +499,8 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
     </table>
     <h6>Organization Units</h6>
     <ul>
-      <li><code>ou=jhu</code> &mdash; JHU users (UID 10000+, GID 10000+)</li>
-      <li><code>ou=schmidt</code> &mdash; Schmidt users (UID 30000+, GID 30000+)</li>
+      <li><code>ou=orga</code> &mdash; OrgA users (UID 10000+, GID 10000+)</li>
+      <li><code>ou=orgb</code> &mdash; OrgB users (UID 30000+, GID 30000+)</li>
       <li>Each OU has <code>ou=People</code> + <code>ou=Groups</code></li>
     </ul>
     <h6>Integration</h6>
@@ -688,7 +688,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
   <div class="modal-header"><h5 class="modal-title" style="color:#8a9bb0;">sync_ldap_all &mdash; Daily 2:00 AM</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
   <div class="modal-body">
     <ul>
-      <li>Syncs all LDAP users (ou=jhu + ou=schmidt) into Django User table</li>
+      <li>Syncs all LDAP users (ou=orga + ou=orgb) into Django User table</li>
       <li>Updates first/last name, email from LDAP attributes</li>
       <li>Creates home directories for new users</li>
       <li>Creates PI groups in LDAP for new PIs</li>
