@@ -226,7 +226,7 @@ Use `start.sh` to manage the full CLOACK stack. It wraps `docker compose` with i
 | `./start.sh reconf` | Push updated `slurm.conf` to all nodes (`scontrol reconfigure`) |
 | `./start.sh test [dev] [MODULE]` | Run Django unit tests (default: all cloack_sync tests). Example: `./start.sh test coldfront.plugins.cloack_sync.tests.test_billing` |
 | `./start.sh helpdesk {start\|stop\|restart\|status\|destroy\|log\|populate}` | Manage the Helpdesk service. `populate` creates sample queues and tickets (idempotent) |
-| `./start.sh mta {create\|start\|stop\|status\|log}` | Manage the inbound-email MTA (`my_cluster-mta` postfix, edge profile). Receives SMTP via the NPM `:25` stream → Maildir → Helpdesk tickets. `--from-ghcr` pulls the published image |
+| `./start.sh mta {create\|start\|stop\|status\|log}` | Manage the `my_cluster-mta` postfix container (edge profile). Two modes via `MTA_MODE` in `mta.env`: `outbound` — stack-internal submission relay (helpdesk/ColdFront/Slurm `MailProg` point `EMAIL_HOST=my_cluster-mta:25` at it; delivery via the `MTA_RELAYHOST` smart host); `inbound` (legacy default) — NPM `:25` stream → Maildir → Helpdesk tickets, superseded by OAuth IMAP intake. `--from-ghcr` pulls the published image |
 | `./start.sh help` | Show usage |
 
 ### Quick start
