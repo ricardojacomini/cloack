@@ -391,7 +391,12 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <h3>Storage (Hot &amp; Cold) — WekaFS integration</h3>
 <p>Hot storage is provisioned WekaFS project space; cold storage is the backup
 service. Both are requested per project (Hot/Cold Storage checkboxes) and
-billed per TB-month.</p>
+billed per TB-month. Provisioning creates <strong>one WekaFS filesystem per PI</strong>
+with replace semantics (the filesystem tracks the summed request exactly, in
+decimal TB): the Hot sum becomes the Weka <code>total_capacity</code>, the Cold sum its
+SSD share (<code>ssd_capacity</code>), and the remainder tiers to the object store —
+Weka requires <code>ssd_capacity &lt;= total_capacity</code>, so the forms enforce total
+Cold &lt; total Hot across the PI's projects.</p>
 <table>
 <thead>
 <tr>
@@ -415,7 +420,7 @@ billed per TB-month.</p>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Create + Update forms with validation</td>
+<td>Create + Update forms with validation (total Cold &lt; total Hot at PI-level sums)</td>
 </tr>
 <tr>
 <td>AllocationBilling storage/backup</td>
@@ -430,6 +435,20 @@ billed per TB-month.</p>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
 <td>BillingRate types: <code>storage</code> (TB/month), <code>backup</code> (TB/month)</td>
+</tr>
+<tr>
+<td>Per-PI WekaFS auto-provisioning</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>provision_wekafs_for_project</code> — decimal TB, replace semantics (grows and shrinks; Weka blocks shrink below used data), tiering via <code>WEKAFS_OBS_NAME</code> (create-only)</td>
+</tr>
+<tr>
+<td>Weka API debug log</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>WEKAFS_DEBUG=true</code> in <code>wekafs.env</code> → daily JSONL under <code>${BASE_DATA}/coldfront/log/wekafs/</code></td>
 </tr>
 </tbody>
 </table>
