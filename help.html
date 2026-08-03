@@ -799,6 +799,67 @@ PartitionName=batch Nodes=cn-01,cn-02 Default=YES MaxTime=1:00:00 State=UP Allow
                 
 
                 <div class="card">
+                  <div class="card-header" id="h33">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c33"
+                              aria-expanded="false">WekaFS Tiering — Hot/Cold Capacity Mapping</button>
+                    </h5>
+                  </div>
+                  <div id="c33" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>One WekaFS filesystem per PI.</strong> ColdFront sums the PI's
+storage-enabled projects and provisions the filesystem with <em>replace
+semantics</em>: the FS tracks the summed request exactly (grows and shrinks;
+Weka itself refuses any shrink below used data, which surfaces as a sync
+error).</p>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr><th>Portal field</th><th>Weka payload</th><th>Actual temperature</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Hot Storage (&Sigma; <code>storage_tb</code>)</td>
+      <td><code>total_capacity</code></td>
+      <td>hot + cold combined (the filesystem size)</td>
+    </tr>
+    <tr>
+      <td>Cold Storage (&Sigma; <code>backup_tb</code>)</td>
+      <td><code>ssd_capacity</code></td>
+      <td><strong>hot</strong> SSD share &#9888;</td>
+    </tr>
+    <tr>
+      <td>Hot &minus; Cold</td>
+      <td>tiered to <code>obs_name</code></td>
+      <td>cold (object store)</td>
+    </tr>
+  </tbody>
+</table>
+<p>Weka rule: <code>ssd_capacity &le; total_capacity</code> &mdash; the SSD
+share is a slice of the total, not an addition to it, and tiering only
+activates when it is strictly smaller. That is why the portal enforces
+<em>total Cold Storage &lt; total Hot Storage across all of the PI's
+projects</em> (validated at PI-level sums on the Create/Update Project
+forms).</p>
+<p><strong>Label inversion (staff awareness):</strong> the portal's
+<em>Cold Storage</em> value actually sets the SSD (hot) share; the truly
+cold, object-store portion is Hot &minus; Cold. PI-facing forms deliberately
+show only the simple rule. Tiering requires <code>WEKAFS_OBS_NAME</code> in
+the environment and applies at filesystem <em>creation</em> only &mdash;
+attaching an object store to an existing filesystem is a manual
+<code>weka fs tier obs attach</code> (or delete + re-sync).</p>
+<p><strong>Debugging:</strong> set <code>WEKAFS_DEBUG=true</code> in
+<code>wekafs.env</code> and run <code>./start.sh wekafs-sync</code>; every
+API call and provisioning decision is appended as JSON lines under
+<code>${BASE_DATA}/coldfront/log/wekafs/</code>. Reference:
+<a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
+lifecycle overview</a>.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h10">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"

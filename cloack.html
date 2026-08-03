@@ -938,7 +938,7 @@ Cold &lt; total Hot across the PI's projects.</p>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>FollowUpMeta</code>: note kind (tech/RCA/internal/decision/customer_reply) + email class (FQR/strike 1-3/LQR); picking a classification pastes <code>ResponseTemplate.body</code> with <code>{name}</code>/<code>{your_name}</code>/<code>{issue}</code>/<code>{ticket_number}</code>/<code>{survey_url}</code>/<code>{signature}</code> already substituted (pre_save scrub safety net catches bypassed tokens); advances <code>TicketFollowUpTracker</code></td>
+<td><code>FollowUpMeta</code>: note kind (tech/RCA/internal/decision/customer_reply) + email class (FQR/strike 1-3/LQR); picking a classification pastes <code>ResponseTemplate.body</code> with <code>{name}</code>/<code>{your_name}</code>/<code>{issue}</code>/<code>{ticket_number}</code>/<code>{survey_url}</code>/<code>{signature}</code>/<code>{help_email}</code> already substituted (pre_save scrub safety net catches bypassed tokens); <code>{name}</code> resolves the submitter's real name via helpdesk User → ColdFront API → LDAP, <code>{help_email}</code> picks the affiliation's tracked mailbox (orgb-* → orgb@alt.example.edu, else my_cluster@alt.example.edu); advances <code>TicketFollowUpTracker</code></td>
 </tr>
 <tr>
 <td>Helpdesk AI triage + pre-diagnosis (local-only LLM)</td>
