@@ -718,6 +718,55 @@ root
                 
 
                 <div class="card">
+                  <div class="card-header" id="h34">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c34"
+                              aria-expanded="false">Per-allocation QoS / DefaultQoS Override</button>
+                    </h5>
+                  </div>
+                  <div id="c34" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Two free-text attributes on every allocation &mdash; <strong>QoS</strong>
+(the allowed QOS list) and <strong>DefaultQoS</strong> (the single default)
+&mdash; let you pin exactly which Slurm QOS an account may use, e.g. to keep a
+group off partitions they shouldn't reach. They live in the
+<em>Allocation Attributes</em> table on the Allocation Detail page and are
+editable inline by staff (PIs see them read-only).</p>
+<p><strong>Why this exists:</strong> ColdFront is the source of truth and the
+<code>sync_slurm</code> task re-asserts each account's QOS every 15 minutes, so a
+manual <code>sacctmgr modify ... set defaultqos=</code> is reverted on the next
+pass. Filling these attributes makes the sync <em>enforce</em> your restriction
+instead of reverting it.</p>
+<table class="table table-sm table-bordered">
+  <thead><tr><th>QoS</th><th>DefaultQoS</th><th>Result on the account</th></tr></thead>
+  <tbody>
+    <tr><td><code>normal,scavenger</code></td><td><code>scavenger</code></td>
+        <td>QOS list = normal,scavenger; DefaultQOS = scavenger</td></tr>
+    <tr><td><code>normal,scavenger</code></td><td><em>(blank)</em></td>
+        <td>Default = first of the list (normal)</td></tr>
+    <tr><td><em>(blank)</em></td><td><code>scavenger</code></td>
+        <td>List locked to [scavenger]</td></tr>
+    <tr><td><em>(both blank)</em></td><td><em>(both blank)</em></td>
+        <td>No override &mdash; cluster default (paid/free tier logic)</td></tr>
+  </tbody>
+</table>
+<p><strong>Rules:</strong> a QOS name must exist on the allocation's cluster (the
+input offers a datalist of known names, but free text is allowed). DefaultQoS
+should be one of the QoS values; if it isn't, the sync appends it automatically
+(Slurm requires <code>DefaultQOS &isin; QOS</code>). Saving either attribute
+immediately queues a per-allocation sync &mdash; no manual step. To lift the
+restriction, blank both fields and the account returns to the computed cluster
+default.</p>
+<p>Verify on the controller (no <code>-M</code> flag):
+<code>sacctmgr show assoc where account=&lt;acct&gt;
+format=Account,User,QOS,DefaultQOS -P</code>.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h7">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"

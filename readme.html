@@ -1609,12 +1609,9 @@ SLURM_NOOP=0
 <td><code>storage_tb</code> / <code>backup_tb</code></td>
 <td>Provisioned storage/backup in TB (multiplied by <code>storage</code>/<code>backup</code> rate per month)</td>
 </tr>
-<tr>
-<td><code>qos</code></td>
-<td>FK to SlurmQOS — overrides cluster default (e.g. <code>interactive</code>)</td>
-</tr>
 </tbody>
 </table>
+<p><strong>Per-allocation QOS override</strong> moved off this model (migration <code>0122</code>): set the free-text <code>QoS</code> (allowed list, comma-separated) and <code>DefaultQoS</code> (single) <strong>AllocationAttributes</strong> on the allocation — staff-editable inline on <strong>Allocation Detail → Allocation Attributes</strong>. A filled value forces the account <strong>and all its user associations</strong> to exactly that QOS list/default on every sync (extras such as a legacy <code>all</code> are stripped); blank falls through to the cluster default. The staff <strong>Sync QOS</strong> button on that page (<code>allocation-sync-now</code>) applies it immediately instead of waiting for the 15-min sync.</p>
 <h4>3. <code>HardwareCreditPool</code> — <code>/admin/cloack_sync/hardwarecreditpool/</code></h4>
 <p>When a PI buys hardware, the dollar value is converted into prepaid compute credits. Credits cover compute hours only; O&amp;M is billed in cash via <code>*_om</code> rates.</p>
 <table>
