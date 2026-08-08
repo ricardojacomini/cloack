@@ -985,7 +985,7 @@ srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
 <h3>Seeding (per cluster, idempotent)</h3>
 <pre><code class="language-bash">./start.sh populate dev --partitions a100,l40s,h100,h200,low,med,high,scavenger
 </code></pre>
-<p><code>SlurmPartition</code> records are created per <code>SlurmCluster</code> from the <code>--partitions</code> CSV. <code>SlurmQOS</code> records (scavenger / interactive / normal / premium) are seeded automatically by <code>slurm_sync</code> and do not require a CLI flag. Multi-cluster federation: each <code>SlurmCluster</code> gets its own copy.</p>
+<p><code>SlurmPartition</code> records are created per <code>SlurmCluster</code> from the <code>--partitions</code> CSV. <code>SlurmQOS</code> records (scavenger / interactive / normal / premium / orgb) are seeded automatically per cluster and do not require a CLI flag; only rows flagged <code>ensure_in_slurm=True</code> are ever created in Slurm by <code>slurm_sync</code> (no hardcoded fallback — externally-managed clusters keep their own QOS). Multi-cluster federation: each <code>SlurmCluster</code> gets its own copy.</p>
 <hr />
 <h2>Billing &amp; Invoicing System</h2>
 <p>CLOACK includes a comprehensive billing system built into ColdFront to track resource usage (compute, GPU, storage, backup) and manage invoicing for OrgA and OrgB Sciences allocations.</p>
