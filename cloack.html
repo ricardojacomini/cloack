@@ -991,7 +991,7 @@ create and update, so staff can provision manually while auto-sync is off.</p>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Three tabs on <code>/dashboard/</code>: <strong>Department/Project</strong>, <strong>PI</strong>, <strong>Resource</strong>. Resource tab carries a combo (GPU/CPU/Storage/Backup) populated dynamically from ColdFront <code>GET /api/v1/resources/catalog/</code> — GPU items from <code>SlurmPartition.hardware</code> distinct, CPU items from partition names, Storage/Backup from <code>AllocationBilling</code>. Per-item columns + the matching usage metric (<code>gpu_hours</code>/<code>cpu_hours</code>/<code>storage_tb</code>/<code>backup_tb</code>) merged from <code>GET /api/v1/stats/slurm/?metric=...</code>. Graceful degradation to a GPU-only view when ColdFront is offline.</td>
+<td>Three tabs on <code>/dashboard/</code>: <strong>Department/Project</strong>, <strong>PI</strong>, <strong>Resource</strong>. Resource tab carries a combo (GPU/CPU/Storage/Backup) populated dynamically from ColdFront <code>GET /api/v1/resources/catalog/</code> — GPU items from <code>SlurmPartition.hardware</code> distinct, CPU items from partition names (both only where <code>is_available=True</code>, so retired partitions never surface as columns), Storage/Backup from <code>AllocationBilling</code>. Per-item columns + the matching usage metric (<code>gpu_hours</code>/<code>cpu_hours</code>/<code>storage_tb</code>/<code>backup_tb</code>) merged from <code>GET /api/v1/stats/slurm/?metric=...</code>. Graceful degradation to a GPU-only view when ColdFront is offline.</td>
 </tr>
 <tr>
 <td>Resource + PI/Project auto-link on new tickets</td>
