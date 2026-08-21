@@ -1480,6 +1480,15 @@ SLURM_NOOP=0
 - Verify rate <code>effective_from</code> date is on or before the billing period
 - Check rate <code>effective_to</code> date is after the period (or NULL for ongoing rates)
 - Confirm cluster/partition match your allocation</p>
+<p><strong><code>IntegrityError: duplicate key value violates unique constraint "..._pkey"</code> on new inserts?</strong>
+- The table's auto-increment sequence is behind <code>max(id)</code> — happens after any import/restore
+  that wrote rows with explicit primary keys (legacy DB migration, partial <code>pg_restore</code>,
+  <code>loaddata</code>, upstream seed commands). Symptoms range from failed project auto-creation on
+  PI promotion to a silently frozen <code>collect_sacct</code>.
+- Fix: <code>docker exec coldfront coldfront resync_sequences</code> (add <code>--check</code> to report without
+  changing anything). Covers both serial and Django ≥4.1 identity sequences across the
+  <code>default</code> and <code>slurm</code> databases; idempotent. Also runs automatically at container boot
+  (entrypoint, after migrate + seed).</p>
 <hr />
 <h2>Populating Synthetic Data for Testing</h2>
 <p>For development and testing, use <code>./start.sh populate dev</code> to seed departments, billing structure, and SLURM usage data in one command.</p>
