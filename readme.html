@@ -2241,6 +2241,14 @@ OK
 <td>Creates default project + allocation + Slurm account automatically</td>
 </tr>
 <tr>
+<td>Storage Review</td>
+<td>Approve/deny Project Storage requests at /staff/storage-review/ — approving applies the values, recalculates billing, and provisions WekaFS when sync is enabled (manual via the SKIPJACK ticket otherwise). "PI Cache after approve" previews the PI's summed cache vs the 10 TB cap; above-cap approvals need the explicit "Approve (override cap)" button (storage is paid — the override grants and bills what was requested; PIs paying for above-cap cache on an ongoing basis get their per-PI cap raised in Admin instead)</td>
+</tr>
+<tr>
+<td>Edit Provisioned</td>
+<td>Staff-only button on the Project Storage card — sets the provisioned Cache/total directly (audited, billing recalculated) without the request round-trip; for correcting legacy values or reconciling the ledger with the real backend. <code>coldfront legacy_storage_to_review [--yes]</code> bulk-converts pre-review-flow storage values into pending requests (old hot+cold rows normalized to total = hot + cold)</td>
+</tr>
+<tr>
 <td>Elevated approvals</td>
 <td>Grant via Admin &gt; User profiles &gt; "Elevate to superuser for approvals" — allows scoped staff to approve/deny without full superuser</td>
 </tr>
