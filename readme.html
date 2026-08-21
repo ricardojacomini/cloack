@@ -1488,7 +1488,10 @@ SLURM_NOOP=0
 - Fix: <code>docker exec coldfront coldfront resync_sequences</code> (add <code>--check</code> to report without
   changing anything). Covers both serial and Django ≥4.1 identity sequences across the
   <code>default</code> and <code>slurm</code> databases; idempotent. Also runs automatically at container boot
-  (entrypoint, after migrate + seed).</p>
+  (entrypoint, after migrate + seed).
+- The helpdesk database is a separate Django project with its own twin command:
+  <code>docker exec helpdesk python /opt/helpdesk/manage.py resync_sequences</code> (same flags,
+  same boot-time hook). A full host sweep is both commands.</p>
 <hr />
 <h2>Populating Synthetic Data for Testing</h2>
 <p>For development and testing, use <code>./start.sh populate dev</code> to seed departments, billing structure, and SLURM usage data in one command.</p>
