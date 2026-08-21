@@ -83,7 +83,7 @@ TOTP via the Keycloak account console (same as every other regular
 <h3>1. Approve / deny an allocation request</h3>
 <pre><code>/admin/allocation/allocation/?status__name=New
   → open the allocation
-  → review IO, storage, backup, Weekly Cap
+  → review IO, Project Storage, Weekly Cap
   → action &quot;Approve&quot; or &quot;Deny&quot; (deny requires a reason)
 </code></pre>
 <p>Approval triggers <code>on_allocation_activated</code>, which provisions the

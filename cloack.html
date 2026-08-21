@@ -388,19 +388,23 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <p>Instead of creating per-allocation QOS (<code>wk_{id}</code>), the cap is enforced at the <strong>account association level</strong>:</p>
 <pre><code class="language-bash">sacctmgr modify account where name=pi001_f01_a set GrpTRESMins=billing=1800000
 </code></pre>
-<h3>Storage (Hot &amp; Cold) — WekaFS integration</h3>
-<p>Hot storage is provisioned WekaFS project space; cold storage is the backup
-service. Both are requested per project (Hot/Cold Storage checkboxes) and
-billed per TB-month. Provisioning creates <strong>one WekaFS filesystem per PI</strong>
-with replace semantics (the filesystem tracks the summed request exactly, in
-decimal TB): the Cold sum becomes the Weka <code>total_capacity</code>, the Hot sum its
-SSD share (<code>ssd_capacity</code>), and the remainder (Cold − Hot) tiers to the
-object store — Weka requires <code>ssd_capacity &lt;= total_capacity</code>, so the forms
-enforce total Cold &gt;= total Hot across the PI's projects, plus a cap on
-total Hot (<code>WEKAFS_PI_HOT_CAP_TB</code>, default 10 TB). A PI requesting no Cold
-storage gets an all-SSD filesystem sized to the Hot sum. A paid project's
-storage request opens a helpdesk ticket (routed by PI affiliation) on both
-create and update, so staff can provision manually while auto-sync is off.</p>
+<h3>Project Storage — WekaFS integration</h3>
+<p><strong>Project Storage</strong> is the Weka filesystem as a single thing: its value is the
+TOTAL capacity and it INCLUDES the <strong>Cache</strong> (the flash/SSD share — "10T hot +
+20T cold" in the old vocabulary = cache 10 / total 30). PIs request it from the
+<strong>Project Storage card on Project Detail</strong> (the Create/Update Project forms no
+longer carry storage): the request is pending until staff approves or denies it
+in the <strong>Storage Review</strong> queue. Approval applies the values to the project,
+recalculates AllocationBilling, and best-effort provisions WekaFS (no-op while
+the cluster kill-switch is off — the SKIPJACK ticket opened at submit covers
+manual provisioning). Provisioning creates <strong>one WekaFS filesystem per PI</strong>
+with replace semantics (decimal TB): the Project Storage sum becomes the Weka
+<code>total_capacity</code>, the Cache sum its <code>ssd_capacity</code> — Weka requires
+<code>ssd_capacity &lt;= total_capacity</code>, so validation enforces Cache &lt;= Project
+Storage at PI-level sums, plus a Cache cap (<code>WEKAFS_PI_HOT_CAP_TB</code>, default
+10 TB, per-PI override on the user profile). Over-cap requests need a
+justification and an explicit "Approve (override cap)" (audited). Legacy field
+names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Project Storage total.</p>
 <table>
 <thead>
 <tr>
@@ -413,32 +417,46 @@ create and update, so staff can provision manually while auto-sync is off.</p>
 </thead>
 <tbody>
 <tr>
-<td>Project storage/backup fields</td>
+<td>Project storage fields</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>storage_enabled</code>, <code>storage_tb</code>, <code>backup_enabled</code>, <code>backup_tb</code> on Project model</td>
+<td><code>storage_enabled</code>, <code>storage_tb</code> (Cache), <code>backup_enabled</code>, <code>backup_tb</code> (Project Storage total) on Project model</td>
 </tr>
 <tr>
-<td>Storage/backup on project forms</td>
+<td>StorageRequest lifecycle</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Create + Update forms with validation (total Cold &gt;= total Hot + 10 TB Hot cap at PI-level sums)</td>
+<td>pending → approve/deny/cancel; one pending per project; snapshots at submit; <code>cap_override</code> audit flag</td>
 </tr>
 <tr>
-<td>AllocationBilling storage/backup</td>
+<td>Storage Review queue</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>storage_tb</code>, <code>backup_tb</code> fields for billing</td>
+<td><code>/staff/storage-review/</code> — superuser or staff with elevate_to_superuser; "PI Cache after approve" cap column; deny with reason</td>
 </tr>
 <tr>
-<td>Storage/backup billing rates</td>
+<td>Per-PI Cache cap override</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>BillingRate types: <code>storage</code> (TB/month), <code>backup</code> (TB/month)</td>
+<td><code>UserProfile.wekafs_cache_cap_tb</code> (blank = default 10 TB), editable on Staff User Profile + admin</td>
+</tr>
+<tr>
+<td>AllocationBilling storage fields</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>storage_tb</code> (Cache), <code>backup_tb</code> (Project Storage) — synced on approval via billing rules</td>
+</tr>
+<tr>
+<td>Storage billing rates</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>BillingRate types (keys frozen): <code>storage</code> = Cache TB/month, <code>backup</code> = Project Storage TB/month</td>
 </tr>
 <tr>
 <td>Per-PI WekaFS auto-provisioning</td>

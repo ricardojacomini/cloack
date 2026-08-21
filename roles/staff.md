@@ -63,7 +63,7 @@ ticket → "Escalate" action               → applies the StaffMember.policy
 /dashboard/                              → 3 tabs:
                                             • Department / Project
                                             • PI
-                                            • Resource (GPU / CPU / Storage / Backup)
+                                            • Resource (GPU / CPU / Cache / Project Storage)
 /reports/                                → 8 stock helpdesk reports rendered
                                             inline as Chart.js bar / line charts
 /extensions/skill-matrix/                → skills × categories grid

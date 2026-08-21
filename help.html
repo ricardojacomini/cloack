@@ -848,63 +848,39 @@ PartitionName=batch Nodes=cn-01,cn-02 Default=YES MaxTime=1:00:00 State=UP Allow
                 
 
                 <div class="card">
-                  <div class="card-header" id="h33">
+                  <div class="card-header" id="h35">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c33"
-                              aria-expanded="false">WekaFS Tiering — Hot/Cold Capacity Mapping</button>
+                              data-toggle="collapse" data-target="#c35"
+                              aria-expanded="false">Storage Requests — Review Workflow</button>
                     </h5>
                   </div>
-                  <div id="c33" class="collapse " data-parent="#helpAccordion">
+                  <div id="c35" class="collapse " data-parent="#helpAccordion">
                     <div class="card-body">
-<p><strong>One WekaFS filesystem per PI.</strong> ColdFront sums the PI's
-projects and provisions the filesystem with <em>replace semantics</em>: the
-FS tracks the summed request exactly (grows and shrinks; Weka itself refuses
-any shrink below used data, which surfaces as a sync error).</p>
-<table class="table table-sm table-bordered">
-  <thead>
-    <tr><th>Portal field</th><th>Weka payload</th><th>Actual temperature</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Hot Storage (&Sigma; <code>storage_tb</code>)</td>
-      <td><code>ssd_capacity</code></td>
-      <td>hot SSD share</td>
-    </tr>
-    <tr>
-      <td>Cold Storage (&Sigma; <code>backup_tb</code>)</td>
-      <td><code>total_capacity</code></td>
-      <td>hot + cold combined (the filesystem size)</td>
-    </tr>
-    <tr>
-      <td>Cold &minus; Hot</td>
-      <td>tiered to <code>obs_name</code></td>
-      <td>cold (object store)</td>
-    </tr>
-  </tbody>
-</table>
-<p>Weka rule: <code>ssd_capacity &le; total_capacity</code> &mdash; the SSD
-share is a slice of the total, not an addition to it, and tiering only
-activates when it is strictly smaller. That is why the portal enforces
-<em>total Cold Storage &ge; total Hot Storage across all of the PI's
-projects</em>, plus a cap of <code>WEKAFS_PI_HOT_CAP_TB</code> (default
-10&nbsp;TB) on the total Hot Storage (both validated at PI-level sums on the
-Create/Update Project forms). When a PI requests no Cold Storage at all the
-filesystem is provisioned all-SSD, sized to the Hot sum.</p>
-<p><strong>Mapping history (staff awareness):</strong> until 2026-08-07 the
-mapping was inverted (Hot &rarr; <code>total_capacity</code>, Cold &rarr;
-<code>ssd_capacity</code>) and the forms enforced Cold &lt; Hot. The flip
-aligned portal labels with the Weka payload &mdash; Hot is now literally the
-SSD share. Tiering requires <code>WEKAFS_OBS_NAME</code> in the environment
-and applies at filesystem <em>creation</em> only &mdash; attaching an object
-store to an existing filesystem is a manual <code>weka fs tier obs
-attach</code> (or delete + re-sync).</p>
-<p><strong>Debugging:</strong> set <code>WEKAFS_DEBUG=true</code> in
-<code>wekafs.env</code> and run <code>./start.sh wekafs-sync</code>; every
-API call and provisioning decision is appended as JSON lines under
-<code>${BASE_DATA}/coldfront/log/wekafs/</code>. Reference:
-<a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
-lifecycle overview</a>.</p>
+<p>Project Storage changes flow through a <strong>request &rarr; approve</strong>
+lifecycle (model <code>StorageRequest</code>): the PI submits from the Project
+Detail "Project Storage" card; staff reviews at
+<a href="/staff/storage-review/">Storage Review</a> (sidebar &rarr; Admin/Staff
+Tools). Reviewers: superusers or staff with <em>Elevate to superuser for
+approvals</em>. At most one pending request per project.</p>
+<p><strong>Approve</strong> (in order): re-validates the cap with live sums
+&rarr; applies the values to the Project (<code>storage_tb</code>/<code>backup_tb</code>
++ enable flags) &rarr; recalculates AllocationBilling for the project's
+allocations &rarr; best-effort WekaFS provisioning. While the cluster
+kill-switch <code>wekafs_sync_enabled</code> is OFF (or
+<code>WEKAFS_API_ENDPOINT</code> unset) the provisioning step is a silent
+no-op — staff provisions manually via the SKIPJACK ticket that opened at
+submit. Once sync is enabled, the same approval provisions automatically.</p>
+<p><strong>Over-cap requests:</strong> a request above the PI's effective
+Cache cap can only be submitted with a justification, and only approved via
+"Approve (override cap)" — the override is stored on the request
+(<code>cap_override</code>) and in the audit trail. Standing exceptions: set
+the per-PI <em>Cache cap (TB)</em> on the Staff User Profile page or in the
+UserProfile admin.</p>
+<p><strong>Deny</strong> requires a reason (shown back to the PI in the card's
+request history). PIs can cancel their own pending request. The "Billing
+Changes Pending Review" queue on Project Reviews is now IO-Number-only;
+"storage pending" badges on New projects link here.</p>
 </div>
                   </div>
                 </div>
@@ -915,26 +891,95 @@ lifecycle overview</a>.</p>
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
                               data-toggle="collapse" data-target="#c10"
-                              aria-expanded="false">Storage (Hot & Cold) — WekaFS integration</button>
+                              aria-expanded="false">Project Storage — WekaFS integration</button>
                     </h5>
                   </div>
                   <div id="c10" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><h6>Project-Level Fields</h6>
-          <p>
-            PIs can request storage and backup when creating or updating a project:
-          </p>
-          <ul>
-            <li><code>storage_enabled</code> / <code>storage_tb</code> &mdash; request provisioned storage (TB)</li>
-            <li><code>backup_enabled</code> / <code>backup_tb</code> &mdash; request backup service (TB)</li>
-          </ul>
-          <p>These values are copied to <code>AllocationBilling.storage_tb</code> / <code>backup_tb</code> when the allocation is activated.</p>
+                    <div class="card-body">
+<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
+one filesystem per PI, one directory per project. Its value is the
+<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
+(the flash/SSD share). The split is invisible in the filesystem; PIs never see
+the words "object" or "tier". Scratch storage (per-PI <code>/scratch</code>)
+is a separate thing and is not part of Project Storage.</p>
+<p><strong>How PIs request it:</strong> the Create/Update Project forms no
+longer carry storage fields. PIs use the <em>Project Storage</em> card on the
+Project Detail page to submit a change request (Project Storage TB + Cache TB
++ optional justification). The request is <em>pending</em> until staff
+approves or denies it in <a href="/staff/storage-review/">Storage Review</a> —
+values only land on the project at approval.</p>
+<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
+Cache &le; Project Storage; the PI's total Cache across all projects must fit
+the effective Cache cap (<code>WEKAFS_PI_HOT_CAP_TB</code>, default
+10&nbsp;TB, or the per-PI override on the user profile). Requests above the
+cap require a justification and an explicit "Approve (override cap)".</p>
+<p><strong>Field mapping (legacy names kept):</strong>
+<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
+<code>backup_tb</code> = Project Storage total &rarr; Weka
+<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
+Cache, <code>backup</code> bills the Project Storage total.</p>
+</div>
+                  </div>
+                </div>
+                
 
-          <h6>Billing Rates</h6>
-          <p>
-            Storage and backup have their own rate types in the BillingRate catalog:
-            <code>storage</code> (TB/month) and <code>backup</code> (TB/month).
-            Configure rates in <strong>Billing Management &gt; Rate Management</strong>.
-          </p></div>
+                <div class="card">
+                  <div class="card-header" id="h33">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c33"
+                              aria-expanded="false">WekaFS — Cache / Project Storage Capacity Mapping</button>
+                    </h5>
+                  </div>
+                  <div id="c33" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>One WekaFS filesystem per PI.</strong> ColdFront sums the PI's
+projects and provisions the filesystem with <em>replace semantics</em>: the
+FS tracks the summed provisioned values exactly (grows and shrinks; Weka
+itself refuses any shrink below used data, which surfaces as a sync
+error).</p>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr><th>Portal value</th><th>Weka payload</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Cache (&Sigma; <code>storage_tb</code>)</td>
+      <td><code>ssd_capacity</code></td>
+      <td>flash/SSD share of the filesystem</td>
+    </tr>
+    <tr>
+      <td>Project Storage (&Sigma; <code>backup_tb</code>)</td>
+      <td><code>total_capacity</code></td>
+      <td>TOTAL filesystem size — includes the Cache</td>
+    </tr>
+    <tr>
+      <td>Project Storage &minus; Cache</td>
+      <td>backed by <code>obs_name</code></td>
+      <td>object-store share (staff-internal concept — invisible to PIs)</td>
+    </tr>
+  </tbody>
+</table>
+<p>Weka rule: <code>ssd_capacity &le; total_capacity</code> &mdash; the Cache
+is a slice of the total, not an addition to it. That is why the portal
+enforces <em>Cache &le; Project Storage at PI-level sums</em>, plus the Cache
+cap (<code>WEKAFS_PI_HOT_CAP_TB</code>, default 10&nbsp;TB, per-PI override on
+the user profile). A PI with Cache but no Project Storage total gets an
+all-SSD filesystem sized to the Cache sum (legacy shape).</p>
+<p><strong>Naming history (staff awareness):</strong> until 2026-08-21 the
+portal said "Hot Storage" (= today's Cache) and "Cold Storage" (= today's
+Project Storage total). Field names <code>storage_tb</code>/<code>backup_tb</code>
+and the Weka payload are unchanged — labels only. The object store applies at
+filesystem <em>creation</em> only (<code>WEKAFS_OBS_NAME</code>); attaching
+one to an existing filesystem is a manual <code>weka fs tier obs attach</code>
+(or delete + re-sync).</p>
+<p><strong>Debugging:</strong> set <code>WEKAFS_DEBUG=true</code> in
+<code>wekafs.env</code> and run <code>./start.sh wekafs-sync</code>; every
+API call and provisioning decision is appended as JSON lines under
+<code>${BASE_DATA}/coldfront/log/wekafs/</code>. Reference:
+<a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
+lifecycle overview</a>.</p>
+</div>
                   </div>
                 </div>
                 

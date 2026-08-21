@@ -23,7 +23,7 @@ TOTP via the Keycloak account console (same as every other regular
 ```
 /admin/allocation/allocation/?status__name=New
   → open the allocation
-  → review IO, storage, backup, Weekly Cap
+  → review IO, Project Storage, Weekly Cap
   → action "Approve" or "Deny" (deny requires a reason)
 ```
 

@@ -44,7 +44,7 @@ For paid allocations, fill in:
 
 - **IO Number** — your funding source. Allocations without an IO
   number are treated as no-charge regardless of partition.
-- **storage_tb** / **backup_tb** if you need storage and/or backup.
+- **Project Storage** is requested AFTER creation, from the "Project Storage" card on the project page (Project Storage TB = total capacity, includes the Cache; staff approves in Storage Review).
 - **Weekly Cap ($)** **or** **Weekly Cap (hours)** to bound spend.
 
 ### 3. Add users to a project
@@ -78,7 +78,7 @@ jobs against the allocation immediately.
 /user/user-profile/ → "My Usage & Billing"  → PDF download
 ```
 
-Storage and backup are billed monthly regardless of compute activity.
+Cache and Project Storage are billed monthly regardless of compute activity.
 GPU jobs charge GPU only — their CPU hours appear for transparency but
 are excluded from the total due (the GPU-only billing rule, sourced in
 `billing_views.calculate_allocation_charges`).
@@ -89,7 +89,7 @@ are excluded from the total due (the GPU-only billing rule, sourced in
 
 | State | Set by | What you can do |
 |---|---|---|
-| New | PI on request | Edit IO / storage / backup; cancel before review |
+| New | PI on request | Edit IO; cancel before review (Project Storage has its own request flow) |
 | Pending review | Auto on submit | Cannot edit; ColdFront staff approve / deny |
 | Active | Staff approval | Add users, set Weekly Cap, submit jobs |
 | Renewal Requested | PI | Same as Active, with a renewal note for staff |
@@ -138,7 +138,7 @@ per core-hour than `low` with `CPU=0.5`.
 | Adding a user to a project does nothing visible in Slurm | They have not accepted ToS yet — the post-save signal skips provisioning until they do | Email the user with the ToS link; once they accept, the immediate-provisioning signal fires |
 | "Request Resource Allocation" button is not shown | This project is a `default` project (no abbreviation) | Create a new project with a real abbreviation; default projects are scavenger-only by design |
 | Allocation is Active but jobs fail with `Invalid account` | The Slurm account hasn't been provisioned yet, or the user's ToS gate has not cleared | Wait for the next `sync_slurm` (every 15 min) or trigger it via Admin actions on the allocation |
-| Storage charge is $0 but I set `storage_tb=0.20` | `0.20 TB × $0.025 = $0.005`, which rounds to $0.00 | This is expected at small sizes; ratio is correct |
+| Cache charge is $0 but I set 0.20 TB | `0.20 TB × $0.025 = $0.005`, which rounds to $0.00 | This is expected at small sizes; ratio is correct |
 | Billing report shows nothing for the past month | The "Computing Billing" button on `/billing/report/` was never pressed | This is by design: `SlurmAccountUsagePeriod` rows are written only when staff explicitly clicks Compute Billing |
 | Hardware Credit pool reports 0 hours despite usage | The allocation's `billing_type` is not `credit_holder` | Set `billing_type=credit_holder` on the AllocationBilling row via Django Admin, or via the Project Detail page if you have staff scope |
 

@@ -99,7 +99,7 @@ etc.) when you create it.</p>
 <ul>
 <li><strong>IO Number</strong> — your funding source. Allocations without an IO
   number are treated as no-charge regardless of partition.</li>
-<li><strong>storage_tb</strong> / <strong>backup_tb</strong> if you need storage and/or backup.</li>
+<li><strong>Project Storage</strong> is requested AFTER creation, from the "Project Storage" card on the project page (Project Storage TB = total capacity, includes the Cache; staff approves in Storage Review).</li>
 <li><strong>Weekly Cap ($)</strong> <strong>or</strong> <strong>Weekly Cap (hours)</strong> to bound spend.</li>
 </ul>
 <h3>3. Add users to a project</h3>
@@ -124,7 +124,7 @@ jobs against the allocation immediately.</p>
 /billing/report-by-pi/                  → per-PI view, your projects only
 /user/user-profile/ → &quot;My Usage &amp; Billing&quot;  → PDF download
 </code></pre>
-<p>Storage and backup are billed monthly regardless of compute activity.
+<p>Cache and Project Storage are billed monthly regardless of compute activity.
 GPU jobs charge GPU only — their CPU hours appear for transparency but
 are excluded from the total due (the GPU-only billing rule, sourced in
 <code>billing_views.calculate_allocation_charges</code>).</p>
@@ -142,7 +142,7 @@ are excluded from the total due (the GPU-only billing rule, sourced in
 <tr>
 <td>New</td>
 <td>PI on request</td>
-<td>Edit IO / storage / backup; cancel before review</td>
+<td>Edit IO; cancel before review (Project Storage has its own request flow)</td>
 </tr>
 <tr>
 <td>Pending review</td>
@@ -259,7 +259,7 @@ per core-hour than <code>low</code> with <code>CPU=0.5</code>.</p>
 <td>Wait for the next <code>sync_slurm</code> (every 15 min) or trigger it via Admin actions on the allocation</td>
 </tr>
 <tr>
-<td>Storage charge is $0 but I set <code>storage_tb=0.20</code></td>
+<td>Cache charge is $0 but I set 0.20 TB</td>
 <td><code>0.20 TB × $0.025 = $0.005</code>, which rounds to $0.00</td>
 <td>This is expected at small sizes; ratio is correct</td>
 </tr>
