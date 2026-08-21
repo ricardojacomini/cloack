@@ -798,6 +798,20 @@ create and update, so staff can provision manually while auto-sync is off.</p>
 <td>Staff user management across projects</td>
 </tr>
 <tr>
+<td>Privilege-gated impersonation</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>"Login As" never elevates: superusers may impersonate anyone; plain staff only regular users (never staff/superusers). Enforced in view + middleware (poisoned sessions cleared per-request) + hidden in UI</td>
+</tr>
+<tr>
+<td>Test-environment banner</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Persistent yellow/red "TEST ENVIRONMENT" strip on every page when <code>CLOACK_ENV=dev</code>, or forced via <code>CLOACK_TEST_BANNER=True</code> on prod-mode staging hosts</td>
+</tr>
+<tr>
 <td>Extra Core Hours attribute</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>

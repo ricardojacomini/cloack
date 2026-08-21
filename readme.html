@@ -517,6 +517,7 @@ SLURM_NOOP=0
 <p><code>update</code> only restarts the application containers (coldfront, qcluster, helpdesk). All named volumes and bind mounts stay untouched — the restart is a stop/start, not a recreate. Only the Python process is restarted to load the new code from the bind mount.</p>
 <p><strong>Single exception:</strong> if a Django migration intentionally drops data (<code>RunPython(drop_old_table)</code>), it runs. Review the diff before large updates. In contrast, <code>deploy dev -y</code> wipes <strong>all</strong> of the above — that's why the name "deploy" is for initial setup, not routine updates.</p>
 <p><strong>Prod guard (dev compose forbidden on prod hosts):</strong> on a host whose <code>coldfront/custom/etc/coldfront/coldfront.env</code> declares <code>CLOACK_ENV=prod</code>, <code>start.sh</code> <strong>aborts</strong> any invocation that would use <code>docker-compose-dev.yml</code> — both the explicit <code>dev</code> argument and the <code>deploy</code> auto-switch that fires when <code>SLURM_BIN</code> is empty (on bare-metal prod hosts <code>SLURM_BIN</code> is empty <em>by design</em>, so the "empty = dev machine" heuristic is invalid there). The dev compose swaps <code>/home</code> and <code>/scratch</code> to named volumes and widens service ports; on a prod host every <code>sync_ldap</code> home/scratch write would land in container-local volumes invisible to the cluster (mgmt02 incident, 2026-08-13). <code>scripts/verify-deploy.sh</code> check 15 fails any core container created from the dev compose or mounting a named volume at <code>/home</code>/<code>/scratch</code> on a prod host. Emergency override: <code>CLOACK_FORCE_DEV=1</code>. Stage 3/4 hosts must therefore set <code>CLOACK_ENV=prod</code> — the guard (and check 15) are inert while the host claims <code>dev</code>.</p>
+<p><strong>Test-environment banner:</strong> every page (portal landing included) shows a persistent yellow strip with red text "TEST ENVIRONMENT — this is a test instance, not production" when <code>CLOACK_ENV=dev</code>. Staging hosts that must keep <code>CLOACK_ENV=prod</code> (the prod guards above key off it) force the same banner with <code>CLOACK_TEST_BANNER=True</code> in the host-local <code>coldfront.env</code> + a coldfront force-recreate (env_file change — a plain <code>docker restart</code> does not re-read it).</p>
 <h4>Is <code>.env</code> preserved across commands?</h4>
 <table>
 <thead>
@@ -2205,7 +2206,7 @@ OK
 <tbody>
 <tr>
 <td>Manage Users</td>
-<td>Toggle PI status, assign cluster/affiliation scope, impersonate users</td>
+<td>Toggle PI status, assign cluster/affiliation scope, impersonate users (privilege-gated: impersonation never elevates — superusers may impersonate anyone; plain staff only regular users, never staff/superusers; enforced server-side and re-validated on every request)</td>
 </tr>
 <tr>
 <td>Assign Staff Scope</td>
