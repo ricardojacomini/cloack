@@ -555,18 +555,26 @@ SLURM_NOOP=0
 <li><code>trello.env</code> (gitignored, chmod 600) — same pattern.</li>
 </ul>
 <p>This way your secrets survive every <code>init</code> / <code>deploy</code> — the generated <code>.env</code> picks them up automatically. The <code>.env</code> itself is considered regenerable; secrets sensitive enough to survive a wipe belong in <code>entra.env</code> / <code>trello.env</code>.</p>
-<p><strong>Automatic pre-update backup.</strong> <code>./start.sh update</code> now snapshots postgres + openldap to <code>${BASE_DATA}/backup/</code> before running migrations:</p>
+<p><strong>Automatic pre-update backup.</strong> <code>./start.sh update</code> snapshots postgres + openldap to <code>${BASE_DATA}/backup/</code> before running migrations:</p>
 <pre><code>${BASE_DATA}/backup/postgres_YYYY-MM-DD_HHMMSS.sql   # pg_dumpall (all DBs)
 ${BASE_DATA}/backup/ldap_YYYY-MM-DD_HHMMSS.ldif     # slapcat -n 1
 </code></pre>
-<p>Retention is manual — delete older files as needed. To restore a bad update:</p>
-<pre><code class="language-bash"># Postgres
-docker exec -i postgres psql -U postgres &lt; ${BASE_DATA}/backup/postgres_*.sql
+<p><strong>Scheduled daily backup.</strong> <a href="scripts/backup.sh">scripts/backup.sh</a> is the cron-ready sibling: <code>pg_dumpall</code> (all DBs) + <code>slapcat</code> + <code>mysqldump</code> of the Slurm accounting DB (<code>slurm-db</code> container, skipped where absent), gzip-compressed into the same <code>${BASE_DATA}/backup/</code> directory with built-in retention (<code>RETENTION_DAYS</code>, default 14 — only its own <code>.gz</code> files are ever pruned; manual dumps are never touched). Exit code = number of failed components. <code>./start.sh init</code> auto-installs <code>/etc/cron.d/cloack-backup</code> (daily 00:30, log at <code>${BASE_DATA}/backup/backup.log</code>) on Linux hosts run as root; on macOS dev the cron is skipped and the script can be run by hand.</p>
+<p>To restore a bad update (over the live stack — disaster recovery):</p>
+<pre><code class="language-bash"># Postgres (use the stack superuser from .env, typically &quot;admin&quot; — the role &quot;postgres&quot; does not exist)
+gunzip -c ${BASE_DATA}/backup/postgres_&lt;ts&gt;.sql.gz | docker exec -i postgres psql -U admin -d postgres
 
 # OpenLDAP (offline restore)
 docker stop openldap
-docker exec openldap slapadd -n 1 -l /var/backups/ldap_*.ldif
+docker exec openldap slapadd -n 1 -l /var/backups/ldap_&lt;ts&gt;.ldif
 docker start openldap
+</code></pre>
+<p>To merely <strong>inspect</strong> an old snapshot (e.g. look up a since-deleted user or project), never pipe it into the live postgres — the dump is a full-cluster <code>pg_dumpall</code> containing <code>\connect</code> statements, so it would replay into the live databases and rewind their sequences. Load it into a throwaway container instead:</p>
+<pre><code class="language-bash">docker run -d --name pg-restore -e POSTGRES_PASSWORD=restore \
+  -v ${BASE_DATA}/backup:/backups:ro postgres:16
+gunzip -c ${BASE_DATA}/backup/postgres_&lt;ts&gt;.sql.gz | docker exec -i pg-restore psql -U postgres
+docker exec pg-restore psql -U postgres -d coldfront -c &quot;SELECT ...&quot;   # inspect freely
+docker rm -f pg-restore
 </code></pre>
 <h4>A. Fresh deploy (no migration)</h4>
 <p>Full ordered sequence:</p>
