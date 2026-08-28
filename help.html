@@ -2099,8 +2099,7 @@ docker exec dev-&lt;name&gt; tail -5 /var/log/slurm/slurmd.log</pre>
 missing from the image or was skipped, the node stays <code>down*</code>
 until manually resumed. Separately, a long-lived <code>slurmd</code> can
 hang (rare) without exiting; the listening socket persists, so the only
-reliable signal is a stale log file timestamp.</p>
-</div>
+reliable signal is a stale log file timestamp.</p></div>
                   </div>
                 </div>
                 
@@ -2423,8 +2422,10 @@ or via Django Admin &rarr; <a href="/admin/cloack_sync/costcenter/">/admin/cloac
           re-assigned or escalated to the policy&rsquo;s next tier automatically.</li>
       <li><strong>Collaboration</strong> &mdash; workload calendar at
           <code>/extensions/calendar/</code>, ticket collaborators
-          (<code>add_collaborator</code> / <code>remove_collaborator</code>), and shared
-          queue visibility for cross-team work.</li>
+          (<code>add_collaborator</code> / <code>remove_collaborator</code>), shared
+          queue visibility for cross-team work, and a dashboard
+          <strong>Collaboration</strong> section listing tickets where you are an
+          approved collaborator (reviewer, shadow, mentor, &hellip;) but not the owner.</li>
       <li><strong>SLA &amp; Metrics</strong> &mdash; First Quality Response (FQR), SLA windows
           per priority, <code>my-performance</code> dashboard with PDF export, and
           satisfaction surveys (<code>/extensions/survey/&lt;ticket&gt;/&lt;token&gt;/</code>).</li>

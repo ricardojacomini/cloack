@@ -1005,6 +1005,13 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td>Non-owner/non-collab/non-pool staff blocked from adding comments; collaborators forced <code>public=False</code> (internal notes only); owners send customer emails; permission failures on collaborator request/approve/deny/remove show dismissible banners via <code>messages.error</code> + redirect to ticket (no more dead-end HTTP 403 pages)</td>
 </tr>
 <tr>
+<td>Dashboard Collaboration section</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Staff dashboard section between "Assigned to you" and "All tickets" listing tickets where the user is an approved <code>TicketCollaborator</code> (collaborator/reviewer/shadow/escalated_from/mentor) and not the current owner; explanatory empty state keeps it discoverable</td>
+</tr>
+<tr>
 <td>Public feedback categories + dedicated queue</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
