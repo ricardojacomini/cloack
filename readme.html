@@ -1857,25 +1857,30 @@ stree -r root --full
 |-- orga   [Fairshare=20]
 |   |-- wse   (school)
 |   |   +-- cs   (department)
-|   |       |-- admin1   [100000]  &lt;- PI default (QOS: scavenger)
-|   |       |   +-- admin1
-|   |       |   +-- admin1_proj1   [100000]  &lt;- custom project (QOS: normal,premium)
-|   |       |       |-- admin1_proj1_A   [100000]  &lt;- subproject
+|   |       |-- pi-admin1   [parent]  &lt;- structural PI node (fairshare=parent, no limits)
+|   |       |   |-- admin1   [60000]  &lt;- default account, LEAF (QOS: scavenger)
+|   |       |   |   +-- admin1
+|   |       |   +-- admin1_proj1   [100000000]  &lt;- custom project, LEAF (QOS: normal,premium)
+|   |       |       |-- admin1_proj1_A   [100000000]  &lt;- subproject
 |   |       |       |   +-- admin1, pi001
-|   |       |       +-- admin1_proj1_B   [100000]
+|   |       |       +-- admin1_proj1_B   [100000000]
 |   |       |           +-- admin1
-|   |       +-- pi001   [100000]
-|   |           +-- pi001
+|   |       +-- pi-pi001   [parent]
+|   |           +-- pi001   [60000]
+|   |               +-- pi001
 |   +-- it   (school)
 |       +-- my_cluster   (department)
-|           +-- bblanch6   [100000]
-|               +-- bblanch6
+|           +-- pi-bblanch6   [parent]
+|               +-- bblanch6   [60000]
+|                   +-- bblanch6
 +-- orgb   [Fairshare=80]
     +-- ss   (OrgB Sciences)
-        |-- orgb-jdoe   [100000]  &lt;- always free (orgb-* prefix)
-        |   +-- orgb-jdoe
-        +-- orgb-pi003   [100000]
-            +-- orgb-pi003
+        |-- pi-orgb-jdoe   [parent]
+        |   +-- orgb-jdoe   [60000]  &lt;- always free (orgb-* prefix)
+        |       +-- orgb-jdoe
+        +-- pi-orgb-pi003   [parent]
+            +-- orgb-pi003   [60000]
+                +-- orgb-pi003
 
 [N] = Core Usage (Hours) / Fairshare weight
 Use stree --full to include users

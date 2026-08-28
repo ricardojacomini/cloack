@@ -995,7 +995,7 @@ lifecycle overview</a>.</p>
                   <div id="c11" class="collapse " data-parent="#helpAccordion">
                     <div class="card-body"><h6>Source of Truth</h6>
           <p>
-            The Slurm account hierarchy (<code>root &rarr; school &rarr; dept &rarr; PI &rarr; project</code>)
+            The Slurm account hierarchy (<code>root &rarr; school &rarr; dept &rarr; pi-&lt;user&gt; &rarr; {default, projects}</code>)
             is driven by <strong><code>AllocationBilling.department</code></strong>, not <code>Project.department</code>.
           </p>
 
@@ -1012,7 +1012,19 @@ lifecycle overview</a>.</p>
             <li>Setting <code>AllocationBilling.department</code> on a default project &rarr; propagates to <code>Project.department</code></li>
             <li>Setting <code>AllocationBilling.department</code> &rarr; adds department to PI's <code>UserProfile.departments</code></li>
             <li>Adding a PI to a department &rarr; sets that department on their projects that lack one</li>
-          </ul></div>
+          </ul>
+          <h6>Structural PI Node (2026-08-28)</h6>
+          <p>
+            <code>pi-&lt;username&gt;</code> is a <strong>structural</strong> account
+            (<code>fairshare=parent</code>, no limits, no users, no QOS) grouping the
+            PI's accounts. The bare default account and every paid project account are
+            <strong>sibling leaves</strong> under it, each enforcing only its own
+            <code>GrpTRESMins</code> — the default budget (e.g. 1000 GPU-h) is enforced
+            in isolation. Per-PI usage rollup:
+            <code>sreport ... account=pi-&lt;user&gt;</code> (the bare account now
+            reports only its own usage).
+          </p>
+</div>
                   </div>
                 </div>
                 

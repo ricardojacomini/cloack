@@ -610,7 +610,7 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Flat</td>
 <td style="text-align: center;">Yes</td>
-<td><code>root -&gt; school -&gt; dept -&gt; PI -&gt; project</code> (auto-managed)</td>
+<td><code>root -&gt; school -&gt; dept -&gt; pi-&lt;user&gt; -&gt; {default, projects}</code> (auto-managed; per-allocation leaf budgets)</td>
 </tr>
 <tr>
 <td>Orphan account cleanup</td>
@@ -1475,9 +1475,14 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td><code>&lt;pi_username&gt;_&lt;abbreviation&gt;_&lt;seq&gt;</code></td>
 <td><code>admin1_proj1_A</code></td>
 </tr>
+<tr>
+<td>Structural PI node</td>
+<td><code>pi-&lt;pi_username&gt;</code> (fairshare=parent, no limits)</td>
+<td><code>pi-admin1</code></td>
+</tr>
 </tbody>
 </table>
-<p>Full hierarchy: <code>root</code> -&gt; <code>school</code> -&gt; <code>department</code> -&gt; <code>pi</code> -&gt; <code>project</code> -&gt; <code>users</code></p>
+<p>Full hierarchy: <code>root</code> -&gt; <code>school</code> -&gt; <code>department</code> -&gt; <code>pi-&lt;user&gt;</code> (structural) -&gt; <code>{default, projects}</code> -&gt; <code>users</code> — the default account and paid project accounts are sibling leaves, each enforcing only its own budget.</p>
 <hr />
 <h2>UID/GID Ranges</h2>
 <table>
