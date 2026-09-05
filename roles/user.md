@@ -96,13 +96,18 @@ numbers the portal's Allocation Detail page shows.
 |---|---|---|---|
 | `/home/<aff>/<username>` | Small, per-user | Yes (snapshot) | Included |
 | `/home/<aff>/<username>/scratch_<pi>` | Symlink into PI's scratch — same quota as `/scratch` | No | Included |
+| `/home/<aff>/<username>/projects_<pi>` | Symlink into PI's project storage — same quota as `/projects` | Per plan | Billed to the PI |
 | `/scratch/<aff>/<pi>` | Per-PI scratch storage | No | Included (scratch storage is separate from project storage) |
 | `/scratch/<aff>/<pi>/<project>` | Same quota as parent | Inherits parent | Same |
+| `/projects/<pi>` | Per-PI project storage (provisioned capacity) | Per plan | Billed monthly to the PI |
 
-Project storage (the Weka filesystem — one directory per project) is billed
-per-month regardless of whether you run jobs: **Cache** (`$0.025 / TB / month`)
-and **Project Storage** total (`$0.015 / TB / month`). Charges show up on your
-PI's billing report under "Cache" / "Project Storage" lines.
+Project storage (the per-PI Weka filesystem mounted at `/projects/<pi>`) is
+billed per-month regardless of whether you run jobs: **Cache**
+(`$0.025 / TB / month`) and **Project Storage** total (`$0.015 / TB / month`).
+Charges show up on your PI's billing report under "Cache" / "Project Storage"
+lines. When your PI has provisioned project storage, a `projects_<pi>` symlink
+appears in your home automatically (created by the daily directory sync, like
+`scratch_<pi>`).
 
 ## Reference matrices
 

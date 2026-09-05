@@ -180,6 +180,12 @@ numbers the portal's Allocation Detail page shows.</p>
 <td>Included</td>
 </tr>
 <tr>
+<td><code>/home/&lt;aff&gt;/&lt;username&gt;/projects_&lt;pi&gt;</code></td>
+<td>Symlink into PI's project storage — same quota as <code>/projects</code></td>
+<td>Per plan</td>
+<td>Billed to the PI</td>
+</tr>
+<tr>
 <td><code>/scratch/&lt;aff&gt;/&lt;pi&gt;</code></td>
 <td>Per-PI scratch storage</td>
 <td>No</td>
@@ -191,12 +197,21 @@ numbers the portal's Allocation Detail page shows.</p>
 <td>Inherits parent</td>
 <td>Same</td>
 </tr>
+<tr>
+<td><code>/projects/&lt;pi&gt;</code></td>
+<td>Per-PI project storage (provisioned capacity)</td>
+<td>Per plan</td>
+<td>Billed monthly to the PI</td>
+</tr>
 </tbody>
 </table>
-<p>Project storage (the Weka filesystem — one directory per project) is billed
-per-month regardless of whether you run jobs: <strong>Cache</strong> (<code>$0.025 / TB / month</code>)
-and <strong>Project Storage</strong> total (<code>$0.015 / TB / month</code>). Charges show up on your
-PI's billing report under "Cache" / "Project Storage" lines.</p>
+<p>Project storage (the per-PI Weka filesystem mounted at <code>/projects/&lt;pi&gt;</code>) is
+billed per-month regardless of whether you run jobs: <strong>Cache</strong>
+(<code>$0.025 / TB / month</code>) and <strong>Project Storage</strong> total (<code>$0.015 / TB / month</code>).
+Charges show up on your PI's billing report under "Cache" / "Project Storage"
+lines. When your PI has provisioned project storage, a <code>projects_&lt;pi&gt;</code> symlink
+appears in your home automatically (created by the daily directory sync, like
+<code>scratch_&lt;pi&gt;</code>).</p>
 <h2>Reference matrices</h2>
 <h3>Slurm partitions</h3>
 <table>

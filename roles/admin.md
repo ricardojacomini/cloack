@@ -117,7 +117,7 @@ and PAM stack.
 | **4** | portal | `./start.sh start --from-ghcr prod` | Stack runs the `:prod` images | `ghcr.io/...:prod` pulled |
 | **4** | portal | `./start.sh ldap-reinit` (manual) | LDAP re-seeded if needed | — |
 
-Direction of artefacts:
+Direction of artifacts:
 
 ```
 git origin/dev                          GHCR registry

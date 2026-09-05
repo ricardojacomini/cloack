@@ -586,7 +586,7 @@ docker compose -p <cluster>-slurm --env-file .env -f docker-compose-slurm-<clust
 ```bash
 docker exec coldfront coldfront collect_billing            # compute charges
 docker exec coldfront coldfront sync_job_usage             # write SlurmAccountUsagePeriod rows (the "Compute Billing" button)
-docker exec coldfront coldfront generate_billing_report    # CSV/report artefacts
+docker exec coldfront coldfront generate_billing_report    # CSV/report artifacts
 docker exec coldfront coldfront recalculate_billing        # recompute from scratch
 docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0   # sreport vs REST diff
 ```
