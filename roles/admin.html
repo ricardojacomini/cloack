@@ -574,10 +574,32 @@ to keep current behaviour.</p>
 <td><code>KEYCLOAK_HOSTNAME_OrgA</code> / <code>_ORGB</code> are empty</td>
 <td>Set them in <code>.env</code> for multi-FQDN, or leave them empty for single-FQDN — the function is a no-op then by design</td>
 </tr>
+<tr>
+<td><code>kcadm.sh … PKIX path building failed</code> inside the keycloak container</td>
+<td>kcadm does not trust the self-signed cert on <code>:8443</code></td>
+<td>Use <code>--server http://localhost:8080</code> (internal listener) or <code>scripts/kcq.sh</code> from the host — see <code>admin-guide-cli.md</code> §3</td>
+</tr>
+<tr>
+<td>Hourly <code>Sync all users finished: … N users failed sync!</code></td>
+<td><code>ModelDuplicateException</code> on e-mail: a broker-created local <code>&lt;jhed&gt;@&lt;domain&gt;</code> user holds the LDAP entry's e-mail</td>
+<td>Login is unaffected; LDAP-group → role mappers skip those users — see <code>admin-guide-cli.md</code> §3</td>
+</tr>
+<tr>
+<td>Pending jobs stuck in <code>Reason=InvalidQOS</code> right after a QOS pin / retirement</td>
+<td>Queued jobs keep the QOS they were submitted with</td>
+<td><code>scontrol update job &lt;id&gt; qos=&lt;new&gt; TimeLimit=&lt;same&gt;</code> — keep the time limit in the same command; see <code>admin-guide-cli.md</code> §5</td>
+</tr>
+<tr>
+<td>qcluster logs <code>cloack_sync: reactivated &lt;user&gt;@&lt;acct&gt;</code> every 15 min</td>
+<td>The user association still shows <code>MaxJobs</code>/<code>GrpJobs=0</code> after the sync's clear</td>
+<td><code>sacctmgr show assoc … WOPLimits</code> inventory — see <code>admin-guide-cli.md</code> §5</td>
+</tr>
 </tbody>
 </table>
 <h2>Where to go next</h2>
 <ul>
+<li><a href="../admin-guide-cli.md"><code>docs/admin-guide-cli.md</code></a> — day-to-day CLI and
+  troubleshooting: users/LDAP/Keycloak, Slurm sync, billing, stack health.</li>
 <li><a href="../ansible-remote-deploy.md"><code>docs/ansible-remote-deploy.md</code></a> — full
   bare-metal Ansible deploy guide, RPM install, idempotent re-runs.</li>
 <li><a href="../break-glass-admin.md"><code>docs/break-glass-admin.md</code></a> — <code>/admin/</code>

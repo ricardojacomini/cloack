@@ -82,6 +82,29 @@ docker exec coldfront coldfront delete_users -u ext-nargatoff ext-mwaugh --yes
 > `--force-pi` is blocked because it would cascade-delete their projects and
 > allocations. Shared per-PI `/scratch` is never touched.
 
+### Remove an identity that exists only in LDAP / Slurm (no ColdFront `User`)
+
+Legacy migration entries and alias-named duplicates (a `first.last` account next
+to the real one) often have no ColdFront `User` behind them, so `delete_users`
+answers "No matching users". Use the host-run wrapper, which walks
+ColdFront → Slurm → LDAP → Keycloak in the safe order and skips what is absent:
+
+```bash
+./scripts/clear_user.sh <user>            # diagnose + DRY-RUN: read every "match" / "would delete" line
+./scripts/clear_user.sh <user> --yes      # apply
+```
+
+Rules that came out of a real incident:
+
+- **Run the dry-run first and read it — and again after any change to the
+  script or the target.** A `--yes` without a reviewed dry-run turns any filter
+  bug into identity loss.
+- The Keycloak step deletes **username matches only** (`<user>` or `<user>@…`).
+  A row that matches only by e-mail is printed as `SKIP`: that is normally the
+  person's *real* account carrying the alias as its e-mail. Never delete it
+  automatically; if it truly is a zombie, remove it by hand after checking.
+- Home directories are left alone on this path (only `delete_users` removes homes).
+
 ### Remove a whole course (class) cohort
 
 Every account named `<course>-*` (disposable class accounts). Preview → confirm:
@@ -160,6 +183,78 @@ docker exec openldap slapcat -n 1 > migration/ldap-$(date +%F).cat
 ./start.sh keycloak status          # health + master-admin auth probe
 ./start.sh keycloak reset-admin     # cure master-admin password drift (hard reset, any KC version)
 ```
+
+### Admin REST from the host
+
+`kcadm.sh` inside the keycloak container fails against `https://localhost:8443`
+(`PKIX path building failed`: self-signed cert). Point it at the internal HTTP
+listener, or use the curl-based wrapper:
+
+```bash
+# shell helper: kcadm over the internal http listener
+kc() { docker exec keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user "$KEYCLOAK_ADMIN" --password "$KEYCLOAK_ADMIN_PASSWORD" >/dev/null && /opt/keycloak/bin/kcadm.sh "$@"' kcadm "$@"; }
+kc get realms --fields realm
+
+# or raw admin REST through a throwaway keycloak-config container (curl -k + jq)
+./scripts/kcq.sh GET 'admin/realms/<realm>/users?username=<user>&exact=true'
+```
+
+### Inspect / repair one user
+
+```bash
+kc get users -r <realm> -q username=<user> -q exact=true --fields id,username,email,federationLink,requiredActions
+kc get users -r <realm> -q email=<address> --fields id,username,federationLink      # who holds an e-mail
+kc get users/<id>/federated-identity -r <realm>          # SSO (Entra) link; empty until the next SSO login
+kc get users/<id>/credentials -r <realm> --fields type   # "otp" present = TOTP enrolled
+kc update users/<id> -r <realm> -s 'requiredActions=["CONFIGURE_TOTP"]'   # force TOTP enrolment at next browser login
+```
+
+`federationLink` set = LDAP-federated user (a mirror of the LDAP entry). Empty =
+local user created by the SSO broker at first login (`<jhed>@<domain>`).
+
+### Recover a deleted federated user
+
+The Keycloak row is only a mirror: LDAP, ColdFront, home and Slurm are untouched.
+Re-import first, then have the person log in **via SSO** (auto-link by e-mail),
+then force TOTP — in that order. An SSO login before the re-import creates a
+local duplicate that blocks the LDAP import forever.
+
+```bash
+bash keycloak/sync-ldap-federation.sh      # full-sync both realms (the username search above also imports lazily)
+kc get users -r <realm> -q username=<user> -q exact=true --fields id,federationLink
+# person logs in via SSO → federated-identity lists the IdP again
+kc update users/<id> -r <realm> -s 'requiredActions=["CONFIGURE_TOTP"]'
+```
+
+Lost with the row: TOTP credential (re-enrol), sessions, Keycloak-local
+attributes. If the admin console (master-realm brokering) then refuses the
+person, delete their stale shadow user in realm `master` and log in again.
+
+### Brute-force lockout (`error="user_temporarily_disabled"`)
+
+```bash
+docker logs keycloak --since 3h 2>&1 | grep '<user>' | grep -oE 'error="[a-z_]+"' | sort | uniq -c
+kc get attack-detection/brute-force/users/<id> -r <realm>     # numFailures, numTemporaryLockouts, disabled
+kc get realms/<realm> --fields bruteForceProtected,failureFactor,waitIncrementSeconds,maxFailureWaitSeconds,permanentLockout
+kc delete attack-detection/brute-force/users/<id> -r <realm>  # clear it (it also expires on its own)
+```
+
+Several attempts within the same second mean a client retrying on its own
+(VS Code Remote SSH, autossh, a saved password). Ask the person to stop it
+before clearing the lockout.
+
+### LDAP full-sync health
+
+```bash
+docker logs keycloak --since 8h 2>&1 | grep 'Sync all users finished'              # one line per realm, hourly
+docker logs keycloak --since 2h 2>&1 | grep 'Failed during import' | head -3 | cut -c1-400
+```
+
+`ModelDuplicateException … email … already exists … Existing user is '<x>@<domain>'`
+is the structural case: the person logged in via SSO before their LDAP entry
+existed, so the broker created a local `<jhed>@<domain>` user that now blocks
+the import. Login is unaffected; LDAP-group → role mappers do not apply to
+such users.
 
 ### Repoint the public host (`ARCH_PUBLIC_HOST` → OIDC/Keycloak URLs)
 
@@ -254,6 +349,38 @@ docker exec coldfront coldfront collect_sacct           # import completed jobs 
 docker exec coldfront coldfront collect_sacct --clear   # wipe + re-import
 docker exec coldfront coldfront collect_sacct --current-week
 docker exec coldfront coldfront export_qos_config --cluster <name>   # regen qos_config.lua
+```
+
+### Users blocked by `MaxJobs` / `GrpJobs = 0`
+
+The sync deactivates a user removed from an allocation with `MaxJobs=0` on the
+user association, and clears `MaxJobs` **and** `GrpJobs` when they are active
+again. Inventory of explicitly blocked associations (`WOPLimits` shows the stored
+value instead of the parent's):
+
+```bash
+sacctmgr -nP show assoc format=Cluster,Account,User,MaxJobs,GrpJobs WOPLimits | awk -F'|' '$3!="" && ($4=="0"||$5=="0")'
+squeue -h -t PD -O JobID,UserName,Account,Reason | grep -E 'AssocGrpJobsLimit|AssocMaxJobsLimit'
+```
+
+Every row must be a user who is *not* active on that allocation in ColdFront. An
+active user still listed means the sync could not clear it:
+`docker logs qcluster 2>&1 | grep reactivated` shows the attempt every 15 min.
+
+### Pending jobs stuck in `Reason=InvalidQOS` after a QOS pin or retirement
+
+Changing an account's QOS (a tier pin via the `QoS`/`DefaultQoS` attributes, or
+retiring a QOS) does not touch jobs already queued: they keep the QOS they were
+submitted with and stall. Migrate them, **keeping the time limit in the same
+command** (`scontrol update … qos=` alone resets it to the partition maximum):
+
+```bash
+squeue -h -t PD -O JobID:12,UserName:14,Account:22,qos:8,Reason:14,TimeLimit | awk '$5=="InvalidQOS"'
+NEWQ=$(sacctmgr -nP show assoc where account=<acct> user=<user> format=DefaultQOS)
+squeue -h -t PD -A <acct> -u <user> -O JobID:12,qos:8,TimeLimit | awk '$2=="<old_qos>"{print $1, $3}' | \
+  while read j t; do scontrol update job $j qos=$NEWQ TimeLimit=$t; done
+# who changed the association, and when
+sacctmgr -P show transactions Accounts=<acct> Start=YYYY-MM-DD format=TimeStamp,Action,Actor,Where,Info
 ```
 
 ### Node drain / resume, reload config
@@ -691,6 +818,11 @@ docker exec helpdesk python manage.py get_email   # drain Maildir → tickets
 | `sinfo` shows `down*` (asterisk) / `Munge decode failed: Invalid credential` / epoch-0 `ENCODED` timestamp | munge key mismatch **or** `munged` not restarted after a key change. Match `md5sum /etc/munge/munge.key` node↔controller, push good key, `systemctl restart munge && slurmd` (§5, bring-up #4). `down` without `*` = reachable, just `State=RESUME`. |
 | `srun --pty` hangs right after `[BILLING] loaded!` | Job launched but `bash` blocks — home (`/weka/home/…`) not mounted on the node (storage is outside Slurm's Ansible scope). `srun … hostname` + `--chdir=/tmp` isolate it (§5, bring-up #5). |
 | Nightly paid Projects disappeared | Guarded now (a337776), but check `seed_initial_data` marker on the `${BASE_DATA}` bind-mount. |
+| Pending jobs `Reason=InvalidQOS` right after a QOS/tier change | Queued jobs keep the QOS they were submitted with; migrate with `scontrol update job <id> qos=<new> TimeLimit=<same>` (§5). |
+| qcluster logs `arch_sync: reactivated <user>@<acct>` every 15 min | The user association still shows `MaxJobs`/`GrpJobs=0` after the clear; inspect with `sacctmgr show assoc … WOPLimits` (§5). |
+| Keycloak `error="user_temporarily_disabled"` | Brute-force lockout after repeated bad password/TOTP, usually a client retrying on its own; inspect/clear via `attack-detection/brute-force/users/<id>` (§3). |
+| `kcadm.sh … PKIX path building failed` | Self-signed cert: use `--server http://localhost:8080` inside the container, or `scripts/kcq.sh` (§3). |
+| `Sync all users finished: … N users failed sync!` | `ModelDuplicateException` on e-mail: a local broker-created `<jhed>@<domain>` user holds the LDAP entry's e-mail; login unaffected (§3). |
 
 ---
 

@@ -234,9 +234,15 @@ to keep current behaviour.
 | `pgrep -f "start.sh deploy"` loop never exits | The waiter's own command line contains the pattern, deadlock | Track `$DEPLOY_PID` directly with `wait $DEPLOY_PID`; see memory `feedback_pgrep_self_match_deadlock` |
 | Slurm overlay still emits `arch/<svc>` after `--from-ghcr` | `CLOACK_FROM_GHCR` was not exported when `write_compose_overlay` ran | Re-run `./start.sh slurm create <name>` after exporting the var |
 | `configure_realm_frontend_urls` did nothing visible | `KEYCLOAK_HOSTNAME_JHU` / `_SCHMIDT` are empty | Set them in `.env` for multi-FQDN, or leave them empty for single-FQDN — the function is a no-op then by design |
+| `kcadm.sh … PKIX path building failed` inside the keycloak container | kcadm does not trust the self-signed cert on `:8443` | Use `--server http://localhost:8080` (internal listener) or `scripts/kcq.sh` from the host — see `admin-guide-cli.md` §3 |
+| Hourly `Sync all users finished: … N users failed sync!` | `ModelDuplicateException` on e-mail: a broker-created local `<jhed>@<domain>` user holds the LDAP entry's e-mail | Login is unaffected; LDAP-group → role mappers skip those users — see `admin-guide-cli.md` §3 |
+| Pending jobs stuck in `Reason=InvalidQOS` right after a QOS pin / retirement | Queued jobs keep the QOS they were submitted with | `scontrol update job <id> qos=<new> TimeLimit=<same>` — keep the time limit in the same command; see `admin-guide-cli.md` §5 |
+| qcluster logs `arch_sync: reactivated <user>@<acct>` every 15 min | The user association still shows `MaxJobs`/`GrpJobs=0` after the sync's clear | `sacctmgr show assoc … WOPLimits` inventory — see `admin-guide-cli.md` §5 |
 
 ## Where to go next
 
+- [`docs/admin-guide-cli.md`](../admin-guide-cli.md) — day-to-day CLI and
+  troubleshooting: users/LDAP/Keycloak, Slurm sync, billing, stack health.
 - [`docs/ansible-remote-deploy.md`](../ansible-remote-deploy.md) — full
   bare-metal Ansible deploy guide, RPM install, idempotent re-runs.
 - [`docs/break-glass-admin.md`](../break-glass-admin.md) — `/admin/`
