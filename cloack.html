@@ -1019,6 +1019,13 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td><code>TicketCategory.show_on_submit</code> renders opt-in "Feature feedback?" dropdown on the public submit form; <code>TicketCategory.default_assignee</code> auto-routes the ticket to the product owner. <code>TicketCategory.default_queue</code> (FK) moves the ticket to a dedicated <strong>Feedback &amp; Suggestions</strong> queue (slug <code>feedback</code>, owner=<code>CLOACK_SUPERUSERS[0]</code>) regardless of the queue the submitter picked. Seeded by migration 0029; ColdFront + Helpdesk feedback categories both routed to the feedback queue.</td>
 </tr>
 <tr>
+<td>ColdFront → Helpdesk ticket bridge</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Allocation requests / change requests / renewals, PI upgrade requests, new projects and Storage/IO changes open a helpdesk ticket through the internal API (<code>/extensions/api/ticket/</code>) with the <strong>requester as submitter</strong> (was: admin e-mail → intake → submitter <code>Arch@alt.example.edu</code>); title identical to the old e-mail subject, body with PI/project/IO + review links. <code>HelpdeskTicketLink</code> (cloack_sync 0142) + status-transition receivers post the decision follow-up: approve/deny/activate/promote → Resolved, resubmit → Reopened, withdraw/delete → Closed. Helpdesk <code>create_ticket</code> is idempotent (<code>ColdFrontTicketRef</code>, 0063), fires <code>new_ticket_done</code> (affiliation, auto-assign, AI triage now run for API tickets) and sends the standard new-ticket mails; <code>add_followup</code> endpoint. Legacy e-mail = fallback; toggles <code>HELPDESK_TICKET_BRIDGE_*</code>.</td>
+</tr>
+<tr>
 <td>Django admin save-at-top</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>

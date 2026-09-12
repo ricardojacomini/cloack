@@ -718,6 +718,42 @@ root
                 
 
                 <div class="card">
+                  <div class="card-header" id="h7">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c7"
+                              aria-expanded="false">QOS Management</button>
+                    </h5>
+                  </div>
+                  <div id="c7" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>
+            <code>slurm_sync</code> bootstraps three QOS levels in Slurm (only <code>normal</code> exists by default):
+          </p>
+          <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+              <tr><th>QOS</th><th>Priority</th><th>Who Gets It</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>normal</code></td><td>Standard</td><td>All accounts (Slurm default)</td></tr>
+              <tr><td><code>premium</code></td><td>Higher</td><td>Custom-project accounts</td></tr>
+              <tr><td><code>scavenger</code></td><td>Lower (preemptable)</td><td>Default-project accounts</td></tr>
+            </tbody>
+          </table>
+
+          <h6>AllowQos on Partitions</h6>
+          <p>
+            Each <code>SlurmPartition</code> has an <code>allow_qos</code> field (comma-separated).
+            When set, it generates <code>AllowQos=...</code> in <code>slurm.conf</code>,
+            restricting which QOS levels can submit to that partition.
+          </p>
+          <pre class="bg-light p-3 rounded">
+# Example partition config in slurm.conf:
+PartitionName=batch Nodes=cn-01,cn-02 Default=YES MaxTime=1:00:00 State=UP AllowQos=normal,premium,scavenger</pre></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h34">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -762,42 +798,6 @@ default.</p>
 <code>sacctmgr show assoc where account=&lt;acct&gt;
 format=Account,User,QOS,DefaultQOS -P</code>.</p>
 </div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h7">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c7"
-                              aria-expanded="false">QOS Management</button>
-                    </h5>
-                  </div>
-                  <div id="c7" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>
-            <code>slurm_sync</code> bootstraps three QOS levels in Slurm (only <code>normal</code> exists by default):
-          </p>
-          <table class="table table-sm table-bordered">
-            <thead class="thead-light">
-              <tr><th>QOS</th><th>Priority</th><th>Who Gets It</th></tr>
-            </thead>
-            <tbody>
-              <tr><td><code>normal</code></td><td>Standard</td><td>All accounts (Slurm default)</td></tr>
-              <tr><td><code>premium</code></td><td>Higher</td><td>Custom-project accounts</td></tr>
-              <tr><td><code>scavenger</code></td><td>Lower (preemptable)</td><td>Default-project accounts</td></tr>
-            </tbody>
-          </table>
-
-          <h6>AllowQos on Partitions</h6>
-          <p>
-            Each <code>SlurmPartition</code> has an <code>allow_qos</code> field (comma-separated).
-            When set, it generates <code>AllowQos=...</code> in <code>slurm.conf</code>,
-            restricting which QOS levels can submit to that partition.
-          </p>
-          <pre class="bg-light p-3 rounded">
-# Example partition config in slurm.conf:
-PartitionName=batch Nodes=cn-01,cn-02 Default=YES MaxTime=1:00:00 State=UP AllowQos=normal,premium,scavenger</pre></div>
                   </div>
                 </div>
                 
@@ -887,43 +887,6 @@ Changes Pending Review" queue on Project Reviews is now IO-Number-only;
                 
 
                 <div class="card">
-                  <div class="card-header" id="h10">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c10"
-                              aria-expanded="false">Project Storage — WekaFS integration</button>
-                    </h5>
-                  </div>
-                  <div id="c10" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
-one filesystem per PI, one directory per project. Its value is the
-<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
-(the flash/SSD share). The split is invisible in the filesystem; PIs never see
-the words "object" or "tier". Scratch storage (per-PI <code>/scratch</code>)
-is a separate thing and is not part of Project Storage.</p>
-<p><strong>How PIs request it:</strong> the Create/Update Project forms no
-longer carry storage fields. PIs use the <em>Project Storage</em> card on the
-Project Detail page to submit a change request (Project Storage TB + Cache TB
-+ optional justification). The request is <em>pending</em> until staff
-approves or denies it in <a href="/staff/storage-review/">Storage Review</a> —
-values only land on the project at approval.</p>
-<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
-Cache &le; Project Storage; the PI's total Cache across all projects must fit
-the effective Cache cap (<code>WEKAFS_PI_HOT_CAP_TB</code>, default
-10&nbsp;TB, or the per-PI override on the user profile). Requests above the
-cap require a justification and an explicit "Approve (override cap)".</p>
-<p><strong>Field mapping (legacy names kept):</strong>
-<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
-<code>backup_tb</code> = Project Storage total &rarr; Weka
-<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
-Cache, <code>backup</code> bills the Project Storage total.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h33">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -979,6 +942,43 @@ API call and provisioning decision is appended as JSON lines under
 <code>${BASE_DATA}/coldfront/log/wekafs/</code>. Reference:
 <a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
 lifecycle overview</a>.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h10">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c10"
+                              aria-expanded="false">Project Storage — WekaFS integration</button>
+                    </h5>
+                  </div>
+                  <div id="c10" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
+one filesystem per PI, one directory per project. Its value is the
+<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
+(the flash/SSD share). The split is invisible in the filesystem; PIs never see
+the words "object" or "tier". Scratch storage (per-PI <code>/scratch</code>)
+is a separate thing and is not part of Project Storage.</p>
+<p><strong>How PIs request it:</strong> the Create/Update Project forms no
+longer carry storage fields. PIs use the <em>Project Storage</em> card on the
+Project Detail page to submit a change request (Project Storage TB + Cache TB
++ optional justification). The request is <em>pending</em> until staff
+approves or denies it in <a href="/staff/storage-review/">Storage Review</a> —
+values only land on the project at approval.</p>
+<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
+Cache &le; Project Storage; the PI's total Cache across all projects must fit
+the effective Cache cap (<code>WEKAFS_PI_HOT_CAP_TB</code>, default
+10&nbsp;TB, or the per-PI override on the user profile). Requests above the
+cap require a justification and an explicit "Approve (override cap)".</p>
+<p><strong>Field mapping (legacy names kept):</strong>
+<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
+<code>backup_tb</code> = Project Storage total &rarr; Weka
+<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
+Cache, <code>backup</code> bills the Project Storage total.</p>
 </div>
                   </div>
                 </div>
@@ -1050,6 +1050,76 @@ lifecycle overview</a>.</p>
             <li>Billing reports</li>
             <li>User search results</li>
           </ul></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h36">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c36"
+                              aria-expanded="false">Helpdesk Tickets — ColdFront request bridge</button>
+                    </h5>
+                  </div>
+                  <div id="c36" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Requests that need a staff decision open a <strong>helpdesk ticket
+automatically</strong>, through the helpdesk internal API, with the
+<strong>requester as the ticket submitter</strong> (the PI or manager who
+clicked — never the shared <code>Arch@alt.example.edu</code> mailbox). The ticket title
+is the same text the old admin e-mail carried
+(<code>[OrgA] Coldfront New Allocation Request: Pat Ng (pi9) - cluster-x</code>);
+the description names the PI, project, resource, justification, pay IO(s) and
+carries direct links to the review pages. When staff decides in ColdFront, the
+ticket receives a public follow-up and is <em>resolved</em> (or reopened /
+closed) by itself — nothing to do on the helpdesk side.</p>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr><th>ColdFront event</th><th>Ticket opened</th><th>Resolves when…</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Request Resource Allocation</td><td>New Allocation Request</td>
+        <td>allocation approved or denied (<em>Resolved</em>); PI resubmits a denied request (<em>Reopened</em>); PI withdraws it (<em>Closed</em>)</td></tr>
+    <tr><td>Allocation change request</td><td>New Allocation Change Request</td>
+        <td>change request approved or denied</td></tr>
+    <tr><td>Allocation renewal</td><td>Allocation Renewed</td>
+        <td>renewal activated or denied</td></tr>
+    <tr><td>User asks to become a PI</td><td>Upgrade Account Request</td>
+        <td>user promoted to PI, or request cleared on Promote Users</td></tr>
+    <tr><td>New non-default project</td><td>New Project Request (IO validation folded in)</td>
+        <td>project activated or denied; "Request changes" posts a comment and keeps it open; reopen after denial reopens it</td></tr>
+    <tr><td>Project Storage request</td><td><code>[Storage/&lt;org&gt;]</code></td>
+        <td>approved or denied in Storage Review; cancelled by the PI (<em>Closed</em>)</td></tr>
+    <tr><td>IO Number change on Update Project</td><td><code>[IO/&lt;org&gt;]</code></td>
+        <td>staff clears the billing review on Project Reviews</td></tr>
+  </tbody>
+</table>
+<p><strong>Queue:</strong> <code>SKIPJACK - OrgA</code> or
+<code>SKIPJACK - ORGB</code> by the requester's affiliation — the same queues
+the <code>Arch@alt.example.edu</code> / <code>ORGB@alt.example.edu</code> mailboxes feed. The
+submitter gets the helpdesk acknowledgement e-mail and can reply on the ticket;
+the queue's <em>new ticket CC</em> list is notified as for any web-form
+ticket.</p>
+<p><strong>Audit trail:</strong> Django Admin &rarr; CLOACK Stack &rarr;
+<em>Helpdesk ticket links</em> lists every ticket ColdFront opened (event,
+target object, ticket number, submitter, <code>resolved_at</code>, and
+<code>last_error</code> when a decision follow-up could not be posted — the row
+stays open and retries on the next matching transition). On the helpdesk,
+Django Admin &rarr; <em>ColdFront ticket references</em> maps the idempotency
+key of each request to its ticket.</p>
+<p><strong>Fallback and switches:</strong> whenever the bridge is off, the
+helpdesk is unreachable, or the requester has no e-mail, ColdFront sends the
+legacy admin e-mail to <code>EMAIL_TICKET_SYSTEM_ADDRESS</code> exactly as
+before — a ticket whose submitter is the shared mailbox therefore means the API
+path failed (check <code>docker logs coldfront | grep "helpdesk bridge"</code>
+and that <code>HELPDESK_INTERNAL_TOKEN</code> is present in both the
+<code>coldfront</code> and <code>helpdesk</code> containers).
+<code>HELPDESK_TICKET_BRIDGE_ENABLED=False</code> in <code>coldfront.env</code>
+reverts to e-mail without a code change;
+<code>HELPDESK_TICKET_BRIDGE_PUBLIC_FOLLOWUPS=False</code> makes the decision
+follow-ups internal notes.</p>
+</div>
                   </div>
                 </div>
                 

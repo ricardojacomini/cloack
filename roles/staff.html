@@ -295,6 +295,49 @@ shipped by default).</p>
 </tr>
 </tbody>
 </table>
+<h3>ColdFront request tickets (auto-opened, auto-resolved)</h3>
+<p>Requests that need a ColdFront decision arrive as tickets with the <strong>requester
+as submitter</strong>, opened by ColdFront through the helpdesk internal API — not as
+e-mail from the shared mailbox. Decide in ColdFront; the ticket follows.</p>
+<table>
+<thead>
+<tr>
+<th>Ticket</th>
+<th>Opened when</th>
+<th>Resolves itself when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[OrgA] Coldfront New Allocation Request: …</code></td>
+<td>PI/manager requests an allocation</td>
+<td>you approve or deny it (Reopened if resubmitted, Closed if withdrawn)</td>
+</tr>
+<tr>
+<td><code>… New Allocation Change Request</code> / <code>… Allocation Renewed</code></td>
+<td>change request / renewal submitted</td>
+<td>change request or renewal approved / denied</td>
+</tr>
+<tr>
+<td><code>… Upgrade Account Request: …</code></td>
+<td>a user asks to become a PI</td>
+<td>you promote them or clear the request on Promote Users</td>
+</tr>
+<tr>
+<td><code>… New Project Request: …</code></td>
+<td>a new non-default project is created (IO validation text included)</td>
+<td>you activate or deny it; "Request changes" only adds a comment</td>
+</tr>
+<tr>
+<td><code>[Storage/&lt;org&gt;]</code> / <code>[IO/&lt;org&gt;]</code></td>
+<td>Project Storage request / IO Number change</td>
+<td>Storage Review decision / billing review cleared</td>
+</tr>
+</tbody>
+</table>
+<p>Audit: ColdFront Admin → <em>Helpdesk ticket links</em>. A ticket of this kind whose
+submitter is the shared mailbox means the API path failed and ColdFront fell
+back to e-mail.</p>
 <h2>Troubleshooting</h2>
 <table>
 <thead>

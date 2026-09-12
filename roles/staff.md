@@ -130,6 +130,24 @@ shipped by default).
 | `/extensions/trello/` | Trello browser (Kanban / Cards / Lists / Gantt) |
 | `/extensions/analytics/routing/` | Routing decision audit dashboard |
 
+### ColdFront request tickets (auto-opened, auto-resolved)
+
+Requests that need a ColdFront decision arrive as tickets with the **requester
+as submitter**, opened by ColdFront through the helpdesk internal API — not as
+e-mail from the shared mailbox. Decide in ColdFront; the ticket follows.
+
+| Ticket | Opened when | Resolves itself when |
+|---|---|---|
+| `[JHU] Coldfront New Allocation Request: …` | PI/manager requests an allocation | you approve or deny it (Reopened if resubmitted, Closed if withdrawn) |
+| `… New Allocation Change Request` / `… Allocation Renewed` | change request / renewal submitted | change request or renewal approved / denied |
+| `… Upgrade Account Request: …` | a user asks to become a PI | you promote them or clear the request on Promote Users |
+| `… New Project Request: …` | a new non-default project is created (IO validation text included) | you activate or deny it; "Request changes" only adds a comment |
+| `[Storage/<org>]` / `[IO/<org>]` | Project Storage request / IO Number change | Storage Review decision / billing review cleared |
+
+Audit: ColdFront Admin → *Helpdesk ticket links*. A ticket of this kind whose
+submitter is the shared mailbox means the API path failed and ColdFront fell
+back to e-mail.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |

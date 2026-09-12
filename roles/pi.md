@@ -47,6 +47,11 @@ For paid allocations, fill in:
 - **Project Storage** is requested AFTER creation, from the "Project Storage" card on the project page (Project Storage TB = total capacity, includes the Cache; staff approves in Storage Review).
 - **Weekly Cap ($)** **or** **Weekly Cap (hours)** to bound spend.
 
+Submitting the request opens a helpdesk ticket in **your** name: you get the
+acknowledgement e-mail with the ticket link, can add information by replying,
+and the ticket resolves itself when staff approves or denies the allocation.
+The same happens when you create a project or ask to become a PI.
+
 ### 3. Add users to a project
 
 ```
