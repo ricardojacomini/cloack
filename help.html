@@ -582,16 +582,29 @@ if weekly_cap_dollars:
 # If no cap, GrpTRESMins is not set on the association (= unlimited)</pre>
 
           <div class="alert alert-warning">
-            <strong>Important:</strong> Weekly reset is handled by our cron task
-            (<code>check_and_run_core_hours_reset</code>, daily at 1 AM), not by Slurm's native
-            <code>PriorityUsageResetPeriod</code>. This allows per-allocation override schedules.
+            <strong>Important &mdash; who resets what:</strong>
+            Slurm itself clears the usage that <code>GrpTRESMins</code> is checked against, on the
+            <code>PriorityUsageResetPeriod</code> schedule in <code>slurm.conf</code> (cluster-x:
+            <code>WEEKLY</code> = every <strong>Sunday 00:00</strong> slurmctld-local, with
+            <code>PriorityDecayHalfLife=30-0</code> still decaying inside the week). That counter is
+            <em>one per association</em>, shared by <code>cpu</code>, <code>gres/gpu</code> <em>and</em>
+            <code>billing</code> &mdash; so on a WEEKLY cluster the per-allocation core/GPU-hour budgets
+            are weekly quotas as well. ColdFront follows the same boundary: the Weekly Spend Cap gauge,
+            the Core Hours Reset <em>Weekly</em> period, <code>?week_start=</code> on the weekly-usage API
+            and <code>sbalance --week</code> all use Sunday 00:00 in the cluster timezone
+            (<code>billing_queries.current_week_window</code>).
+            <code>check_and_run_core_hours_reset</code> only zeroes the ColdFront gauges and never touches
+            Slurm. The Allocation Attribute admin action &ldquo;Zero accrued Slurm usage&rdquo; runs
+            <code>sacctmgr modify account &hellip; set RawUsage=0</code> &mdash; clearing and re-applying
+            the limit does <em>not</em> reset usage.
           </div>
 
-          <h6>Weekly Cap Usage Sync</h6>
+          <h6>Weekly Cap Usage (live)</h6>
           <p>
-            Every 5 minutes, the <code>sync_weekly_cap_usage</code> task polls Slurm via
-            <code>sreport</code> for current billing-TRES usage and stores the dollar amount
-            in the <code>Weekly Cap Usage ($)</code> allocation attribute.
+            Served on demand by <code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code>: slurmrestd
+            jobs in the current Sunday&rarr;Saturday window (<code>?week_start=YYYY-MM-DD</code> for a past
+            week, interpreted as 00:00 cluster-local &mdash; pass a Sunday). Current-week hits UPSERT the
+            <code>Weekly Cap Usage ($)</code> attribute with a 5-minute debounce.
           </p></div>
                   </div>
                 </div>
@@ -821,7 +834,7 @@ format=Account,User,QOS,DefaultQOS -P</code>.</p>
               <tr><th>Period</th><th>Reset Dates</th></tr>
             </thead>
             <tbody>
-              <tr><td>Weekly</td><td>Every Monday</td></tr>
+              <tr><td>Weekly</td><td>Every Sunday 00:00 (cluster time) &mdash; the same boundary as Slurm <code>PriorityUsageResetPeriod=WEEKLY</code></td></tr>
               <tr><td>Monthly</td><td>1st of each month</td></tr>
               <tr><td>Quarterly</td><td>Jan 1, Apr 1, Jul 1, Oct 1</td></tr>
               <tr><td>4-Month</td><td>Jan 1, May 1, Sep 1</td></tr>
@@ -843,45 +856,6 @@ format=Account,User,QOS,DefaultQOS -P</code>.</p>
             <li>Per-user snapshots (<code>SlurmUserUsageSnapshot</code>) &rarr; zeroed</li>
             <li>Audit log entry created</li>
           </ul></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h35">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c35"
-                              aria-expanded="false">Storage Requests — Review Workflow</button>
-                    </h5>
-                  </div>
-                  <div id="c35" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p>Project Storage changes flow through a <strong>request &rarr; approve</strong>
-lifecycle (model <code>StorageRequest</code>): the PI submits from the Project
-Detail "Project Storage" card; staff reviews at
-<a href="/staff/storage-review/">Storage Review</a> (sidebar &rarr; Admin/Staff
-Tools). Reviewers: superusers or staff with <em>Elevate to superuser for
-approvals</em>. At most one pending request per project.</p>
-<p><strong>Approve</strong> (in order): re-validates the cap with live sums
-&rarr; applies the values to the Project (<code>storage_tb</code>/<code>backup_tb</code>
-+ enable flags) &rarr; recalculates AllocationBilling for the project's
-allocations &rarr; best-effort WekaFS provisioning. While the cluster
-kill-switch <code>wekafs_sync_enabled</code> is OFF (or
-<code>WEKAFS_API_ENDPOINT</code> unset) the provisioning step is a silent
-no-op — staff provisions manually via the SKIPJACK ticket that opened at
-submit. Once sync is enabled, the same approval provisions automatically.</p>
-<p><strong>Over-cap requests:</strong> a request above the PI's effective
-Cache cap can only be submitted with a justification, and only approved via
-"Approve (override cap)" — the override is stored on the request
-(<code>cap_override</code>) and in the audit trail. Standing exceptions: set
-the per-PI <em>Cache cap (TB)</em> on the Staff User Profile page or in the
-UserProfile admin.</p>
-<p><strong>Deny</strong> requires a reason (shown back to the PI in the card's
-request history). PIs can cancel their own pending request. The "Billing
-Changes Pending Review" queue on Project Reviews is now IO-Number-only;
-"storage pending" badges on New projects link here.</p>
-</div>
                   </div>
                 </div>
                 
@@ -979,6 +953,45 @@ cap require a justification and an explicit "Approve (override cap)".</p>
 <code>backup_tb</code> = Project Storage total &rarr; Weka
 <code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
 Cache, <code>backup</code> bills the Project Storage total.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h35">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c35"
+                              aria-expanded="false">Storage Requests — Review Workflow</button>
+                    </h5>
+                  </div>
+                  <div id="c35" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Project Storage changes flow through a <strong>request &rarr; approve</strong>
+lifecycle (model <code>StorageRequest</code>): the PI submits from the Project
+Detail "Project Storage" card; staff reviews at
+<a href="/staff/storage-review/">Storage Review</a> (sidebar &rarr; Admin/Staff
+Tools). Reviewers: superusers or staff with <em>Elevate to superuser for
+approvals</em>. At most one pending request per project.</p>
+<p><strong>Approve</strong> (in order): re-validates the cap with live sums
+&rarr; applies the values to the Project (<code>storage_tb</code>/<code>backup_tb</code>
++ enable flags) &rarr; recalculates AllocationBilling for the project's
+allocations &rarr; best-effort WekaFS provisioning. While the cluster
+kill-switch <code>wekafs_sync_enabled</code> is OFF (or
+<code>WEKAFS_API_ENDPOINT</code> unset) the provisioning step is a silent
+no-op — staff provisions manually via the CLUSTER-X ticket that opened at
+submit. Once sync is enabled, the same approval provisions automatically.</p>
+<p><strong>Over-cap requests:</strong> a request above the PI's effective
+Cache cap can only be submitted with a justification, and only approved via
+"Approve (override cap)" — the override is stored on the request
+(<code>cap_override</code>) and in the audit trail. Standing exceptions: set
+the per-PI <em>Cache cap (TB)</em> on the Staff User Profile page or in the
+UserProfile admin.</p>
+<p><strong>Deny</strong> requires a reason (shown back to the PI in the card's
+request history). PIs can cancel their own pending request. The "Billing
+Changes Pending Review" queue on Project Reviews is now IO-Number-only;
+"storage pending" badges on New projects link here.</p>
 </div>
                   </div>
                 </div>
@@ -1095,8 +1108,8 @@ closed) by itself — nothing to do on the helpdesk side.</p>
         <td>staff clears the billing review on Project Reviews</td></tr>
   </tbody>
 </table>
-<p><strong>Queue:</strong> <code>SKIPJACK - OrgA</code> or
-<code>SKIPJACK - ORGB</code> by the requester's affiliation — the same queues
+<p><strong>Queue:</strong> <code>CLUSTER-X - OrgA</code> or
+<code>CLUSTER-X - ORGB</code> by the requester's affiliation — the same queues
 the <code>Arch@alt.example.edu</code> / <code>ORGB@alt.example.edu</code> mailboxes feed. The
 submitter gets the helpdesk acknowledgement e-mail and can reply on the ticket;
 the queue's <em>new ticket CC</em> list is notified as for any web-form
@@ -1741,7 +1754,7 @@ Slurm secret.</p>
             <tbody>
               <tr><td>Slurm</td><td>Docker-managed cluster (<code>docker-compose-slurm-my_cluster-dev.yml</code>)</td><td>Bare metal with host path mounts</td></tr>
               <tr><td>Overlay</td><td>Auto-generated by <code>start.sh slurm dev create</code></td><td>Deployed from ColdFront UI</td></tr>
-              <tr><td>Email</td><td>File backend (<code>coldfront/report/emails/</code>)</td><td>SMTP via mgmt01</td></tr>
+              <tr><td>Email</td><td>File backend (<code>coldfront/report/emails/</code>)</td><td>SMTP via mgmt-host</td></tr>
               <tr><td>SLURM_NOOP</td><td>Allowed (<code>=1</code> for testing)</td><td><code>=0</code> (real Slurm commands)</td></tr>
             </tbody>
           </table>

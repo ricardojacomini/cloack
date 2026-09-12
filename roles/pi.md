@@ -74,6 +74,9 @@ jobs against the allocation immediately.
 - One cap is enforced **per allocation** (so users sharing the
   allocation share the cap).
 - The gauge below the Core Usage gauge shows current spend vs cap.
+- The week runs **Sunday 00:00 → Saturday** (cluster time). That is when
+  Slurm clears the usage the cap is checked against, and the gauge follows
+  the same window (`sbalance --week` on the login node too).
 
 ### 5. Read the billing report
 

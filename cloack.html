@@ -350,11 +350,11 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td><code>$30/week</code> -&gt; <code>GrpTRESMins=billing=1800000</code> (formula: <code>$ * 1000 * 60</code>)</td>
 </tr>
 <tr>
-<td>Weekly reset via cron</td>
+<td>Weekly usage reset</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td><code>check_and_run_core_hours_reset</code> resets GrpTRESMins periodically</td>
+<td>Slurm itself (<code>PriorityUsageResetPeriod=WEEKLY</code> on cluster-x) clears the <code>GrpTRESMins</code> usage counter every Sunday 00:00 cluster-local — for <code>cpu</code>, <code>gres/gpu</code> and <code>billing</code> alike. ColdFront's weekly windows (cap gauge, Core Hours Reset <em>Weekly</em>, <code>sbalance --week</code>) share that Sunday boundary via <code>billing_queries.current_week_window</code>; <code>check_and_run_core_hours_reset</code> only zeroes the ColdFront gauges</td>
 </tr>
 </tbody>
 </table>
@@ -396,7 +396,7 @@ TOTAL capacity and it INCLUDES the <strong>Cache</strong> (the flash/SSD share �
 longer carry storage): the request is pending until staff approves or denies it
 in the <strong>Storage Review</strong> queue. Approval applies the values to the project,
 recalculates AllocationBilling, and best-effort provisions WekaFS (no-op while
-the cluster kill-switch is off — the SKIPJACK ticket opened at submit covers
+the cluster kill-switch is off — the CLUSTER-X ticket opened at submit covers
 manual provisioning). Provisioning creates <strong>one WekaFS filesystem per PI</strong>
 with replace semantics (decimal TB): the Project Storage sum becomes the Weka
 <code>total_capacity</code>, the Cache sum its <code>ssd_capacity</code> — Weka requires
@@ -1387,7 +1387,7 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 </tr>
 <tr>
 <td>Weekly Spend Cap</td>
-<td>Dollar-based caps via account-level GrpTRESMins; live AJAX gauge via REST endpoint (Phase 2); diagnostic <code>shadow_compare_weekly_cap_usage</code></td>
+<td>Dollar-based caps via account-level GrpTRESMins; live AJAX gauge via REST endpoint (Phase 2); week = Sunday 00:00 → Saturday cluster-local (Slurm weekly usage reset boundary); diagnostic <code>shadow_compare_weekly_cap_usage</code></td>
 </tr>
 <tr>
 <td>Storage/Backup</td>
