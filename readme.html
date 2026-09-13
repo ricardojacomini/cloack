@@ -173,6 +173,7 @@ realm the user is already authenticated in.
 | `/user/login/` | Same picker (alias) — kept for tests |
 | `/orga/login/` | Direct to OrgA OIDC |
 | `/orgb/login/` | Direct to OrgB OIDC |
+| `/oidc/authenticate/` | `LOGIN_URL` — host-aware realm dispatch: `portal.&lt;CLOACK_DOMAIN_ORGB&gt;` → OrgB realm, any other host → OrgA (deep links such as `/project/` land here) |
 | `/oidc/orga/authenticate/` | mozilla_django_oidc view for OrgA |
 | `/oidc/orgb/authenticate/` | mozilla_django_oidc view for OrgB |
 | `/oidc/callback/` | Realm-aware callback (backend skips wrong realm) |

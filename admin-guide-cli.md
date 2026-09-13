@@ -175,6 +175,27 @@ docker exec openldap slapcat -n 1 > migration/ldap-$(date +%F).cat
 
 ---
 
+### Groups with two `cn` values (Keycloak `Expected String but attribute 'cn' has more values`)
+
+Legacy migration entries stored the PI's real name as a **second** `cn` on the
+group (`cn: ssci-huan` + `cn: Huan Zhang`). Harmless (Keycloak, SSSD and the sync
+use the RDN value), but every hourly LDAP sync logs one WARN per group. The sync
+never re-adds the value, so a one-off cleanup is final (validated on dev 2026-09-12,
+8 groups):
+
+```bash
+# 1. Preview — one delete per redundant value, RDN value untouched
+docker exec openldap sh -c 'slapcat 2>/dev/null' | awk '
+/^dn: /{dn=$0; sub(/^dn: /,"",dn); n=0; grp=(dn ~ /ou=Groups/); rdn=dn; sub(/,.*/,"",rdn); sub(/^cn=/,"",rdn)}
+/^cn: /{ if(grp){n++; v[n]=$0; sub(/^cn: /,"",v[n])} }
+/^$/{ if(grp && n>1){ for(i=1;i<=n;i++) if(v[i]!=rdn){ print "dn: " dn; print "changetype: modify"; print "delete: cn"; print "cn: " v[i]; print "" } }; n=0; grp=0 }' > /tmp/fix_group_cn.ldif
+cat /tmp/fix_group_cn.ldif
+# 2. Apply (read the preview first) + verify nothing is left
+docker cp /tmp/fix_group_cn.ldif openldap:/tmp/ && docker exec openldap sh -c \
+  'ldapmodify -x -H ldap://localhost -D cn=root,dc=arch,dc=cluster -w "$LDAP_ROOT_PASS" -f /tmp/fix_group_cn.ldif; rm -f /tmp/fix_group_cn.ldif'
+docker exec openldap sh -c 'slapcat 2>/dev/null' | awk '/^dn: /{dn=$0;n=0;g=(dn ~ /ou=Groups/)} /^cn: /{if(g)n++} /^$/{if(g&&n>1)print dn;n=0;g=0}'   # expect no output
+```
+
 ## 3. Keycloak
 
 ### Status & admin password
@@ -823,6 +844,8 @@ docker exec helpdesk python manage.py get_email   # drain Maildir → tickets
 | Keycloak `error="user_temporarily_disabled"` | Brute-force lockout after repeated bad password/TOTP, usually a client retrying on its own; inspect/clear via `attack-detection/brute-force/users/<id>` (§3). |
 | `kcadm.sh … PKIX path building failed` | Self-signed cert: use `--server http://localhost:8080` inside the container, or `scripts/kcq.sh` (§3). |
 | `Sync all users finished: … N users failed sync!` | `ModelDuplicateException` on e-mail: a local broker-created `<jhed>@<domain>` user holds the LDAP entry's e-mail; login unaffected (§3). |
+| Deep link on the Schmidt portal (`portal.<schmidt>/project/`) redirects to `auth.<jhu>/realms/jhu` | Pre-`37c8c1ec` `LOGIN_URL` was hardcoded to `/oidc/jhu/authenticate/`; since then `/oidc/authenticate/` picks the realm from the host (`portal.<CLOACK_DOMAIN_SCHMIDT>` → schmidt). Needs `CLOACK_DOMAIN_SCHMIDT` in the root `.env` + `docker restart coldfront qcluster`. Verify: `curl -sI -H 'Host: portal.<schmidt>' http://127.0.0.1:8000/oidc/authenticate/ \| grep -i location` inside the coldfront container. |
+| Keycloak WARN `Expected String but attribute 'cn' has more values '[<group>, <Real Name>]'` on `ou=Groups` | Legacy migration groups carry the PI's real name as a second `cn`. Harmless; one-off `ldapmodify delete: cn` cleanup (§2). |
 
 ---
 

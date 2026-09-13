@@ -238,6 +238,8 @@ to keep current behaviour.
 | Hourly `Sync all users finished: … N users failed sync!` | `ModelDuplicateException` on e-mail: a broker-created local `<jhed>@<domain>` user holds the LDAP entry's e-mail | Login is unaffected; LDAP-group → role mappers skip those users — see `admin-guide-cli.md` §3 |
 | Pending jobs stuck in `Reason=InvalidQOS` right after a QOS pin / retirement | Queued jobs keep the QOS they were submitted with | `scontrol update job <id> qos=<new> TimeLimit=<same>` — keep the time limit in the same command; see `admin-guide-cli.md` §5 |
 | qcluster logs `arch_sync: reactivated <user>@<acct>` every 15 min | The user association still shows `MaxJobs`/`GrpJobs=0` after the sync's clear | `sacctmgr show assoc … WOPLimits` inventory — see `admin-guide-cli.md` §5 |
+| Schmidt portal deep link (`/project/`, e-mail or helpdesk URL) lands on `auth.<jhu>/realms/jhu` | `LOGIN_URL` hardcoded to the JHU realm (only the `/` picker was host-neutral); the OIDC `SessionRefresh` also refreshed against the JHU realm and logged Schmidt users out after 1 h | Fixed in `37c8c1ec` (host-aware `/oidc/authenticate/` + realm-aware `ArchSessionRefresh`) — `git pull` + `docker restart coldfront qcluster`; root `.env` must carry `CLOACK_DOMAIN_SCHMIDT` |
+| Keycloak logs `Expected String but attribute 'cn' has more values` for `cn=<group>,ou=Groups` | Migration-era group entries keep the PI's real name as a second `cn` value | Harmless; one-off `ldapmodify delete: cn` — recipe in `admin-guide-cli.md` §2 |
 
 ## Where to go next
 

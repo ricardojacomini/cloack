@@ -581,7 +581,7 @@ to keep current behaviour.</p>
 </tr>
 <tr>
 <td>Hourly <code>Sync all users finished: … N users failed sync!</code></td>
-<td><code>ModelDuplicateException</code> on e-mail: a broker-created local <code>&lt;jhed&gt;@&lt;domain&gt;</code> user holds the LDAP entry's e-mail</td>
+<td><code>ModelDuplicateException</code> on e-mail: a broker-created local <code>&lt;campus-id&gt;@&lt;domain&gt;</code> user holds the LDAP entry's e-mail</td>
 <td>Login is unaffected; LDAP-group → role mappers skip those users — see <code>admin-guide-cli.md</code> §3</td>
 </tr>
 <tr>
@@ -593,6 +593,16 @@ to keep current behaviour.</p>
 <td>qcluster logs <code>cloack_sync: reactivated &lt;user&gt;@&lt;acct&gt;</code> every 15 min</td>
 <td>The user association still shows <code>MaxJobs</code>/<code>GrpJobs=0</code> after the sync's clear</td>
 <td><code>sacctmgr show assoc … WOPLimits</code> inventory — see <code>admin-guide-cli.md</code> §5</td>
+</tr>
+<tr>
+<td>OrgB portal deep link (<code>/project/</code>, e-mail or helpdesk URL) lands on <code>auth.&lt;orga&gt;/realms/orga</code></td>
+<td><code>LOGIN_URL</code> hardcoded to the OrgA realm (only the <code>/</code> picker was host-neutral); the OIDC <code>SessionRefresh</code> also refreshed against the OrgA realm and logged OrgB users out after 1 h</td>
+<td>Fixed in <code>37c8c1ec</code> (host-aware <code>/oidc/authenticate/</code> + realm-aware <code>ArchSessionRefresh</code>) — <code>git pull</code> + <code>docker restart coldfront qcluster</code>; root <code>.env</code> must carry <code>CLOACK_DOMAIN_ORGB</code></td>
+</tr>
+<tr>
+<td>Keycloak logs <code>Expected String but attribute 'cn' has more values</code> for <code>cn=&lt;group&gt;,ou=Groups</code></td>
+<td>Migration-era group entries keep the PI's real name as a second <code>cn</code> value</td>
+<td>Harmless; one-off <code>ldapmodify delete: cn</code> — recipe in <code>admin-guide-cli.md</code> §2</td>
 </tr>
 </tbody>
 </table>
