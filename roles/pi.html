@@ -219,6 +219,20 @@ are excluded from the total due (the GPU-only billing rule, sourced in
 <p>ColdFront enforces the Slurm gate: a paid OrgA allocation without a
 <strong>pay-role</strong> Cost Center linked at the project AND allocation level is
 silently skipped by <code>slurm_sync</code> (no Slurm account created).</p>
+<h3>Pause billing on an IO Number</h3>
+<p>Register your real IO now and put it on hold until funding is confirmed:</p>
+<pre><code>/billing/cost-centers/  → ⏸ on the IO's row   (or Edit Cost Center → &quot;Pause billing and job submission&quot;)
+</code></pre>
+<p>While paused, the IO is <strong>never charged</strong>, cannot fund new projects or
+allocations, and <strong>job submission is blocked</strong> on the paid allocations it
+funds. Existing links, Project Storage and your free scavenger allocation are
+untouched — you keep computing for free. A helpdesk ticket is opened so staff
+know; resuming (▶) is a deliberate action that resolves it.</p>
+<p>The pause is refused when the IO co-funds an allocation with another live IO
+(pause those too, or ask staff to split the allocation) or funds a
+Hardware-Credit (condo) allocation. <em>Active</em> is different: unchecking it hides
+the IO from new pickers but existing links <strong>keep billing</strong> — use Pause to
+stop charges.</p>
 <h3>Weekly Cap: dollars vs hours</h3>
 <table>
 <thead>

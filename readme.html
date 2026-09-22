@@ -1885,7 +1885,7 @@ stree -r root --full
 |   |-- wse   (school)
 |   |   +-- cs   (department)
 |   |       |-- pi-admin1   [parent]  &lt;- structural PI node (fairshare=parent, no limits)
-|   |       |   |-- admin1   [60000]  &lt;- default account, LEAF (QOS: scavenger)
+|   |       |   |-- admin1   [180000]  &lt;- default account, LEAF (QOS: scavenger)
 |   |       |   |   +-- admin1
 |   |       |   +-- admin1_proj1   [100000000]  &lt;- custom project, LEAF (QOS: normal,premium)
 |   |       |       |-- admin1_proj1_A   [100000000]  &lt;- subproject
@@ -1893,20 +1893,20 @@ stree -r root --full
 |   |       |       +-- admin1_proj1_B   [100000000]
 |   |       |           +-- admin1
 |   |       +-- pi-pi001   [parent]
-|   |           +-- pi001   [60000]
+|   |           +-- pi001   [180000]
 |   |               +-- pi001
 |   +-- it   (school)
 |       +-- my_cluster   (department)
 |           +-- pi-bblanch6   [parent]
-|               +-- bblanch6   [60000]
+|               +-- bblanch6   [180000]
 |                   +-- bblanch6
 +-- orgb   [Fairshare=80]
     +-- ss   (OrgB Sciences)
         |-- pi-orgb-jdoe   [parent]
-        |   +-- orgb-jdoe   [60000]  &lt;- always free (orgb-* prefix)
+        |   +-- orgb-jdoe   [180000]  &lt;- always free (orgb-* prefix)
         |       +-- orgb-jdoe
         +-- pi-orgb-pi003   [parent]
-            +-- orgb-pi003   [60000]
+            +-- orgb-pi003   [180000]
                 +-- orgb-pi003
 
 [N] = Core Usage (Hours) / Fairshare weight
@@ -2237,7 +2237,11 @@ OK
 </tr>
 <tr>
 <td>Set weekly spend cap</td>
-<td>Allocation detail &gt; Set Weekly Cap ($). The week runs Sunday 00:00 → Saturday (cluster time), matching Slurm's weekly usage reset</td>
+<td>Allocation detail &gt; Set Weekly Cap ($). Measured against Slurm's usage-reset period — cluster-x is monthly since 2026-09-21, so the value is enforced per month there (WEEKLY clusters: Sunday 00:00 → Saturday cluster time)</td>
+</tr>
+<tr>
+<td>Pause billing on an IO Number</td>
+<td>My Usage &amp; Billing &gt; Cost Centers &gt; ⏸ (or Edit Cost Center &gt; Pause billing). While paused the IO is never charged, cannot fund new projects/allocations, and job submission is blocked on the paid allocations it funds; existing links, storage and your free scavenger allocation are untouched. Opens a helpdesk ticket for staff; resuming resolves it. Sentinel, condo and co-funded-with-a-live-IO refuse the pause</td>
 </tr>
 <tr>
 <td>View billing</td>
@@ -2285,6 +2289,10 @@ OK
 <tr>
 <td>Elevated approvals</td>
 <td>Grant via Admin &gt; User profiles &gt; "Elevate to superuser for approvals" — allows scoped staff to approve/deny without full superuser</td>
+</tr>
+<tr>
+<td>IO Numbers</td>
+<td>Billing Management &gt; IO Numbers (<code>/billing/cost-centers/all/</code>) — every PI's Cost Centers with the projects, allocations and Project Storage they fund, plus the <strong>Paused</strong> state (who/when). Filters: search, affiliation, state (paused / inactive / live), linked-only. Read-only — pausing on a PI's behalf goes through Django Admin &gt; Cost Centers (same guards, audited)</td>
 </tr>
 <tr>
 <td>Staff Help</td>

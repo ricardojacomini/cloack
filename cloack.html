@@ -350,11 +350,11 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td><code>$30/week</code> -&gt; <code>GrpTRESMins=billing=1800000</code> (formula: <code>$ * 1000 * 60</code>)</td>
 </tr>
 <tr>
-<td>Weekly usage reset</td>
+<td>Usage reset period</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Slurm itself (<code>PriorityUsageResetPeriod=WEEKLY</code> on cluster-x) clears the <code>GrpTRESMins</code> usage counter every Sunday 00:00 cluster-local — for <code>cpu</code>, <code>gres/gpu</code> and <code>billing</code> alike. ColdFront's weekly windows (cap gauge, Core Hours Reset <em>Weekly</em>, <code>sbalance --week</code>) share that Sunday boundary via <code>billing_queries.current_week_window</code>; <code>check_and_run_core_hours_reset</code> only zeroes the ColdFront gauges</td>
+<td>Slurm itself (<code>PriorityUsageResetPeriod</code>) clears the ONE usage counter every <code>GrpTRESMins</code> TRES (<code>cpu</code>, <code>gres/gpu</code>, <code>billing</code>) is checked against; ColdFront never resets Slurm (<code>check_and_run_core_hours_reset</code> only zeroes the ColdFront gauges). <strong>cluster-x runs MONTHLY since 2026-09-21</strong> (meeting decision; billing period = 1 month, Core Hours Reset → Monthly) — so a <code>Weekly Cap ($)</code> value is enforced <strong>per month</strong> there. On a WEEKLY cluster the boundary is Sunday 00:00 cluster-local and ColdFront's weekly windows (cap gauge, Core Hours Reset <em>Weekly</em>, <code>sbalance --week</code>) share it via <code>billing_queries.current_week_window</code></td>
 </tr>
 </tbody>
 </table>
@@ -388,6 +388,76 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <p>Instead of creating per-allocation QOS (<code>wk_{id}</code>), the cap is enforced at the <strong>account association level</strong>:</p>
 <pre><code class="language-bash">sacctmgr modify account where name=pi001_f01_a set GrpTRESMins=billing=1800000
 </code></pre>
+<h3>IO Number billing hold (Pause)</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pause billing on an IO Number</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>CostCenter.billing_paused</code> (+ <code>paused_at</code>/<code>paused_by</code>, migration 0147). PI-owned switch on My Usage &amp; Billing → Cost Centers (quick ⏸/▶ and Edit form). Lives on the <strong>IO</strong>, not the project: one IO funds many projects/allocations and is what the PI recognises on the invoice</td>
+</tr>
+<tr>
+<td>Durable no-charge</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Every allocation whose pay IOs are <strong>all</strong> paused is recomputed <code>is_billable=False</code>/<code>no_charge</code> by the rule engine itself (<code>billing_rules.allocation_pay_links_all_paused</code>) — a "Computing Billing" pass can never re-arm it, unlike a hand-set <code>is_billable</code></td>
+</tr>
+<tr>
+<td>New links refused, existing kept</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Paused <strong>and</strong> inactive IOs are hidden from pickers and refused server-side as a NEW link (link/assign/create/update, <code>AllocationCostCenter.clean</code>); existing links are KEPT (unlinking would drop the allocation into <code>io_hold</code>). Assign card re-posts an existing paused link via a hidden input (a disabled checkbox is not submitted)</td>
+</tr>
+<tr>
+<td>Job submission blocked</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>slurm_sync</code> writes <code>GrpSubmitJobs=0</code> on the paid account (CLI-by-design, re-asserted every pass) and lifts it (<code>-1</code>) <strong>only when the live value is 0</strong> — ColdFront owns the zero, an ops-set positive limit is left alone. The free scavenger account is a sibling leaf and is never touched</td>
+</tr>
+<tr>
+<td>Guards</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>billing_rules.pause_blockers</code>: sentinel IOs, condo/credit_holder links, co-funding with a live IO (partial <code>share_percent</code> billing deliberately not implemented)</td>
+</tr>
+<tr>
+<td>Helpdesk ticket</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Pausing opens ONE bridge ticket with the PI as submitter (<code>HelpdeskTicketLink</code> event <code>io_pause</code>, migration 0149); resuming posts the resolving follow-up; bridge off → legacy queue e-mail</td>
+</tr>
+<tr>
+<td>Staff view</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Billing Management → <strong>IO Numbers</strong> (<code>/billing/cost-centers/all/</code>): every PI's IOs with links, Project Storage and pause state; filters (search, affiliation, state, linked-only). Read-only — pause on a PI's behalf via Django Admin (same guards, audited)</td>
+</tr>
+<tr>
+<td>Active vs Paused</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>is_active</code> = lifecycle ("Available for new projects and allocations": no new links, existing links <strong>keep billing</strong> — an expired grant); <code>billing_paused</code> = financial hold (no new links, existing links <strong>stop billing</strong>)</td>
+</tr>
+</tbody>
+</table>
 <h3>Project Storage — WekaFS integration</h3>
 <p><strong>Project Storage</strong> is the Weka filesystem as a single thing: its value is the
 TOTAL capacity and it INCLUDES the <strong>Cache</strong> (the flash/SSD share — "10T hot +
@@ -1401,7 +1471,11 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 </tr>
 <tr>
 <td>Weekly Spend Cap</td>
-<td>Dollar-based caps via account-level GrpTRESMins; live AJAX gauge via REST endpoint (Phase 2); week = Sunday 00:00 → Saturday cluster-local (Slurm weekly usage reset boundary); diagnostic <code>shadow_compare_weekly_cap_usage</code></td>
+<td>Dollar-based caps via account-level GrpTRESMins; live AJAX gauge via REST endpoint (Phase 2); measured against the cluster's <code>PriorityUsageResetPeriod</code> (cluster-x MONTHLY since 2026-09-21 → the value is enforced per month; WEEKLY clusters: Sunday 00:00 → Saturday cluster-local); diagnostic <code>shadow_compare_weekly_cap_usage</code></td>
+</tr>
+<tr>
+<td>IO Number pause</td>
+<td>PI-owned billing hold on <code>CostCenter</code> (0147–0150): durable no_charge, new links refused, existing links kept, <code>GrpSubmitJobs=0</code> on the paid account, helpdesk ticket on pause / resolve on resume, staff IO Numbers page</td>
 </tr>
 <tr>
 <td>Storage/Backup</td>
@@ -1471,6 +1545,10 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <tr>
 <td>No-charge sentinel IO (<code>5555555555</code> OrgA / <code>9999999999</code> OrgB)</td>
 <td>A paid-shaped project nobody is charged for — staff-only; keeps every IO-gate protection, unlike a missing IO</td>
+</tr>
+<tr>
+<td>IO Number pause (<code>CostCenter.billing_paused</code>)</td>
+<td>PI-owned hold on a REAL IO: allocations funded only by paused IOs → <code>no_charge</code> (durable across recalcs), no new links, existing links kept, job submission blocked on the paid account. Sentinel, condo and co-funded-with-a-live-IO refuse the pause</td>
 </tr>
 </tbody>
 </table>

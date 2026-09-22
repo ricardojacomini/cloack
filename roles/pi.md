@@ -133,6 +133,26 @@ ColdFront enforces the Slurm gate: a paid JHU allocation without a
 **pay-role** Cost Center linked at the project AND allocation level is
 silently skipped by `slurm_sync` (no Slurm account created).
 
+### Pause billing on an IO Number
+
+Register your real IO now and put it on hold until funding is confirmed:
+
+```
+/billing/cost-centers/  → ⏸ on the IO's row   (or Edit Cost Center → "Pause billing and job submission")
+```
+
+While paused, the IO is **never charged**, cannot fund new projects or
+allocations, and **job submission is blocked** on the paid allocations it
+funds. Existing links, Project Storage and your free scavenger allocation are
+untouched — you keep computing for free. A helpdesk ticket is opened so staff
+know; resuming (▶) is a deliberate action that resolves it.
+
+The pause is refused when the IO co-funds an allocation with another live IO
+(pause those too, or ask staff to split the allocation) or funds a
+Hardware-Credit (condo) allocation. *Active* is different: unchecking it hides
+the IO from new pickers but existing links **keep billing** — use Pause to
+stop charges.
+
 ### Weekly Cap: dollars vs hours
 
 | Cap | Units | When to use |
