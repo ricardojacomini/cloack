@@ -1012,6 +1012,20 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td>Staff dashboard section between "Assigned to you" and "All tickets" listing tickets where the user is an approved <code>TicketCollaborator</code> (collaborator/reviewer/shadow/escalated_from/mentor) and not the current owner; explanatory empty state keeps it discoverable</td>
 </tr>
 <tr>
+<td>Dashboard table sort + filter</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>The overlay-rendered <strong>Unanswered user replies</strong> and <strong>All tickets</strong> tables sort by every column (<code>?pendreply_sort=</code> / <code>?aat_sort=</code>, allow-listed, queue by title) and carry a Queue + Status filter bar; sort links keep the filter, the form keeps the sort; the parked-reply bar offers only non-open statuses</td>
+</tr>
+<tr>
+<td>Address-less inbound mail rejected at intake</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Upstream opens a ticket with submitter <code>Unknown Sender</code> for any message without a parseable <code>From:</code> (Exchange system items — 71 junk tickets on prod). <code>upstream_patches.patch_extract_email_metadata</code> rejects them on every intake path with one WARNING (subject / Message-ID / Date); <code>HELPDESK_SENDERLESS_MAIL_ACTION</code> = <code>delete</code> (default) / <code>keep</code> / <code>ticket</code></td>
+</tr>
+<tr>
 <td>Public feedback categories + dedicated queue</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>

@@ -114,7 +114,14 @@ emails use <code>public=True</code> — collaborators are forced to internal-onl
                                             • Resource (GPU / CPU / Cache / Project Storage)
 /reports/                                → 8 stock helpdesk reports rendered
                                             inline as Chart.js bar / line charts
-/extensions/skill-matrix/                → skills × categories grid
+</code></pre>
+<p>Every ticket table on <code>/dashboard/</code> sorts by column header — including
+<strong>Unanswered user replies</strong> and <strong>All tickets</strong> — and those two also carry a
+Queue + Status filter bar (sort links keep the filter, the filter keeps the
+sort, "Clear" resets). Inbound mail without a parseable <code>From:</code> is rejected at
+intake and never becomes a ticket, so you will not see <code>Unknown Sender</code> rows
+any more; the rejection is logged in the container cron log.</p>
+<pre><code>/extensions/skill-matrix/                → skills × categories grid
 /extensions/calendar/                    → workload calendar
 /extensions/schedule/                    → engineer × day × slot grid +
                                             Time Allocations

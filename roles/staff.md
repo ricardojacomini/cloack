@@ -66,6 +66,16 @@ ticket → "Escalate" action               → applies the StaffMember.policy
                                             • Resource (GPU / CPU / Cache / Project Storage)
 /reports/                                → 8 stock helpdesk reports rendered
                                             inline as Chart.js bar / line charts
+```
+
+Every ticket table on `/dashboard/` sorts by column header — including
+**Unanswered user replies** and **All tickets** — and those two also carry a
+Queue + Status filter bar (sort links keep the filter, the filter keeps the
+sort, "Clear" resets). Inbound mail without a parseable `From:` is rejected at
+intake and never becomes a ticket, so you will not see `Unknown Sender` rows
+any more; the rejection is logged in the container cron log.
+
+```
 /extensions/skill-matrix/                → skills × categories grid
 /extensions/calendar/                    → workload calendar
 /extensions/schedule/                    → engineer × day × slot grid +
