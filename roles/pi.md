@@ -42,8 +42,10 @@ etc.) when you create it.
 
 For paid allocations, fill in:
 
-- **IO Number** — your funding source. Allocations without an IO
-  number are treated as no-charge regardless of partition.
+- **IO Number** — your funding source. Every paid (non-default) project
+  needs one, Schmidt included — a project that must not be charged carries a
+  staff-set **no-charge IO** (`5555555555` JHU / `9999999999` Schmidt) and
+  reports $0 while staying fully provisioned.
 - **Project Storage** is requested AFTER creation, from the "Project Storage" card on the project page (Project Storage TB = total capacity, includes the Cache; staff approves in Storage Review).
 - **Weekly Cap ($)** **or** **Weekly Cap (hours)** to bound spend.
 
@@ -86,7 +88,10 @@ jobs against the allocation immediately.
 /user/user-profile/ → "My Usage & Billing"  → PDF download
 ```
 
-Cache and Project Storage are billed monthly regardless of compute activity.
+Cache and Project Storage are billed monthly regardless of compute activity;
+the "Project Storage" card shows the monthly estimate at current rates
+(cache × Cache rate + total × Project Storage rate) for both the provisioned
+and any pending values.
 GPU jobs charge GPU only — their CPU hours appear for transparency but
 are excluded from the total due (the GPU-only billing rule, sourced in
 `billing_views.calculate_allocation_charges`).
@@ -107,8 +112,9 @@ are excluded from the total due (the GPU-only billing rule, sourced in
 
 | If… | …pick |
 |---|---|
-| Default scavenger PI project (no abbreviation, no IO) | **No Charge** — auto-set by `_ensure_allocation_billing` signal |
-| Schmidt PI (`ssci-*`) | **No Charge** — funded by the Schmidt programme |
+| Default scavenger PI project (no abbreviation, no IO) | **No Charge** — set by the billing rule engine when staff runs Computing Billing |
+| Schmidt PI (`ssci-*`) | **No Charge** — funded by the Schmidt programme; the allocation carries the `9999999999` no-charge IO |
+| Paid project that must not be charged (internal / ARCH) | **No Charge** — staff attach the `5555555555` no-charge IO; provisioned like any paid project |
 | Paid project, IO number, no upfront hardware purchase | **Pay-Per-Use** |
 | Paid project, IO number, you bought hardware credit | **Condo** (Hardware-Credit holder; `credits_used` gated by `billing_type=credit_holder`) |
 

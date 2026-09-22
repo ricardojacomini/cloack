@@ -2375,16 +2375,39 @@ Run the populate command after creating a new cluster, or use the admin to add p
 <p>Two-track pricing: <code>*_full</code> for pay-per-use PIs (compute + O&amp;M bundled). <code>*_om</code> for hardware-credit holders (lower — O&amp;M only).</p>
 
 <h6>2. <code>AllocationBilling</code> — per-allocation config (one per Allocation)</h6>
-<p><a href="/admin/cloack_sync/allocationbilling/">/admin/cloack_sync/allocationbilling/</a> — auto-created by signal <code>_ensure_allocation_billing</code> on allocation save.</p>
+<p><a href="/admin/cloack_sync/allocationbilling/">/admin/cloack_sync/allocationbilling/</a> — computed by <code>billing_rules.recalculate_allocation_billing</code>. This is an explicit action, not a signal: the <strong>Computing Billing</strong> button on <code>/billing/report/</code>, the Django Admin action, or <code>coldfront recalculate_billing</code>.</p>
 <ul>
   <li><strong>io_number</strong> — OrgA service-center cost code. No IO &rarr; <code>is_billable=False</code> automatically.</li>
   <li><strong>department</strong> — drives the Slurm account hierarchy (root &rarr; school &rarr; dept &rarr; PI &rarr; project)</li>
   <li><strong>billing_type</strong> — <code>pay_per_use</code> / <code>credit_holder</code> / <code>no_charge</code></li>
   <li><strong>is_billable</strong> — single source of truth for whether the allocation is charged. <code>False</code> = tracked but $0.</li>
   <li><strong>storage_tb / backup_tb</strong> — provisioned TB (multiplied by <code>storage</code>/<code>backup</code> rate per month)</li>
-  <li><strong>qos</strong> — FK to SlurmQOS; overrides cluster default (e.g. <code>interactive</code>)</li>
 </ul>
-<p>Auto-flags <code>is_billable=False</code> + <code>billing_type=no_charge</code> for: default allocations, OrgB PIs (<code>orgb-*</code>), allocations without IO Number.</p>
+<p>Sets <code>is_billable=False</code> + <code>billing_type=no_charge</code> for:
+  default allocations, OrgB PIs (<code>orgb-*</code>), allocations without an IO Number,
+  and allocations carrying a <strong>no-charge sentinel IO</strong>.</p>
+<div class="alert alert-info">
+  <strong>No-charge sentinel IOs</strong> &mdash; <code>5555555555</code> (OrgA) and
+  <code>9999999999</code> (OrgB) mean &ldquo;this is a real paid project, provisioned like
+  any other, but nobody is charged&rdquo;. Saying it <em>with</em> an IO rather than by leaving
+  the field empty is what keeps the allocation protected by every IO gate (the
+  <code>io_hold</code> freeze, the &ge;1-pay-IO rule, the last-pay-IO guard) &mdash; and unlike
+  un-ticking <code>is_billable</code> by hand, it survives the next
+  <strong>Computing Billing</strong>. Selecting one is staff-only, on the Create Project IO
+  select, the Allocation Request pay-IO picker and the per-allocation IO Assignment card.
+  <br><br>
+  Consequence: <strong>every non-default allocation now needs a pay IO</strong>, OrgB
+  included. A OrgB request attaches its sentinel automatically; an OrgA paid allocation with
+  no IO still gets the synthetic <code>10000+</code> placeholder, flagged
+  <code>[PLACEHOLDER]</code> by <code>scripts/project_approvals.sh --ios</code>, because it
+  genuinely owes money and must not be silently zeroed.
+  <br><br>
+  <strong>Condo is separate.</strong> It is the staff-only &ldquo;Hardware Credit Holder
+  (condo)&rdquo; checkbox on Create Project, no longer inferred from the IO number, and it
+  overrides the rows above: <code>billing_type=credit_holder</code> with
+  <code>is_billable=True</code>, which is what <code>HardwareCreditPool</code> accounting
+  needs.
+</div>
 
 <h6>3. <code>HardwareCreditPool</code> — prepaid credits from hardware purchase</h6>
 <p><a href="/admin/cloack_sync/hardwarecreditpool/">/admin/cloack_sync/hardwarecreditpool/</a></p>

@@ -1050,16 +1050,17 @@ srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
 </tr>
 <tr>
 <td><strong>No Charge</strong></td>
-<td>Default, scavenger, and OrgB allocations</td>
+<td>Default, scavenger, OrgB allocations, and any allocation carrying a <strong>no-charge sentinel IO</strong> (<code>5555555555</code> OrgA / <code>9999999999</code> OrgB)</td>
 <td>Usage tracked but not billed ($0 total)</td>
 </tr>
 </tbody>
 </table>
 <p><strong>Important:</strong> Credits do NOT pay O&amp;M bills. The system UI clearly separates credit consumption from cash charges to prevent confusion.</p>
-<p><strong>Billing eligibility</strong> is controlled by <code>AllocationBilling.is_billable</code> (set automatically by signal):
+<p><strong>Billing eligibility</strong> is controlled by <code>AllocationBilling.is_billable</code>, computed by the rule engine in <code>billing_rules.py</code> when staff presses <strong>Computing Billing</strong> on <code>/billing/report/</code> (or runs <code>coldfront recalculate_billing</code>):
 - <code>is_billable=True</code> → allocation is charged (Pay Per Use or Credit Holder)
 - <code>is_billable=False</code> → allocation is tracked with <code>billing_type='no_charge'</code> and <code>payment_status='no_charge'</code></p>
-<p>Allocations with <code>is_billable=False</code> still appear in billing reports showing real usage (hours, rate) but with $0 total and "No Charge" label. Staff can toggle <code>is_billable</code> via Django Admin. The billing report includes a "Billable only" checkbox (default ON) to filter the view.</p>
+<p>Allocations with <code>is_billable=False</code> still appear in billing reports showing real usage (hours, rate) but with $0 total and "No Charge" label. The billing report includes a "Billable only" checkbox (default ON) to filter the view.</p>
+<p><strong>No-charge sentinel IOs.</strong> To run a real paid project that nobody is charged for — a OrgB Sciences project, or an internal OrgA/CLOACK one — staff attach the org's sentinel IO instead of a real one: <code>5555555555</code> for OrgA, <code>9999999999</code> for OrgB (both 10 digits, like a real IO). "No charge" is said <strong>with</strong> an IO rather than by leaving the field empty, for two reasons: the allocation keeps every IO-gate protection (the <code>io_hold</code> freeze, the ≥1-pay-IO rule, the last-pay-IO guard) instead of being exempted from all of them, and the state survives the next <strong>Computing Billing</strong> — un-ticking <code>is_billable</code> by hand did not. Consequences: every non-default allocation now needs a pay IO, OrgB included (a OrgB allocation request attaches its sentinel automatically; an OrgA paid allocation with no IO still gets the synthetic <code>10000+</code> placeholder, flagged <code>[PLACEHOLDER]</code> by <code>scripts/project_approvals.sh --ios</code>, because it genuinely owes money). Selecting a sentinel is <strong>staff-only</strong>, on the Create Project IO select, the Allocation Request pay-IO picker and the per-allocation IO Assignment card. The submit-time cost gate agrees: <code>export_qos_config</code> writes the affected Slurm accounts into <code>qos_config.lua</code> (<code>no_charge_accounts</code>), honoured by <code>job_submit.lua</code>, <code>cli_filter.lua</code> and the Submit Job preview, and re-exported after every billing recalc. <strong>Condo is separate</strong> — it is the staff-only "Hardware Credit Holder (condo)" checkbox on Create Project (no longer inferred from the IO number) and it overrides the rules above with <code>credit_holder</code> / <code>is_billable=True</code>. Backfill for existing rows: data migration <code>cloack_sync 0145</code> + <code>coldfront backfill_no_charge_ios [--report|--yes]</code>.</p>
 <h4><strong>Staff Billing Report</strong></h4>
 <p>Superusers and billing staff can:
 - View filterable billing report with all usage and charges
@@ -1640,7 +1641,7 @@ SLURM_NOOP=0
 <tbody>
 <tr>
 <td><code>io_number</code></td>
-<td>OrgA service-center cost code (no IO → <code>is_billable=False</code>)</td>
+<td>Service-center cost code. No IO → <code>is_billable=False</code>; a no-charge sentinel (<code>5555555555</code> / <code>9999999999</code>) → <code>is_billable=False</code> too, but the allocation stays protected by the IO gates</td>
 </tr>
 <tr>
 <td><code>department</code></td>
@@ -2228,7 +2229,7 @@ OK
 </tr>
 <tr>
 <td>Request Project Storage</td>
-<td>"Project Storage" card on Project Detail → Request Storage Change (Project Storage TB total incl. Cache) → staff approves in Storage Review</td>
+<td>"Project Storage" card on Project Detail → Request Storage Change (Project Storage TB total incl. Cache) → staff approves in Storage Review. The card shows a <strong>monthly $ estimate</strong> per row and in total (<code>cache × Cache rate + total × Project Storage rate</code>, today's Billing Rates — same formula as the invoice; the 2026 card is $30 and $3 per TB-month) for both the provisioned and the pending values; staff see a hint linking to Billing Rates when the two storage rates are missing</td>
 </tr>
 <tr>
 <td>Add users</td>

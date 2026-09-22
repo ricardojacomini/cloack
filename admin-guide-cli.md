@@ -272,10 +272,102 @@ docker logs keycloak --since 2h 2>&1 | grep 'Failed during import' | head -3 | c
 ```
 
 `ModelDuplicateException … email … already exists … Existing user is '<x>@<domain>'`
-is the structural case: the person logged in via SSO before their LDAP entry
-existed, so the broker created a local `<jhed>@<domain>` user that now blocks
-the import. Login is unaffected; LDAP-group → role mappers do not apply to
-such users.
+is the structural case, and it is repairable — see the next subsection.
+
+### Local `<jhed>@<domain>` users blocking the LDAP import (converge to federated)
+
+**Cause.** A JHED person who signs in through Entra BEFORE ColdFront and LDAP
+know them gets a LOCAL Keycloak user named after their UPN (`<jhed>@jh.edu`).
+ColdFront later creates `User <jhed>` and, at the next `sync_ldap`, an LDAP entry
+`uid=<jhed>` with the SAME `mail`. Every hourly import of that entry then
+collides on e-mail (`duplicateEmailsAllowed=false`) and fails, permanently. The
+count grows by one for every new JHED who logs in before ColdFront knows them.
+
+**Impact.** Portal, helpdesk and JHED Device-Flow SSH are unaffected. What breaks:
+Open OnDemand maps `preferred_username` raw, so `<jhed>@jh.edu` 404s; the LDAP
+`admin-role` / `helpdesk-role` mappers never evaluate local users, so a
+post-migration admin gets neither master-console brokering nor ROPC SSH; and the
+hourly error lines bury real Keycloak faults.
+
+**Repair.** Delete the broker-local row once an LDAP entry with an equivalent
+e-mail exists, then look the username up again: the local miss falls through to
+the LDAP provider and imports the entry as a federated row. `idp-auto-link`
+re-binds Entra at the person's next login. Nothing touches ColdFront, LDAP, home
+directories or Slurm.
+
+**Precondition, checked once per run.** The repair DELETEs the row that carries
+the brokered username, so it is only sound while two realm-level objects hold:
+the `entra-jhu` IdP is on the `first-broker-auto-link` flow, and its
+`entra-username` mapper mints the BARE JHED
+(`${CLAIM.preferred_username | localpart}`). On a UPN-shaped template the
+brokered username is `<jhed>@jh.edu`, which no LDAP uid can equal, so after the
+DELETE the username probe can never match and Keycloak falls through to
+`IdpCreateUserIfUniqueAuthenticator`'s FIRST probe — `getUserByEmail`, on the
+person's **mutable** default alias. `idp-auto-link` then binds whatever that
+probe found, with no cross-check and no page to stop on. `--apply` refuses with
+exit 2 (`RELINK PRECONDITION NOT MET`, nothing deleted); a dry run continues and
+prints the refusal, because a census is read-only and is exactly the diagnostic
+you need on the host whose realm is wrong. Fix it via the admin API — never by
+clearing `/opt/keycloak/data/.config_done`:
+
+```bash
+./scripts/kcq.sh GET 'admin/realms/jhu/identity-provider/instances/entra-jhu' \
+  | jq -r '[.alias,.firstBrokerLoginFlowAlias,.enabled,.trustEmail]|@tsv'
+./scripts/kcq.sh GET 'admin/realms/jhu/identity-provider/instances/entra-jhu/mappers' \
+  | jq -r '.[]|select(.name=="entra-username")|[.config.template,.config.syncMode]|@tsv'
+```
+
+```bash
+docker exec coldfront coldfront converge_keycloak_federation                  # census (dry-run)
+docker exec coldfront coldfront converge_keycloak_federation --user nwong21   # one person
+docker exec coldfront coldfront converge_keycloak_federation --json > /tmp/census.json
+docker exec coldfront coldfront converge_keycloak_federation --apply --limit 100 --batch-size 25
+docker exec coldfront coldfront converge_keycloak_federation --apply --full-sync   # last batch
+```
+
+`--limit` caps the WORK, not the scan: at most N rows deleted under `--apply`,
+or N convertible users reported in a dry run. The scan continues past
+already-federated users, so repeated batches make progress rather than
+re-walking the same alphabetical prefix. A deleted row whose re-import then
+defers still consumes the budget, because the row is already gone.
+
+Dry-run is the default. Realm `jhu` only: the command refuses anything else,
+because the Schmidt realm is clean and its duplicate-identity story is a
+different shape (one person, two different e-mails, two LDAP entries, violating
+no constraint). Exit codes: 0 ran, 1 hard errors, 2 precondition failure.
+
+**Skip reasons.** Every one of these is a gate doing its job, not a fault:
+
+| Reason | Meaning | Override |
+|---|---|---|
+| `username_not_jhed_pattern`, `system_username` | not a bare JHED handle (`ext-`, `ssci-`, course-wrapped, `admin`/`root`/`coldfront`) | none, by design |
+| `no_django_user`, `no_ldap_entry` | nothing to federate onto | none |
+| `no_kc_local_user`, `already_federated` | nothing to convert | none |
+| `is_service_account` | a client service account | none |
+| `kc_disabled`, `django_inactive` | deliberately disabled; a re-import would come back ENABLED | none, deliberately |
+| `email_mismatch` | Keycloak e-mail is not the LDAP `mail` | fix the Django e-mail, `sync_ldap`, re-run |
+| `ldap_mail_not_unique` | two identities share the address; freeing it could auto-link the wrong person | resolve the duplicate first |
+| `alias_held_by_other_kc_user` | some OTHER Keycloak row holds an e-mail alias this person presents — typically a legacy `<first>.<last>`-named row that owns the JHED's current default alias | **none, and no `--force-*` reaches it**: free the address first (ColdFront-first on prod: edit `User.email`, `sync_ldap`, `triggerChangedUsersSync`) |
+| `has_sessions` | live session; converting logs them out | `--force-sessions`, named users, off-hours |
+| `has_local_credential` | a local password, TOTP or webauthn key would be destroyed | `--allow-otp-loss` for an OTP-only row (they re-enrol); `--allow-credential-loss` destroys passwords too and therefore **requires `--user`** |
+| `import_deferred` | the row was deleted but the re-import did not complete; the hourly sync or their next login finishes it | none needed |
+
+**Hourly convergence.** `KEYCLOAK_FEDERATION_CONVERGE_ENABLED=True` (host-local
+`${BASE_ETC}/coldfront/coldfront.env`, never the tracked template) arms a task
+that converges up to `KEYCLOAK_FEDERATION_CONVERGE_MAX_PER_RUN` (default 50) per
+hour. The task is always scheduled and returns `SKIP` while the flag is off, so
+arming it needs only the env flip and a qcluster recreate — `env_file` is read at
+container CREATE, not at restart.
+
+**Converting an admin.** A `cn=admin` member with an enrolled TOTP loses it
+(`--allow-credential-loss`). Confirm their pubkey break-glass first, convert,
+have them log into the portal to auto-link, then re-plant enrolment:
+
+```bash
+./scripts/kcq.sh PUT "admin/realms/jhu/users/<new-id>" '{"requiredActions":["CONFIGURE_TOTP"]}'
+```
+
+ROPC SSH stays refused for them until that enrolment completes.
 
 ### Repoint the public host (`ARCH_PUBLIC_HOST` → OIDC/Keycloak URLs)
 
@@ -778,6 +870,197 @@ docker exec coldfront coldfront setup_schedules      # reconcile django-q cron d
 docker restart coldfront                             # redeploy custom/ overlay + reload code
 ```
 
+### Database & backups
+
+The nightly stack backup is `scripts/backup.sh` (cron `/etc/cron.d/cloack-backup`,
+daily 00:30, installed by `./start.sh init` on Linux root hosts). It writes to
+**`${BASE_DATA}/backup/`** (singular — on mgmt02 `/opt/mprov/cloack/var/backup/`),
+NOT to the legacy `/opt/mprov/cloack/backups/` folder, which only holds one-off
+manual dumps from July 2026.
+
+```bash
+ls -lah ${BASE_DATA}/backup/                 # postgres_<ts>.sql.gz + ldap_<ts>.ldif.gz + slurmacct_<ts>.sql.gz per night
+tail -20 ${BASE_DATA}/backup/backup.log      # one "done — N component(s) failed" line per run; N must be 0
+cat /etc/cron.d/cloack-backup                # 30 0 * * * root <repo>/scripts/backup.sh >> .../backup.log
+bash scripts/backup.sh                       # run one now (exit code = failed components)
+RETENTION_DAYS=30 bash scripts/backup.sh     # default 14; retention only prunes the .gz the script itself wrote
+```
+
+> **Never pipe a `postgres_*.sql.gz` into the live postgres.** `pg_dumpall`
+> carries `\connect` + `setval()` — it replays into the real DBs and rewinds
+> every sequence (→ `duplicate key` across the portal). Inspect/restore only in
+> a throwaway container (`docker run --rm --name pg-restore postgres:16` + `psql -f`),
+> and after ANY restore/import with explicit PKs run
+> `docker exec coldfront coldfront resync_sequences` (also `--check`).
+
+Size per database (all DBs share the one `postgres` container; the `admin`
+superuser connects over the trusted local socket, no password):
+
+```bash
+docker exec postgres psql -U admin -c "SELECT datname, pg_size_pretty(pg_database_size(datname)) FROM pg_database WHERE NOT datistemplate ORDER BY pg_database_size(datname) DESC;"
+```
+
+```text
+  datname   | pg_size_pretty
+------------+----------------
+ slurm_jobs | 600 MB      # arch_sync_slurmjob — jobs imported by collect_sacct
+ coldfront  | 284 MB
+ helpdesk   | 257 MB
+ keycloak   | 25 MB
+ postgres   | 7519 kB
+ admin      | 7519 kB
+```
+
+(mgmt02, 2026-09-12 — the compressed nightly dump was 149 MB and growing
+~3.5 MB/day; `slurm_jobs` is the usual leader.)
+
+Largest tables per DB, with the write/vacuum counters that tell real data
+from churn (`n_tup_upd` = rows rewritten since the stats were last reset;
+`n_tup_hot_upd` ≈ `n_tup_upd` means those rewrites were cheap in-page HOT
+updates — WAL/IO cost, not disk growth; `n_dead_tup` ≫ `n_live_tup` with an
+old `last_av` means autovacuum is not keeping up):
+
+```bash
+for db in slurm_jobs coldfront helpdesk; do
+  echo "=== $db ==="
+  docker exec postgres psql -U admin -d "$db" -c "
+    SELECT relname,
+           pg_size_pretty(pg_total_relation_size(relid)) AS total,
+           pg_size_pretty(pg_relation_size(relid))       AS heap,
+           pg_size_pretty(pg_indexes_size(relid))        AS idx,
+           n_live_tup, n_dead_tup, n_tup_upd, n_tup_hot_upd,
+           to_char(last_autovacuum,'MM-DD HH24:MI') AS last_av, autovacuum_count
+    FROM pg_stat_user_tables
+    ORDER BY pg_total_relation_size(relid) DESC LIMIT 6;"
+done
+docker exec postgres psql -U admin -c "SHOW autovacuum_vacuum_scale_factor;" -c "SHOW autovacuum_naptime;"
+```
+
+What it showed on mgmt02 (2026-09-12, defaults `scale_factor=0.2`, `naptime=1min`):
+
+```text
+=== slurm_jobs ===
+      relname       | total  |  heap  |  idx   | n_live_tup | n_dead_tup | n_tup_upd | n_tup_hot_upd | last_av     | autovacuum_count
+ arch_sync_slurmjob | 592 MB | 247 MB | 345 MB |     577218 |      89577 |   8496697 |       8360001 | 09-11 10:51 | 1
+=== coldfront ===
+ allocation_historicalallocationattributeusage | 148 MB | 104 MB | 45 MB | 1284409 | 1247 |     0 | 0 |             | 0
+ arch_sync_apitokenusage                       |  67 MB |  20 MB | 46 MB |  160554 | 1601 |     0 | 0 |             | 0
+ django_admin_log                              |  28 MB |  25 MB |  3 MB |   78241 |   28 |     0 | 0 |             | 0
+ django_session                                |  11 MB |   3 MB |  7 MB |    5538 |    9 | 53212 | 1 | 09-13 00:40 | 48
+=== helpdesk ===
+ django_session                         | 190 MB | 131 MB | 59 MB |   26207 |  167 |   113 |    0 |             | 0
+ hd_kb_document                         |  23 MB |  13 MB |  4 MB |       0 |    0 |     0 |    0 |             | 0
+ helpdesk_extensions_assignmentdecision |  11 MB |   7 MB |  4 MB |   41653 |   22 |     0 |    0 |             | 0
+```
+
+How to read it:
+
+- **`arch_sync_slurmjob` is real data, not bloat.** 577 k jobs × ~450 B/row of
+  heap is the expected row width. The 8.5 M rewrites (15× the row count) are
+  the 15-min `collect_sacct` re-upserting every job in its window with
+  `update_or_create` — 98 % of them HOT, so they cost WAL and CPU, not disk.
+  `idx` > `heap` because the model carries 15 indexes; the single-column ones
+  on `account`/`user`/`partition`/`qos` are shadowed by the composite
+  `(<col>, start_time)` indexes and could be dropped. The nightly dump grows
+  with skipjack's job volume (whale days ≈ 20–37 k jobs).
+- **`allocation_historicalallocationattributeusage`** (upstream ColdFront
+  `simple_history` on `AllocationAttributeUsage`) gets one row per gauge write —
+  every allocation, every 15-min `sync_slurm` — and nothing prunes it: 1.28 M
+  rows in ~45 days.
+- **`arch_sync_apitokenusage`** (`APITokenUsage`, Staff → API Token Usage) is
+  one row per authenticated `/api/v1/` request, mostly the helpdesk polling;
+  no retention either.
+- **helpdesk `django_session` 190 MB for 26 k rows** — `clearsessions` is not
+  scheduled anywhere in the stack (nor on coldfront). Helpdesk
+  `SESSION_COOKIE_AGE` is 1 day, so nearly all of those rows are expired
+  OIDC sessions (~5 KB each: the id/access tokens live in the session).
+  `hd_kb_document` shows `n_live_tup=0` only because it was never ANALYZEd.
+- `django_admin_log` (78 k rows) is the django-q audit trail — permanent by
+  design (`cleanup_task_queue` purges `Task`, not `LogEntry`).
+
+Remediation (all read-safe except the `VACUUM FULL`, which takes a brief
+exclusive lock on that one table — sessions/history tables, fine at any hour):
+
+```bash
+# 1. Expired sessions — removes only expire_date < now(); run on both apps
+docker exec helpdesk python /opt/helpdesk/manage.py clearsessions
+docker exec coldfront coldfront clearsessions
+docker exec postgres psql -U admin -d helpdesk  -c "VACUUM (FULL, ANALYZE) django_session;"
+docker exec postgres psql -U admin -d coldfront -c "VACUUM (FULL, ANALYZE) django_session;"
+
+# 2. simple_history (django-simple-history 3.12): first drop consecutive rows
+#    where nothing changed, then age out; --dry prints counts only
+docker exec coldfront coldfront clean_duplicate_history --auto --dry
+docker exec coldfront coldfront clean_duplicate_history --auto
+docker exec coldfront coldfront clean_old_history --auto --days 90 --dry
+docker exec coldfront coldfront clean_old_history --auto --days 90
+docker exec postgres psql -U admin -d coldfront -c "VACUUM (FULL, ANALYZE) allocation_historicalallocationattributeusage;"
+
+# 3. Refresh planner stats so n_live_tup stops reading 0 on never-vacuumed tables
+docker exec postgres psql -U admin -d helpdesk -c "ANALYZE;"
+```
+
+Both `clearsessions` and the history pruning should become scheduled tasks
+(django-q on coldfront, cron/qcluster on helpdesk) — until then re-run this
+block whenever the nightly dump size jumps.
+
+Slurm accounting (MariaDB in `slurm-db`) is dumped by the same script; its
+own archive/purge policy lives in `slurmdbd.conf` (jobs 24 mo, steps/events
+12 mo, usage 36 mo → `/var/lib/slurm/archive`).
+
+### Edge topology — the two NPM layers (HTTP)
+
+Edge/prod only. Two reverse proxies sit in front of the stack and they own
+different things; knowing which is which is most of the troubleshooting.
+
+The **JHU NPM** (`status`, `162.129.223.99`) is shared campus infrastructure —
+it also fronts services that are not CLOACK. It holds the public DNS names, the
+Let's Encrypt certificates, and forwards every CLOACK host to one address:
+`https://172.16.1.2:443` (mgmt02).
+
+The **in-stack NPM** (the `npm` compose service on mgmt02) receives all of them
+on that single address and dispatches by `Host`/SNI to the right container:
+`portal.*` → `coldfront:8000`, `auth.*` → `keycloak:8443`, `helpdesk.*` →
+`helpdesk:8000`, `ood.*` → `ood:80`. Its whole configuration — proxy hosts,
+certificate, the SSH TCP stream — is derived from `CLOACK_DOMAIN_JHU` /
+`CLOACK_DOMAIN_SCHMIDT` and pushed in from git, so a fresh host reproduces the
+edge with no manual clicks. In stages 1–3 there is no JHU NPM and the in-stack
+one *is* the edge; that is what lets dev and staging exercise the same paths
+under their own domains.
+
+> **Forward ports differ per layer and are easy to get backwards.** On the JHU
+> NPM the target is `https://172.16.1.2:443` — the in-stack NPM. On the in-stack
+> NPM the target is the container's own port, e.g. `http://ood:80`. Never point
+> the in-stack NPM at the OOD container's `:443`: it listens there, but that is
+> Apache's stock `ssl.conf` `<VirtualHost _default_:443>` serving
+> `/var/www/html` with a build-time self-signed cert (`CN=buildkitsandbox`) —
+> both OnDemand vhosts are `*:80`. Measured with the same `Host:` header, `:80`
+> answers `302 -> /pun/sys/dashboard` and `:443` answers 403 with the Rocky test
+> page.
+
+**Which layer produced an error.** Each NPM writes per-proxy-host logs under
+`/data/logs/proxy-host-<id>_{access,error}.log`, and the access line carries
+`$upstream_status $status`:
+
+```
+- 302 302 - GET https ood.<domain> "/"                    upstream and proxy agree
+- 502 502 - GET https ood.<domain> "/pun/sys/dashboard"   the UPSTREAM returned 502
+```
+
+A 502 with `upstream_status` also 502 means that nginx relayed someone else's
+error — look one hop further in, not at buffers or TLS. A proxy that generated
+the error itself logs it in its own `_error.log`; an empty error log next to a
+502 in the access log means the error came from upstream.
+
+**Certificates.** A name missing from the SAN list of the cert that terminates
+TLS produces a browser warning no proxy setting can fix. The in-stack cert is
+minted at `init` for the service FQDNs of both domains; the public-facing one
+lives on the JHU NPM. Issuing a new Let's Encrypt cert there needs the name to
+resolve in **public** DNS first — certbot runs `--authenticator webroot`
+(HTTP-01), so an unpublished name fails the challenge in a few seconds and NPM
+surfaces it only as a red "Internal Error" on the SSL tab; the real reason is in
+`docker logs <npm>` and `/tmp/letsencrypt-log/letsencrypt.log`.
+
 ### Email intake (arch-mta) — inbound mail → Helpdesk tickets
 
 Edge/prod only (off in dev). Flow: MX → JHU NPM `:25` stream → `172.16.1.2:25`
@@ -828,6 +1111,9 @@ docker exec helpdesk python manage.py get_email   # drain Maildir → tickets
 | Login node shows empty `/home` (users missing) | Container mounts the **dev named volume** instead of the real WekaFS. Prod must bind-mount `${HOME_DATA}:/home` / `${SCRATCH_DATA}:/scratch`. Check `docker inspect <node> --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}'`. |
 | Keycloak login still shows "Register" after disabling it | Old theme/realm still live — restage themes + `docker restart keycloak`, and re-run `keycloak-config` to apply `registrationAllowed=false` (§3). |
 | Portal unreachable (`Up (unhealthy)`, curl 000) after visiting KC | HSTS poisoning (dev http portal). Unpoison the browser (§3). |
+| `502 Bad Gateway` (nginx) on `/pun/*` after a successful OOD login, anonymous requests fine | Stale per-user PUN socket. `/var/run` is the container's writable layer, so `passenger.sock` outlives the PUN. Confirm with `docker exec ood /opt/ood/nginx_stage/sbin/nginx_stage pun -u <user> -a "<url>"` → `bind() … 98: Address already in use`. Since the `pun_pre_hook` landed this self-heals: the hook drops the socket before staging when nothing is listening. If an older image is running, `docker restart ood` (the entrypoint clears stale PUN state at boot) or per user `nginx_stage nginx -u <user> -s stop` then remove the socket. |
+| A proxied request fails and you do not know which NPM to blame | Read `$upstream_status $status` in `/data/logs/proxy-host-<id>_access.log`. Equal values mean the error came from upstream — the proxy only relayed it. An empty `_error.log` next to a 502 confirms that layer is innocent. |
+| NPM host shows **Online** but the name is unreachable (`tlsv1 unrecognized name`) | "Online" is NPM's own bookkeeping, not nginx reality. A failed certificate request leaves the host without a `listen 443 ssl` block: check `grep -E "listen\|ssl_certificate" /data/nginx/proxy_host/<id>.conf`. Assign an existing certificate and save to regenerate it. |
 | Bind-mounted file looks truncated in a container | virtiofs cache — `docker restart <container>`; if not fixed, full recreate. |
 | `ModuleNotFoundError: No module named 'coldfront.custom'` | Wrong import path in `shell -c` — use `coldfront.plugins.arch_sync`, not `coldfront.custom.plugins.arch_sync`. |
 | TOTP banner won't clear after enrolment | `coldfront sync_totp_status --username <u>` to poll Keycloak now. |
@@ -843,9 +1129,11 @@ docker exec helpdesk python manage.py get_email   # drain Maildir → tickets
 | qcluster logs `arch_sync: reactivated <user>@<acct>` every 15 min | The user association still shows `MaxJobs`/`GrpJobs=0` after the clear; inspect with `sacctmgr show assoc … WOPLimits` (§5). |
 | Keycloak `error="user_temporarily_disabled"` | Brute-force lockout after repeated bad password/TOTP, usually a client retrying on its own; inspect/clear via `attack-detection/brute-force/users/<id>` (§3). |
 | `kcadm.sh … PKIX path building failed` | Self-signed cert: use `--server http://localhost:8080` inside the container, or `scripts/kcq.sh` (§3). |
-| `Sync all users finished: … N users failed sync!` | `ModelDuplicateException` on e-mail: a local broker-created `<jhed>@<domain>` user holds the LDAP entry's e-mail; login unaffected (§3). |
+| `Sync all users finished: … N users failed sync!` | `ModelDuplicateException` on e-mail: a local broker-created `<jhed>@<domain>` user holds the LDAP entry's e-mail. Login unaffected, but OnDemand and LDAP role mappers are. Repair with `converge_keycloak_federation` (§3). |
 | Deep link on the Schmidt portal (`portal.<schmidt>/project/`) redirects to `auth.<jhu>/realms/jhu` | Pre-`37c8c1ec` `LOGIN_URL` was hardcoded to `/oidc/jhu/authenticate/`; since then `/oidc/authenticate/` picks the realm from the host (`portal.<CLOACK_DOMAIN_SCHMIDT>` → schmidt). Needs `CLOACK_DOMAIN_SCHMIDT` in the root `.env` + `docker restart coldfront qcluster`. Verify: `curl -sI -H 'Host: portal.<schmidt>' http://127.0.0.1:8000/oidc/authenticate/ \| grep -i location` inside the coldfront container. |
 | Keycloak WARN `Expected String but attribute 'cn' has more values '[<group>, <Real Name>]'` on `ou=Groups` | Legacy migration groups carry the PI's real name as a second `cn`. Harmless; one-off `ldapmodify delete: cn` cleanup (§2). |
+| "There are no backups" — `/opt/mprov/cloack/backups/` only has July files | Wrong folder: the cron writes to `${BASE_DATA}/backup/` (singular, `var/backup/` on mgmt02); check `backup.log` for `0 component(s) failed` (§7). |
+| Nightly `postgres_*.sql.gz` growing several MB/day | Usually `slurm_jobs` (`arch_sync_slurmjob`): compare `n_live_tup` vs `n_dead_tup`/`n_tup_upd` per table before assuming real growth (§7). |
 
 ---
 
