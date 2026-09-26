@@ -1222,55 +1222,6 @@ PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=Or
                 
 
                 <div class="card">
-                  <div class="card-header" id="h10">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c10"
-                              aria-expanded="false">Project Storage — WekaFS integration</button>
-                    </h5>
-                  </div>
-                  <div id="c10" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
-one filesystem per PI, one directory per project. Its value is the
-<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
-(the flash/SSD share). The split is invisible in the filesystem; PIs never see
-the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
-<code>/scratch</code>)
-is a separate thing and is not part of Project Storage.</p>
-<p><strong>How PIs request it:</strong> the Create/Update Project forms no
-longer carry storage fields. PIs use the <em>Project Storage</em> card on the
-Project Detail page (<em>Request Storage Change</em>) to submit a change
-request (Project Storage TB + Cache TB + justification, which is required
-above the Cache cap). The request is <em>pending</em> until staff approves or
-denies it — values only land on the project at approval, and a "Project
-Storage under review" banner plus a <em>Pending review</em> badge sit on the
-project page meanwhile. One pending request per project: cancel it to submit
-different values. The card is not offered on default or archived projects, and
-condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
-team instead of submitting.</p>
-<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
-Cache &le; Project Storage; the PI's total Cache across all projects must fit
-the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
-staff). Requests above the cap require a justification and an explicit staff
-override at approval. The re-check uses live sums, so another of the PI's
-projects growing in the meantime can make a pending request fail review.</p>
-<p><strong>Billing:</strong> the Cache and the Project Storage total are each
-billed per TB-month from the rate catalog. The charge does not depend on jobs
-— a billable allocation with provisioned storage gets a monthly usage period,
-so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
-lines even in a month with zero compute.</p>
-<p><strong>Field mapping (legacy names kept):</strong>
-<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
-<code>backup_tb</code> = Project Storage total &rarr; Weka
-<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
-Cache, <code>backup</code> bills the Project Storage total.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h33">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1355,6 +1306,55 @@ needs a manual edit of <code>.env</code> plus a forced recreate of
 coldfront/qcluster, or the container keeps the old value. Reference:
 <a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
 lifecycle overview</a>.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h10">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c10"
+                              aria-expanded="false">Project Storage — WekaFS integration</button>
+                    </h5>
+                  </div>
+                  <div id="c10" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
+one filesystem per PI, one directory per project. Its value is the
+<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
+(the flash/SSD share). The split is invisible in the filesystem; PIs never see
+the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
+<code>/scratch</code>)
+is a separate thing and is not part of Project Storage.</p>
+<p><strong>How PIs request it:</strong> the Create/Update Project forms no
+longer carry storage fields. PIs use the <em>Project Storage</em> card on the
+Project Detail page (<em>Request Storage Change</em>) to submit a change
+request (Project Storage TB + Cache TB + justification, which is required
+above the Cache cap). The request is <em>pending</em> until staff approves or
+denies it — values only land on the project at approval, and a "Project
+Storage under review" banner plus a <em>Pending review</em> badge sit on the
+project page meanwhile. One pending request per project: cancel it to submit
+different values. The card is not offered on default or archived projects, and
+condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
+team instead of submitting.</p>
+<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
+Cache &le; Project Storage; the PI's total Cache across all projects must fit
+the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
+staff). Requests above the cap require a justification and an explicit staff
+override at approval. The re-check uses live sums, so another of the PI's
+projects growing in the meantime can make a pending request fail review.</p>
+<p><strong>Billing:</strong> the Cache and the Project Storage total are each
+billed per TB-month from the rate catalog. The charge does not depend on jobs
+— a billable allocation with provisioned storage gets a monthly usage period,
+so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
+lines even in a month with zero compute.</p>
+<p><strong>Field mapping (legacy names kept):</strong>
+<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
+<code>backup_tb</code> = Project Storage total &rarr; Weka
+<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
+Cache, <code>backup</code> bills the Project Storage total.</p>
 </div>
                   </div>
                 </div>
@@ -1713,14 +1713,96 @@ follow-ups internal notes.</p>
                 
 
                 <div class="card">
-                  <div class="card-header" id="h39">
+                  <div class="card-header" id="h40">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c39"
+                              data-toggle="collapse" data-target="#c40"
+                              aria-expanded="false">Default vs Paid Allocations</button>
+                    </h5>
+                  </div>
+                  <div id="c40" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>Every PI gets a <strong>default allocation</strong> automatically. It is free, it is
+ready to use, and it is deliberately small — enough to learn the cluster, port a
+workflow, size a job and see what it costs. Sustained work belongs on a
+<strong>paid project</strong>, where you set the spending limit yourself.</p>
+
+<table class="table table-sm">
+  <thead><tr><th>&nbsp;</th><th>Default (free)</th><th>Paid project</th></tr></thead>
+  <tbody>
+    <tr><td>Budget</td>
+        <td>a fixed allowance, the same for everyone</td>
+        <td>no fixed ceiling — you pay for what you use</td></tr>
+    <tr><td>What limits you</td>
+        <td>that allowance</td>
+        <td>the <strong>spending limit you set</strong></td></tr>
+    <tr><td>Who raises it</td>
+        <td>CLOACK staff, on request</td>
+        <td><strong>you</strong>, at any time</td></tr>
+    <tr><td>Ready to run</td>
+        <td>immediately</td>
+        <td><strong>after you set a spending limit</strong></td></tr>
+  </tbody>
+</table>
+
+<h5>Your budget is one pool</h5>
+<p>Where pooled budgets are in use, CPU and GPU work draw on the <em>same</em> budget
+rather than on two separate quotas. You decide the mix: spend it all on CPU hours,
+all on GPU hours, or anything between. The trade-off is real, because hardware differs
+by more than an order of magnitude — an hour on the newest GPUs costs many times an
+hour on an older one, and far more than an hour of CPU. Your allocation page shows a
+single gauge with what you have used and what is left.</p>
+
+<p>The budget is measured in <strong>service units (SU)</strong>. Each partition is worth
+a published number of SU per hour; that rate is what makes one budget able to pay for
+both kinds of work. Before submitting, <code>sbalance</code> shows what you have left,
+and the submit prompt shows what the job will cost and what would remain after it.</p>
+
+<h5>A refused job means one of three things</h5>
+<p>These are not the same situation, and the message tells you which one you are in:</p>
+<ul>
+  <li><strong>"No spending limit set yet."</strong> A paid allocation has no ceiling of
+      its own, so nothing runs until the PI sets one. Set it on the allocation page.</li>
+  <li><strong>"The limit is set to zero."</strong> Someone set it deliberately. Raise it
+      the same way.</li>
+  <li><strong>"Billing is paused on the IO funding this project."</strong> See below.</li>
+</ul>
+<p>Running <em>out</em> of budget is different and is <strong>not</strong> a refusal: the
+job is accepted and waits, and it starts on its own when the cluster's usage period
+resets. You do not need to resubmit it. If it is urgent, raise the limit and the job
+starts at the next scheduling pass.</p>
+
+<h5>Pausing an IO Number stops work, not just billing</h5>
+<p>Pausing an IO is useful when funding has not been confirmed: it is never charged and
+cannot be attached to new projects. But it also <strong>blocks job submission</strong> on
+every paid allocation it funds — the free default allocation keeps running, so nobody is
+locked off the cluster entirely.</p>
+<p>Pausing opens a helpdesk ticket, and <strong>only CLOACK staff can resume it</strong>.
+Reply to that ticket when the funding is in place. Nothing is unlinked while paused:
+your projects, storage and data are untouched.</p>
+
+<h5>Moving to a paid project</h5>
+<ol>
+  <li>Create a project and request an allocation on it — the default project cannot host
+      one, which is why the button is not offered there.</li>
+  <li>Attach the IO Number that will fund it.</li>
+  <li>Once staff activate it, <strong>set a spending limit</strong>. Work starts then.</li>
+</ol>
+<p>The limit is yours to change at any time, which is the point: it is a safety net
+against an unexpected bill, not an approval step. Only the PI can change it — a member
+of the project has to ask.</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h38">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c38"
                               aria-expanded="false">Staff CLI — container and sacctmgr commands</button>
                     </h5>
                   </div>
-                  <div id="c39" class="collapse " data-parent="#helpAccordion">
+                  <div id="c38" class="collapse " data-parent="#helpAccordion">
                     <div class="card-body"><p>Commands that only a cluster administrator can run: they need a shell on the management host (Docker) or on a login node with <code>sacctmgr</code> rights. PI-facing commands live in <strong>Useful CLI Commands</strong>.</p>
 <h6>From inside the ColdFront container</h6>
           <pre class="bg-dark text-light p-3 rounded" style="font-size: 0.85rem;">
@@ -3059,6 +3141,108 @@ label or Active flag never opens a ticket &mdash; only the pause flag flipping d
       2026-09-21); Core Hours Reset should be set to Monthly. The default (scavenger) seed is
       <strong>180,000 core-h/month</strong> (6,000 units &times; 30 days) &mdash;
       <code>SlurmCluster.default_core_hours</code>.</li>
+</ul></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h39">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c39"
+                              aria-expanded="false">Pooled budgets (SU)</button>
+                    </h5>
+                  </div>
+                  <div id="c39" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>An allocation can carry its compute budget in one of two shapes. Which one is
+active is set in <strong>Site Configuration &rarr; Budget model</strong>, and a cluster
+can override it on its own record (Admin &rarr; Slurm Clusters) — that override is
+what lets a new model be validated on one cluster while the others carry on.</p>
+
+<table class="table table-sm">
+  <thead><tr><th>&nbsp;</th><th>Separate</th><th>Pooled</th></tr></thead>
+  <tbody>
+    <tr><td>Budget</td>
+        <td>two, independent: <code>Core Usage (Hours)</code> and
+            <code>Accelerator Usage (Hours)</code></td>
+        <td>one, fungible: <code>Pool Budget (SU)</code></td></tr>
+    <tr><td>In Slurm</td>
+        <td><code>GrpTRESMins=cpu=&hellip;,gres/gpu=&hellip;</code></td>
+        <td><code>GrpTRESMins=billing=&hellip;</code>, with <code>cpu</code> and
+            <code>gres/gpu</code> cleared</td></tr>
+    <tr><td>Gauges</td><td>two</td><td>one</td></tr>
+  </tbody>
+</table>
+
+<h5>What an SU is</h5>
+<p>One <strong>SU</strong> is one unit-hour of Slurm's <code>billing</code> TRES. Each
+partition declares how many billing units an hour of its hardware is worth, in
+<code>TRESBillingWeights</code>; that table is the pool's exchange rate, and it is why
+the same budget buys different amounts on different partitions. Under
+<code>PriorityFlags=MAX_TRES</code> a job is billed on its largest dimension —
+<code>max(cpus&times;W_cpu, mem_GiB&times;W_mem, gpus&times;W_gpu)</code> — not the sum.</p>
+
+<p><code>GrpTRESMins</code> counts unit-<em>minutes</em>, so the Slurm limit is the SU
+figure <strong>&times; 60</strong>. The trap when converting an existing budget is that
+a familiar number carries over while its unit does not: 180,000 <em>core-hours</em> on a
+6.2&nbsp;SU/core-hour partition is 1,116,000&nbsp;SU, and writing
+<code>billing=180000</code> instead of <code>billing=10800000</code> is a 60&times; cut.</p>
+
+<h5>Why pool at all</h5>
+<p>Slurm checks each TRES against its own counter, so two budgets never trade against
+each other: an account can exhaust its GPU quota while most of its CPU quota sits
+unusable, and the reverse. Pooling removes that by making one counter answer for both.
+There is exactly one way to express it — <code>GrpTRESMins</code> has no
+"cpu + k&times;gpu &le; Z" construct, and <code>billing</code> is the only TRES that
+combines resources.</p>
+
+<h5>Entitlement and governor</h5>
+<p>Two different people set a limit on the same TRES, so the effective ceiling is the
+tighter of the two:</p>
+<ul>
+  <li><strong>Entitlement</strong> — <code>Pool Budget (SU)</code> plus
+      <code>Extra Pool Budget (SU)</code>, set by staff. The base/extra split means a
+      top-up never disturbs the seed.</li>
+  <li><strong>Governor</strong> — the spend limit the PI sets on the allocation.</li>
+</ul>
+<p>An entitlement of <strong>0 means unlimited</strong>, which is the normal state of a
+paid allocation: it pays for what it uses, so the governor is its only ceiling. A large
+number would look like a limit without being one and would render as "0.001% used".</p>
+
+<h5>Both attribute pairs are always seeded</h5>
+<p>Every allocation carries the hour pair <em>and</em> the pool pair regardless of the
+active model; the Allocation Detail page renders only the pair currently enforced.
+That is what makes the switch reversible in both directions, and it means flipping a
+cluster does not require re-seeding anything. Showing the hidden pair would display
+ceilings ColdFront has just cleared in Slurm, with no way for the reader to tell which
+number binds.</p>
+
+<h5>The CLI reads the shape, not a setting</h5>
+<p><code>sbalance</code>, <code>stree</code> and <code>cli_filter.lua</code> are baked into
+the compute image and cannot reach this database, so they infer the model from the limit
+itself: <code>cpu</code> absent with <code>billing</code> set means pooled;
+<code>cpu</code> present means separate. A cleared limit (<code>-1</code>) counts as
+absent. Nothing needs to be configured in the image, and a host stays correct while a
+rollout is half-done.</p>
+
+<h5>Blocked vs. queued</h5>
+<p>A budget that is zero <em>by configuration</em> blocks submission outright
+(<code>GrpSubmitJobs=0</code>): no spend limit set on a paid allocation, a limit set to
+zero, or every Pay IO paused. A budget that is merely <em>spent</em> does not — those
+jobs queue with <code>Reason=AssocGrpBillingMinutes</code> until the cluster's usage
+reset frees the counter. The two look alike on the surface and are opposite situations,
+so the messages name which one applies.</p>
+
+<h5>Where the live values are</h5>
+<ul>
+  <li>Reset period: <strong>Core Hours Reset</strong>, and Slurm's own
+      <code>PriorityUsageResetPeriod</code> (<code>scontrol show config</code>) — these must
+      agree, and only the Slurm one actually clears usage.</li>
+  <li>Exchange rate: <strong>Clusters &rarr; Partitions</strong>, column
+      <code>TRESBillingWeights</code>. It is maintained outside ColdFront on
+      externally-managed clusters, so it can change without a ColdFront edit.</li>
+  <li>Seeds: <strong>Admin &rarr; Slurm Clusters &rarr; Slurm Account Defaults</strong>.</li>
 </ul></div>
                   </div>
                 </div>

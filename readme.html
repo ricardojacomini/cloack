@@ -2373,7 +2373,7 @@ OK
 </tr>
 </tbody>
 </table>
-<p>The Admin &gt; Slurm Clusters page ships a <strong>Hybrid</strong> preset that pre-fills topology D (<code>bare_metal</code> + <code>shared_container</code>, <code>slurmrestd_url=http://slurmrestd:6820</code>). Existing records migrated via <code>0086_slurmcluster_core_services</code> default to <code>shared_container</code> for container clusters and <code>dedicated</code> for bare-metal.</p>
+<p>The Admin &gt; Slurm Clusters page ships a <strong>Hybrid</strong> preset that pre-fills topology D (<code>bare_metal</code> + <code>shared_container</code>, <code>slurmrestd_url=http://slurmrestd:6820</code>). Existing records migrated via <code>0086_slurmcluster_core_services</code> default to <code>shared_container</code> for container clusters and <code>dedicated</code> for bare-metal. The Slurm Clusters list labels a topology-D record <strong>Hybrid</strong> rather than "Bare Metal": its compute is bare metal, but its controller, login node and core daemons are containers of this deploy (<code>cluster-x-slurmctld</code>, <code>cluster-x-slurmdbd</code>, …). Code that needs to know whether such a container exists tests <code>core_services</code> (<code>cluster.uses_shared_core</code>), never <code>cluster_type</code> — the latter only says where the compute runs. The Slurm CLI wrappers in the coldfront image (<code>coldfront/slurm-shim.sh</code>) resolve the controller container by name for the same reason.</p>
 <h3>Model A — Single Cluster (Recommended for Start)</h3>
 <p>One slurmctld manages all nodes. Different hardware is separated by partitions.</p>
 <pre><code>                    ┌─────────────┐
