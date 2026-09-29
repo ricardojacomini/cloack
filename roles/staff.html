@@ -100,12 +100,17 @@ collaborators ranked by skill match.</p>
 "we noticed VS Code Server on the login node and terminated your processes".
 Open <strong>New Ticket</strong> (<code>/tickets/submit/</code>), put the user's address in
 <em>Submitter E-Mail Address</em>, and pick a <strong>Template</strong> at the top of the form:
-it fills the Summary and Description; edit freely and submit. The user
-receives the new-ticket e-mail with that text. <code>{your_name}</code>, <code>{signature}</code>
-and <code>{help_email}</code> are filled when you pick the template; <code>{name}</code> is filled
-from the submitter address when the ticket is created. Templates are offered
-here only when flagged <strong>Submit a Ticket</strong> in Admin › Response templates
-(a template can be on both surfaces).</p>
+it fills the Summary and Description; edit freely and submit. Leave
+<strong>Opening note</strong> on <em>Communication (e-mail)</em>: the opening follow-up is then
+filed as an outbound communication and the user receives the <strong>Description
+itself</strong> (with your signature and any attachment) as the ticket e-mail,
+threaded so their reply lands on the ticket; nothing to re-send afterwards.
+Pick <em>Technical Note</em> only when you are filing your own report (the note
+stays internal and the user gets just the courtesy notice). <code>{your_name}</code>,
+<code>{signature}</code> and <code>{help_email}</code> are filled when you pick the template;
+<code>{name}</code> is filled from the submitter address when the ticket is created.
+Templates are offered here only when flagged <strong>Submit a Ticket</strong> in
+Admin › Response templates (a template can be on both surfaces).</p>
 <p>The classification advances the <code>TicketFollowUpTracker</code> and feeds the
 analytics dashboard. Internal notes use <code>public=False</code>; customer
 emails use <code>public=True</code> — collaborators are forced to internal-only.</p>

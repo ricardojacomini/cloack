@@ -46,12 +46,17 @@ Some messages are staff-initiated: a storage-requirement clarification, or
 "we noticed VS Code Server on the login node and terminated your processes".
 Open **New Ticket** (`/tickets/submit/`), put the user's address in
 *Submitter E-Mail Address*, and pick a **Template** at the top of the form:
-it fills the Summary and Description; edit freely and submit. The user
-receives the new-ticket e-mail with that text. `{your_name}`, `{signature}`
-and `{help_email}` are filled when you pick the template; `{name}` is filled
-from the submitter address when the ticket is created. Templates are offered
-here only when flagged **Submit a Ticket** in Admin › Response templates
-(a template can be on both surfaces).
+it fills the Summary and Description; edit freely and submit. Leave
+**Opening note** on *Communication (e-mail)*: the opening follow-up is then
+filed as an outbound communication and the user receives the **Description
+itself** (with your signature and any attachment) as the ticket e-mail,
+threaded so their reply lands on the ticket; nothing to re-send afterwards.
+Pick *Technical Note* only when you are filing your own report (the note
+stays internal and the user gets just the courtesy notice). `{your_name}`,
+`{signature}` and `{help_email}` are filled when you pick the template;
+`{name}` is filled from the submitter address when the ticket is created.
+Templates are offered here only when flagged **Submit a Ticket** in
+Admin › Response templates (a template can be on both surfaces).
 
 The classification advances the `TicketFollowUpTracker` and feeds the
 analytics dashboard. Internal notes use `public=False`; customer
