@@ -1005,78 +1005,6 @@ root
                 
 
                 <div class="card">
-                  <div class="card-header" id="h34">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c34"
-                              aria-expanded="false">Per-allocation QoS / DefaultQoS Override</button>
-                    </h5>
-                  </div>
-                  <div id="c34" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p>Two attributes on every allocation &mdash; <strong>QoS</strong>
-(the allowed QOS list) and <strong>DefaultQoS</strong> (the single default)
-&mdash; let you pin exactly which Slurm QOS an account may use: to keep a
-group off partitions they shouldn't reach, to grant an elevated GPU tier
-(<code>orga2</code>&nbsp;/&nbsp;<code>orga4</code>), to attach a course account to
-<code>class</code>, or to bind a condo account to its <code>condo_*</code> QOS.
-They live in the <em>Allocation Attributes</em> table on the Allocation Detail
-page and are edited inline by staff as a <strong>select of that cluster's QOS
-names</strong> (blank = &ldquo;&mdash; cluster default &mdash;&rdquo;); PIs see
-them read-only.</p>
-<p><strong>Why this exists:</strong> ColdFront is the source of truth and the
-<code>sync_slurm</code> task re-asserts each account's QOS every 15 minutes, so a
-manual <code>sacctmgr modify ... set defaultqos=</code> is reverted on the next
-pass. Filling these attributes makes the sync <em>enforce</em> your restriction
-instead of reverting it.</p>
-<table class="table table-sm table-bordered">
-  <thead><tr><th>QoS</th><th>DefaultQoS</th><th>Result on the account</th></tr></thead>
-  <tbody>
-    <tr><td><code>orga,scavenger</code></td><td><code>scavenger</code></td>
-        <td>QOS list = orga,scavenger; DefaultQOS = scavenger</td></tr>
-    <tr><td><code>orga,scavenger</code></td><td><em>(blank)</em></td>
-        <td>Default = first of the list (orga)</td></tr>
-    <tr><td><code>orga2</code></td><td><code>orga2</code></td>
-        <td>Elevated tier: the account leaves <code>orga</code> entirely (pins never stack limits across QOS)</td></tr>
-    <tr><td><em>(blank)</em></td><td><code>scavenger</code></td>
-        <td>List locked to [scavenger]</td></tr>
-    <tr><td><em>(both blank)</em></td><td><em>(both blank)</em></td>
-        <td>No override &mdash; the computed cluster default. On a role-driven cluster (cluster-x) that is
-        the account class: <code>scavenger</code> for a default allocation, <code>orga</code>/<code>orgb</code>
-        for a paid one, <code>condo</code> for a credit holder. On a cluster whose QOS rows all have a blank
-        role it is the legacy free/paid list.</td></tr>
-  </tbody>
-</table>
-<p><strong>Rules:</strong> a QOS name must exist on the allocation's cluster.
-The editor is a select of that cluster's <code>SlurmQOS</code> names and the server
-re-validates on save, rejecting any name the cluster does not define (free text is
-offered only as a fallback when no rows resolve; multi-QOS lists are entered through
-Django Admin). DefaultQoS should be one of the QoS values; if it isn't, the sync
-appends it automatically (Slurm requires <code>DefaultQOS &isin; QOS</code>). Saving
-either attribute immediately queues a per-allocation sync &mdash; no manual step. To
-lift the restriction, blank both fields and the account returns to the computed
-cluster default.</p>
-<div class="alert alert-warning">
-  <strong>Retiring a QOS? Migrate the pins first.</strong> A pin is absolute: the sync
-  forces exactly that list onto the account and strips everything else, so deleting or
-  renaming a QOS that is still pinned somewhere leaves those accounts with an
-  <code>InvalidQOS</code> association and every submit rejected. Sweep the
-  <code>QoS</code>/<code>DefaultQoS</code> attributes (and any pending jobs) BEFORE you
-  touch the associations.
-</div>
-<p>A <code>credit_holder</code> allocation with NO pin is the one case that hits the
-role branch's failsafe &mdash; no <code>condo</code> row matches its organization, so
-the sync leaves the account's QOS untouched and logs a WARNING instead of guessing.
-Condo accounts are expected to be pinned.</p>
-<p>Verify on the controller (no <code>-M</code> flag):
-<code>sacctmgr show assoc where account=&lt;acct&gt;
-format=Account,User,QOS,DefaultQOS -P</code>.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h7">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1157,6 +1085,78 @@ PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=Or
             <code>import_slurm_cluster --update</code> (without <code>--with-qos</code>) to reconcile the DB.
             The <code>allow_qos</code> field still drives generation on clusters ColdFront owns (dev).
           </div></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h34">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c34"
+                              aria-expanded="false">Per-allocation QoS / DefaultQoS Override</button>
+                    </h5>
+                  </div>
+                  <div id="c34" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Two attributes on every allocation &mdash; <strong>QoS</strong>
+(the allowed QOS list) and <strong>DefaultQoS</strong> (the single default)
+&mdash; let you pin exactly which Slurm QOS an account may use: to keep a
+group off partitions they shouldn't reach, to grant an elevated GPU tier
+(<code>orga2</code>&nbsp;/&nbsp;<code>orga4</code>), to attach a course account to
+<code>class</code>, or to bind a condo account to its <code>condo_*</code> QOS.
+They live in the <em>Allocation Attributes</em> table on the Allocation Detail
+page and are edited inline by staff as a <strong>select of that cluster's QOS
+names</strong> (blank = &ldquo;&mdash; cluster default &mdash;&rdquo;); PIs see
+them read-only.</p>
+<p><strong>Why this exists:</strong> ColdFront is the source of truth and the
+<code>sync_slurm</code> task re-asserts each account's QOS every 15 minutes, so a
+manual <code>sacctmgr modify ... set defaultqos=</code> is reverted on the next
+pass. Filling these attributes makes the sync <em>enforce</em> your restriction
+instead of reverting it.</p>
+<table class="table table-sm table-bordered">
+  <thead><tr><th>QoS</th><th>DefaultQoS</th><th>Result on the account</th></tr></thead>
+  <tbody>
+    <tr><td><code>orga,scavenger</code></td><td><code>scavenger</code></td>
+        <td>QOS list = orga,scavenger; DefaultQOS = scavenger</td></tr>
+    <tr><td><code>orga,scavenger</code></td><td><em>(blank)</em></td>
+        <td>Default = first of the list (orga)</td></tr>
+    <tr><td><code>orga2</code></td><td><code>orga2</code></td>
+        <td>Elevated tier: the account leaves <code>orga</code> entirely (pins never stack limits across QOS)</td></tr>
+    <tr><td><em>(blank)</em></td><td><code>scavenger</code></td>
+        <td>List locked to [scavenger]</td></tr>
+    <tr><td><em>(both blank)</em></td><td><em>(both blank)</em></td>
+        <td>No override &mdash; the computed cluster default. On a role-driven cluster (cluster-x) that is
+        the account class: <code>scavenger</code> for a default allocation, <code>orga</code>/<code>orgb</code>
+        for a paid one, <code>condo</code> for a credit holder. On a cluster whose QOS rows all have a blank
+        role it is the legacy free/paid list.</td></tr>
+  </tbody>
+</table>
+<p><strong>Rules:</strong> a QOS name must exist on the allocation's cluster.
+The editor is a select of that cluster's <code>SlurmQOS</code> names and the server
+re-validates on save, rejecting any name the cluster does not define (free text is
+offered only as a fallback when no rows resolve; multi-QOS lists are entered through
+Django Admin). DefaultQoS should be one of the QoS values; if it isn't, the sync
+appends it automatically (Slurm requires <code>DefaultQOS &isin; QOS</code>). Saving
+either attribute immediately queues a per-allocation sync &mdash; no manual step. To
+lift the restriction, blank both fields and the account returns to the computed
+cluster default.</p>
+<div class="alert alert-warning">
+  <strong>Retiring a QOS? Migrate the pins first.</strong> A pin is absolute: the sync
+  forces exactly that list onto the account and strips everything else, so deleting or
+  renaming a QOS that is still pinned somewhere leaves those accounts with an
+  <code>InvalidQOS</code> association and every submit rejected. Sweep the
+  <code>QoS</code>/<code>DefaultQoS</code> attributes (and any pending jobs) BEFORE you
+  touch the associations.
+</div>
+<p>A <code>credit_holder</code> allocation with NO pin is the one case that hits the
+role branch's failsafe &mdash; no <code>condo</code> row matches its organization, so
+the sync leaves the account's QOS untouched and logs a WARNING instead of guessing.
+Condo accounts are expected to be pinned.</p>
+<p>Verify on the controller (no <code>-M</code> flag):
+<code>sacctmgr show assoc where account=&lt;acct&gt;
+format=Account,User,QOS,DefaultQOS -P</code>.</p>
+</div>
                   </div>
                 </div>
                 
@@ -2007,7 +2007,7 @@ before anything is written.</p>
 <span class="text-muted">$</span> srun -p med --pty bash
 
 <span class="text-warning">[BILLING]</span> Partition : med
-          CPU hours : 1.00 @ $0.3500/SU (1 SU = 1 core-hr)
+          CPU hours : 1.00 @ $0.3500/core-h
           Total     : ~$0.3500
           Weekly cap : $30.00/week
 <span class="text-warning">[BILLING]</span> Proceed? [y/N]: <span class="text-success">y</span>
@@ -2028,7 +2028,7 @@ srun hostname
 <span class="text-muted"># Non-interactive: set ACCEPT_COST=1 (or --comment=accept_cost) to skip the [y/N] prompt</span>
 <span class="text-muted">$</span> sbatch --export=ALL,ACCEPT_COST=1 myjob.sh
 <span class="text-warning">[BILLING]</span> Partition : med
-          CPU hours : 8.00 @ $0.3500/SU (1 SU = 1 core-hr)
+          CPU hours : 8.00 @ $0.3500/core-h
           Total     : ~$2.8000
           Weekly cap : $30.00/week
 <span class="text-warning">[BILLING]</span> Auto-accepted (ACCEPT_COST=1).
@@ -3497,7 +3497,7 @@ truth: ColdFront never generates it. Partition/node edits go into the mirror, th
 <ul>
   <li><strong>cluster / partition_name</strong> — scope (blank = all clusters / all partitions)</li>
   <li><strong>rate_type</strong> — <code>cpu_full</code>, <code>cpu_om</code>, <code>gpu_full</code>, <code>gpu_om</code>, plus the two storage rows: <code>storage</code> = <strong>cache</strong> (the flash/SSD share) and <code>backup</code> = <strong>object</strong> (the object/bulk share). Those are the catalog words — the Rate Types table describes the two storage rows as <em>cache</em> and <em>object</em>.</li>
-  <li><strong>rate_per_unit</strong> — $ per SU (1 SU = 1 hour of the resource: CPU core-hour, GPU-hour), or $ per TB-month for <code>storage</code> / <code>backup</code></li>
+  <li><strong>rate_per_unit</strong> — $ per core-hour (CPU) or per GPU-hour (GPU); 1 SU = $0.001, so a core-hour on a weighted partition is W<sub>cpu</sub> SU, never 1 SU, or $ per TB-month for <code>storage</code> / <code>backup</code></li>
   <li><strong>effective_from / effective_to</strong> — date-versioned. Leave <code>effective_to</code> blank for active rate.</li>
 </ul>
 <p>Two-track pricing: <code>*_full</code> for pay-per-use PIs (compute + O&amp;M bundled). <code>*_om</code> for hardware-credit holders (lower — O&amp;M only).</p>
