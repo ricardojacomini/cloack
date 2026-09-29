@@ -613,7 +613,7 @@ docker rm -f pg-restore
 ./start.sh ldap-reinit dev                                          # seed minimal LDAP + sync to ColdFront
 ./start.sh populate dev --partitions a100,l40s,h100,h200            # import depts + seed partitions (no billing)
 ./start.sh helpdesk start                                           # build + start helpdesk (+ helpdesk-qcluster worker + ai-engine)
-./start.sh helpdesk populate                                        # sample queues + tickets
+./start.sh helpdesk populate                                        # DEV ONLY: sample queues + synthetic tickets (never on prod/stage)
 ./start.sh ai pull                                                  # download local LLM weights (sha256-verified, one-time)
 ./start.sh ai status                                                # AI engine health (local triage — see helpdesk/AI_ARCHITECTURE.md)
 </code></pre>

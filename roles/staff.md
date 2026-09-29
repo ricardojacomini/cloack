@@ -40,6 +40,19 @@ collaborators ranked by skill match.
   → server-side scrub catches any token you didn't fill in
 ```
 
+### 2b. Start a conversation yourself (ticket on behalf of a user)
+
+Some messages are staff-initiated: a storage-requirement clarification, or
+"we noticed VS Code Server on the login node and terminated your processes".
+Open **New Ticket** (`/tickets/submit/`), put the user's address in
+*Submitter E-Mail Address*, and pick a **Template** at the top of the form:
+it fills the Summary and Description; edit freely and submit. The user
+receives the new-ticket e-mail with that text. `{your_name}`, `{signature}`
+and `{help_email}` are filled when you pick the template; `{name}` is filled
+from the submitter address when the ticket is created. Templates are offered
+here only when flagged **Submit a Ticket** in Admin › Response templates
+(a template can be on both surfaces).
+
 The classification advances the `TicketFollowUpTracker` and feeds the
 analytics dashboard. Internal notes use `public=False`; customer
 emails use `public=True` — collaborators are forced to internal-only.

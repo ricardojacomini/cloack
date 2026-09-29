@@ -1312,55 +1312,6 @@ lifecycle overview</a>.</p>
                 
 
                 <div class="card">
-                  <div class="card-header" id="h10">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c10"
-                              aria-expanded="false">Project Storage — WekaFS integration</button>
-                    </h5>
-                  </div>
-                  <div id="c10" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
-one filesystem per PI, one directory per project. Its value is the
-<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
-(the flash/SSD share). The split is invisible in the filesystem; PIs never see
-the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
-<code>/scratch</code>)
-is a separate thing and is not part of Project Storage.</p>
-<p><strong>How PIs request it:</strong> the Create/Update Project forms no
-longer carry storage fields. PIs use the <em>Project Storage</em> card on the
-Project Detail page (<em>Request Storage Change</em>) to submit a change
-request (Project Storage TB + Cache TB + justification, which is required
-above the Cache cap). The request is <em>pending</em> until staff approves or
-denies it — values only land on the project at approval, and a "Project
-Storage under review" banner plus a <em>Pending review</em> badge sit on the
-project page meanwhile. One pending request per project: cancel it to submit
-different values. The card is not offered on default or archived projects, and
-condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
-team instead of submitting.</p>
-<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
-Cache &le; Project Storage; the PI's total Cache across all projects must fit
-the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
-staff). Requests above the cap require a justification and an explicit staff
-override at approval. The re-check uses live sums, so another of the PI's
-projects growing in the meantime can make a pending request fail review.</p>
-<p><strong>Billing:</strong> the Cache and the Project Storage total are each
-billed per TB-month from the rate catalog. The charge does not depend on jobs
-— a billable allocation with provisioned storage gets a monthly usage period,
-so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
-lines even in a month with zero compute.</p>
-<p><strong>Field mapping (legacy names kept):</strong>
-<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
-<code>backup_tb</code> = Project Storage total &rarr; Weka
-<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
-Cache, <code>backup</code> bills the Project Storage total.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h35">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1422,6 +1373,55 @@ provisioned fields, so approval re-applies them through the audited path.</p>
 request history). PIs can cancel their own pending request. The "Billing
 Changes Pending Review" queue on Project Reviews is now IO-Number-only;
 "storage pending" badges on New projects link here.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h10">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c10"
+                              aria-expanded="false">Project Storage — WekaFS integration</button>
+                    </h5>
+                  </div>
+                  <div id="c10" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
+one filesystem per PI, one directory per project. Its value is the
+<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
+(the flash/SSD share). The split is invisible in the filesystem; PIs never see
+the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
+<code>/scratch</code>)
+is a separate thing and is not part of Project Storage.</p>
+<p><strong>How PIs request it:</strong> the Create/Update Project forms no
+longer carry storage fields. PIs use the <em>Project Storage</em> card on the
+Project Detail page (<em>Request Storage Change</em>) to submit a change
+request (Project Storage TB + Cache TB + justification, which is required
+above the Cache cap). The request is <em>pending</em> until staff approves or
+denies it — values only land on the project at approval, and a "Project
+Storage under review" banner plus a <em>Pending review</em> badge sit on the
+project page meanwhile. One pending request per project: cancel it to submit
+different values. The card is not offered on default or archived projects, and
+condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
+team instead of submitting.</p>
+<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
+Cache &le; Project Storage; the PI's total Cache across all projects must fit
+the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
+staff). Requests above the cap require a justification and an explicit staff
+override at approval. The re-check uses live sums, so another of the PI's
+projects growing in the meantime can make a pending request fail review.</p>
+<p><strong>Billing:</strong> the Cache and the Project Storage total are each
+billed per TB-month from the rate catalog. The charge does not depend on jobs
+— a billable allocation with provisioned storage gets a monthly usage period,
+so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
+lines even in a month with zero compute.</p>
+<p><strong>Field mapping (legacy names kept):</strong>
+<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
+<code>backup_tb</code> = Project Storage total &rarr; Weka
+<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
+Cache, <code>backup</code> bills the Project Storage total.</p>
 </div>
                   </div>
                 </div>
@@ -1740,7 +1740,8 @@ workflow, size a job and see what it costs. Sustained work belongs on a
         <td><strong>you</strong>, at any time</td></tr>
     <tr><td>Ready to run</td>
         <td>immediately</td>
-        <td><strong>after you set a spending limit</strong></td></tr>
+        <td>immediately &mdash; a spending limit is optional unless CLOACK has switched on
+            the required-limit policy</td></tr>
   </tbody>
 </table>
 
@@ -1760,8 +1761,11 @@ and the submit prompt shows what the job will cost and what would remain after i
 <h5>A refused job means one of three things</h5>
 <p>These are not the same situation, and the message tells you which one you are in:</p>
 <ul>
-  <li><strong>"No spending limit set yet."</strong> A paid allocation has no ceiling of
-      its own, so nothing runs until the PI sets one. Set it on the allocation page.</li>
+  <li><strong>"No spending limit set yet."</strong> Only where CLOACK has switched on the
+      required-limit policy: a paid allocation has no ceiling of its own, so nothing runs
+      until the PI sets one. Set it on the allocation page. Where the policy is off, a paid
+      allocation without a limit simply runs &mdash; the limit is your optional safety
+      net.</li>
   <li><strong>"The limit is set to zero."</strong> Someone set it deliberately. Raise it
       the same way.</li>
   <li><strong>"Billing is paused on the IO funding this project."</strong> See below.</li>
@@ -1785,56 +1789,13 @@ your projects, storage and data are untouched.</p>
   <li>Create a project and request an allocation on it — the default project cannot host
       one, which is why the button is not offered there.</li>
   <li>Attach the IO Number that will fund it.</li>
-  <li>Once staff activate it, <strong>set a spending limit</strong>. Work starts then.</li>
+  <li>Once staff activate it, work can start. <strong>Set a spending limit</strong> if you
+      want a ceiling on what the project can spend &mdash; required only where CLOACK has
+      switched on the required-limit policy.</li>
 </ol>
 <p>The limit is yours to change at any time, which is the point: it is a safety net
 against an unexpected bill, not an approval step. Only the PI can change it — a member
 of the project has to ask.</p></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h38">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c38"
-                              aria-expanded="false">Staff CLI — container and sacctmgr commands</button>
-                    </h5>
-                  </div>
-                  <div id="c38" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>Commands that only a cluster administrator can run: they need a shell on the management host (Docker) or on a login node with <code>sacctmgr</code> rights. PI-facing commands live in <strong>Useful CLI Commands</strong>.</p>
-<h6>From inside the ColdFront container</h6>
-          <pre class="bg-dark text-light p-3 rounded" style="font-size: 0.85rem;">
-docker exec coldfront coldfront sync_slurm          # Full Slurm sync
-docker exec coldfront coldfront sync_ldap           # Full LDAP sync
-docker exec coldfront coldfront collect_sacct       # Import job data from sacct
-docker exec slurmctld sinfo -N                      # Node status
-docker exec slurmctld scontrol reconfigure          # Reload slurm.conf
-docker exec login01 su - &lt;user&gt; -c 'sbalance --week'  # Test as user
-docker exec login01 su - &lt;user&gt; -c 'sassoc --clusters' # List clusters</pre>
-<h6>Slurm Command</h6>
-          <pre class="bg-light p-3 rounded">
-# Set a cap:
-sacctmgr modify account where name=pi001_f01_a set GrpTRESMins=billing=1800000
-
-# Remove a cap (unlimited):
-sacctmgr modify account where name=pi002 set GrpTRESMins=billing=-1</pre>
-The Allocation Attribute admin action &ldquo;Zero accrued Slurm usage&rdquo; runs
-            <code>sacctmgr modify account &hellip; set RawUsage=0</code> &mdash; clearing and re-applying
-            the limit does <em>not</em> reset usage.
-<h5>How it propagates</h5>
-<pre class="small">PI toggles Pause on the IO
-  &rarr; CostCenter.post_save (signals.on_cost_center_saved; pre_save snapshots the flag)
-      &rarr; recalculate_billing_for_queryset() on every allocation linked role='pay'
-            (in-transaction; also re-exports qos_config.lua no_charge_accounts)
-      &rarr; signals._dispatch_pi() &rarr; tasks.sync_for_pi &rarr; per-PI Slurm sync
-            collect_coldfront_acc_info: accounts[id]['billing_paused'] = ALL pay IOs paused?
-            coldfront2slurm: sacctmgr modify account where name=X set GrpSubmitJobs=0 | -1</pre>
-<p>The 15-minute full sync recomputes the same map for every account.
-<code>sync_slurm --dry-run</code> prints <code>[DRY-RUN] GrpSubmitJobs=0 for &lt;account&gt;</code>
-before anything is written.</p>
-<div class="alert alert-warning mt-3"><strong>Caps are per reset period, not per week.</strong> The <code>billing</code> TRES above is consumed against the counter Slurm clears on <code>PriorityUsageResetPeriod</code> — <strong>MONTHLY</strong> on cluster-x since 2026-09-21. Clearing and re-applying a limit does <em>not</em> reset accrued usage; only <code>sacctmgr modify account &hellip; set RawUsage=0</code> (or the scheduled reset) does.</div></div>
                   </div>
                 </div>
                 
@@ -1981,6 +1942,51 @@ before anything is written.</p>
           <div class="alert alert-info mt-3">
             <strong>Note:</strong> Old tool names (<code>slurmtree</code>, <code>slurmqos</code>, <code>slurmassoc</code>) still work as symlinks to the new short names.
           </div></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h38">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c38"
+                              aria-expanded="false">Staff CLI — container and sacctmgr commands</button>
+                    </h5>
+                  </div>
+                  <div id="c38" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>Commands that only a cluster administrator can run: they need a shell on the management host (Docker) or on a login node with <code>sacctmgr</code> rights. PI-facing commands live in <strong>Useful CLI Commands</strong>.</p>
+<h6>From inside the ColdFront container</h6>
+          <pre class="bg-dark text-light p-3 rounded" style="font-size: 0.85rem;">
+docker exec coldfront coldfront sync_slurm          # Full Slurm sync
+docker exec coldfront coldfront sync_ldap           # Full LDAP sync
+docker exec coldfront coldfront collect_sacct       # Import job data from sacct
+docker exec slurmctld sinfo -N                      # Node status
+docker exec slurmctld scontrol reconfigure          # Reload slurm.conf
+docker exec login01 su - &lt;user&gt; -c 'sbalance --week'  # Test as user
+docker exec login01 su - &lt;user&gt; -c 'sassoc --clusters' # List clusters</pre>
+<h6>Slurm Command</h6>
+          <pre class="bg-light p-3 rounded">
+# Set a cap:
+sacctmgr modify account where name=pi001_f01_a set GrpTRESMins=billing=1800000
+
+# Remove a cap (unlimited):
+sacctmgr modify account where name=pi002 set GrpTRESMins=billing=-1</pre>
+The Allocation Attribute admin action &ldquo;Zero accrued Slurm usage&rdquo; runs
+            <code>sacctmgr modify account &hellip; set RawUsage=0</code> &mdash; clearing and re-applying
+            the limit does <em>not</em> reset usage.
+<h5>How it propagates</h5>
+<pre class="small">PI toggles Pause on the IO
+  &rarr; CostCenter.post_save (signals.on_cost_center_saved; pre_save snapshots the flag)
+      &rarr; recalculate_billing_for_queryset() on every allocation linked role='pay'
+            (in-transaction; also re-exports qos_config.lua no_charge_accounts)
+      &rarr; signals._dispatch_pi() &rarr; tasks.sync_for_pi &rarr; per-PI Slurm sync
+            collect_coldfront_acc_info: accounts[id]['billing_paused'] = ALL pay IOs paused?
+            coldfront2slurm: sacctmgr modify account where name=X set GrpSubmitJobs=0 | -1</pre>
+<p>The 15-minute full sync recomputes the same map for every account.
+<code>sync_slurm --dry-run</code> prints <code>[DRY-RUN] GrpSubmitJobs=0 for &lt;account&gt;</code>
+before anything is written.</p>
+<div class="alert alert-warning mt-3"><strong>Caps are per reset period, not per week.</strong> The <code>billing</code> TRES above is consumed against the counter Slurm clears on <code>PriorityUsageResetPeriod</code> — <strong>MONTHLY</strong> on cluster-x since 2026-09-21. Clearing and re-applying a limit does <em>not</em> reset accrued usage; only <code>sacctmgr modify account &hellip; set RawUsage=0</code> (or the scheduled reset) does.</div></div>
                   </div>
                 </div>
                 
@@ -3166,7 +3172,7 @@ what lets a new model be validated on one cluster while the others carry on.</p>
     <tr><td>Budget</td>
         <td>two, independent: <code>Core Usage (Hours)</code> and
             <code>Accelerator Usage (Hours)</code></td>
-        <td>one, fungible: <code>Pool Budget (SU)</code></td></tr>
+        <td>one, fungible: <code>Budget (SU)</code></td></tr>
     <tr><td>In Slurm</td>
         <td><code>GrpTRESMins=cpu=&hellip;,gres/gpu=&hellip;</code></td>
         <td><code>GrpTRESMins=billing=&hellip;</code>, with <code>cpu</code> and
@@ -3201,8 +3207,8 @@ combines resources.</p>
 <p>Two different people set a limit on the same TRES, so the effective ceiling is the
 tighter of the two:</p>
 <ul>
-  <li><strong>Entitlement</strong> — <code>Pool Budget (SU)</code> plus
-      <code>Extra Pool Budget (SU)</code>, set by staff. The base/extra split means a
+  <li><strong>Entitlement</strong> — <code>Budget (SU)</code> plus
+      <code>Extra Budget (SU)</code>, set by staff. The base/extra split means a
       top-up never disturbs the seed.</li>
   <li><strong>Governor</strong> — the spend limit the PI sets on the allocation.</li>
 </ul>
@@ -3228,8 +3234,10 @@ rollout is half-done.</p>
 
 <h5>Blocked vs. queued</h5>
 <p>A budget that is zero <em>by configuration</em> blocks submission outright
-(<code>GrpSubmitJobs=0</code>): no spend limit set on a paid allocation, a limit set to
-zero, or every Pay IO paused. A budget that is merely <em>spent</em> does not — those
+(<code>GrpSubmitJobs=0</code>): no spend limit set on a paid allocation &mdash; only while
+<strong>Site Configuration &rarr; Budgets &rarr; &ldquo;Paid allocations require a spending
+cap&rdquo;</strong> is on (off by default: a capless paid allocation runs unlimited,
+<code>billing=-1</code>) &mdash; a limit set to zero, or every Pay IO paused. A budget that is merely <em>spent</em> does not — those
 jobs queue with <code>Reason=AssocGrpBillingMinutes</code> until the cluster's usage
 reset frees the counter. The two look alike on the surface and are opposite situations,
 so the messages name which one applies.</p>
@@ -3830,6 +3838,18 @@ same guards and stamp <code>paused_by</code> / <code>paused_at</code>.</p></div>
        title), <code>{signature}</code> (<em>Staff Members &rarr; Signature</em>
        field in Django admin, falls back to the user&rsquo;s full name),
        <code>{survey_url}</code> (per-ticket satisfaction-survey link).</p>
+    <p>Each template also says <em>where</em> it is offered (two flags in
+       Django admin &rarr; Response templates): <strong>Communication</strong>
+       (the <em>Send email as</em> dropdown above) and/or <strong>Submit a
+       Ticket</strong> &mdash; a <em>Template</em> picker at the top of the
+       staff New Ticket form for staff-initiated conversations (storage
+       clarification, login-node misuse): put the user&rsquo;s address in
+       <em>Submitter E-Mail Address</em>, pick the template (subject &rarr;
+       Summary, body &rarr; Description), edit and submit; the user receives
+       the new-ticket e-mail. <code>{name}</code> is filled from that address
+       when the ticket is created; <code>{issue}</code>,
+       <code>{ticket_number}</code> and <code>{survey_url}</code> are empty on
+       a new ticket.</p>
     <ul>
       <li><strong>FQR &mdash; Standard First Response</strong>: introduction, scoping questions, user survey link</li>
       <li><strong>FQR &mdash; SLA Escalation</strong>: triage + hand-off to Systems Team via <code>rt-triage</code></li>
