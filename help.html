@@ -3744,9 +3744,10 @@ same guards and stamp <code>paused_by</code> / <code>paused_at</code>.</p></div>
           approved collaborator (reviewer, shadow, mentor, &hellip;) but not the owner.</li>
       <li><strong>Ticket Ownership Transfer</strong> &mdash; the hand icon next to
           <em>Assignee</em> takes an unassigned ticket at once; on an owned ticket it files a
-          transfer request the current owner approves or rejects at
-          <code>/extensions/transfers/</code> (administrators can decide on the owner&rsquo;s
-          behalf). A pending request is decided automatically when the ticket is closed
+          transfer request the current owner approves or rejects &mdash; from the
+          <em>Transfer</em> row on the ticket page or at <code>/extensions/transfers/</code>
+          (administrators can decide on the owner&rsquo;s behalf; the requester can withdraw).
+          A pending request is decided automatically when the ticket is closed
           (cancelled) or handed to the requester by another path (approved); parked
           Mitigated/Staged tickets keep it.</li>
       <li><strong>SLA &amp; Metrics</strong> &mdash; First Quality Response (FQR), SLA windows
