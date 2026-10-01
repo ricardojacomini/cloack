@@ -220,6 +220,9 @@ export CLUSTER=skipjack
 ./start.sh slurm create skipjack --from-ghcr prod  # first time only
 ./start.sh slurm start  --from-ghcr prod    # Slurm cluster
 ./start.sh ldap-reinit                      # manual, only if LDAP needs re-seed
+# skipjack's slurm.conf is an ops-owned mirror (manage_config=False): template
+# directives do NOT propagate. Apply the mirror parity checklist by hand, then
+# `scontrol reconfigure` — docs/admin-guide-cli.md § "Mirror parity checklist".
 ```
 
 > **Why the Stage 2 Slurm build matters:** the Slurm image build is opt-in —

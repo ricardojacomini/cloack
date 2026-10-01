@@ -542,6 +542,34 @@ per-cluster** into `${BASE_DATA}/slurm/<cluster>/` from the DB and are only
 **seeded** (not overwritten) by staging — never hand-edit them; change the toggle
 / `BillingRate` in the UI and the signal re-exports + reconfigures.
 
+#### Mirror parity checklist — every prod deploy (skipjack, `manage_config=False`)
+
+ColdFront never regenerates the skipjack `slurm.conf` from the DB or the
+template, so a directive added to `slurm/conf/slurm.conf.template` (and the
+`cluster_manager` inline fallback) reaches dev automatically and reaches prod
+**only by hand**. After `git pull` on mgmt02, diff the mirror against this list
+and apply what is missing, then reload:
+
+| since | directive the mirror must carry | why |
+|---|---|---|
+| 2026-09-21 | `PrologEpilogTimeout=120` | an epilog `squeue` without a timeout wedged slurmd on csr049 (unset = wait forever) |
+| 2026-09-30 | `AccountingStorageEnforce=associations,limits,qos,safe` | without `safe` a job whose projected usage crosses a GrpTRESMins budget is STARTED and then killed at the cap (seen on the edulogin stage cluster, job 27); with it the job waits (`AssocGrpBillingMinutes`) or the user shortens `--time`. `safe` implies `associations,limits` |
+
+```bash
+# on mgmt02 (mirror ${BASE_DATA}/slurm/skipjack/slurm.conf): add ,safe to the line
+grep -nE "^(AccountingStorageEnforce|PrologEpilogTimeout)" ${BASE_DATA}/slurm/skipjack/slurm.conf
+vim ${BASE_DATA}/slurm/skipjack/slurm.conf
+#   AccountingStorageEnforce=associations,limits,qos,safe
+#   PrologEpilogTimeout=120
+docker exec skipjack-slurmctld scontrol reconfigure
+docker exec skipjack-slurmctld scontrol show config | grep -E "AccountingStorageEnforce|PrologEpilogTimeout"
+```
+
+`scontrol reconfigure` re-execs slurmctld (>= 23.11), so the whole conf is
+re-read and running jobs are kept. Directives that need a slurmctld RESTART
+instead (`AccountingStorageTRES`, `SelectType`, …) are called out in
+[slurm/README.md](../slurm/README.md#slurmconf-directives).
+
 #### Stage 4 rollout (skipjack, prod live) — one-time recreate
 
 Converting a live cluster from the old per-file binds to the directory bind is a
