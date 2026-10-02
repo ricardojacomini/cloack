@@ -3750,6 +3750,12 @@ same guards and stamp <code>paused_by</code> / <code>paused_at</code>.</p></div>
           A pending request is decided automatically when the ticket is closed
           (cancelled) or handed to the requester by another path (approved); parked
           Mitigated/Staged tickets keep it.</li>
+      <li><strong>Reply Safety</strong> &mdash; the helpdesk session slides on every human
+          request (background polls excluded), the reply editor keeps a per-ticket local
+          draft that is restored on reload and discarded only once the server confirms the
+          follow-up was saved, and an expired session raises a banner that locks the
+          Respond form until you sign in again. Long ticket titles no longer break a
+          status-changing reply (the follow-up title is clamped to its column).</li>
       <li><strong>SLA &amp; Metrics</strong> &mdash; First Quality Response (FQR), SLA windows
           per priority, <code>my-performance</code> dashboard with PDF export, and
           satisfaction surveys (<code>/extensions/survey/&lt;ticket&gt;/&lt;token&gt;/</code>).</li>
