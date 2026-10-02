@@ -171,6 +171,7 @@ e-mail from the shared mailbox. Decide in ColdFront; the ticket follows.
 | `… Upgrade Account Request: …` | a user asks to become a PI | you promote them or clear the request on Promote Users |
 | `… New Project Request: …` | a new non-default project is created (IO validation text included) | you activate or deny it; "Request changes" only adds a comment |
 | `[Storage/<org>]` / `[IO/<org>]` | Project Storage request / IO Number change | Storage Review decision / billing review cleared |
+| `… Allocation Deletion Request: …` | a PI, manager or staff member clicks **Request Deletion** on Allocation Detail (reason required) | a **superuser** deletes the allocation (Resolved). Only superusers can delete; the default project's allocation is never deletable |
 
 Audit: ColdFront Admin → *Helpdesk ticket links*. A ticket of this kind whose
 submitter is the shared mailbox means the API path failed and ColdFront fell

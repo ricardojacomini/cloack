@@ -31,6 +31,26 @@ Approval triggers `on_allocation_activated`, which provisions the
 Slurm account hierarchy via REST in real time. ToS gate still applies:
 PI association is created only if they have accepted the current ToS.
 
+### 1b. Delete an allocation (superuser only)
+
+```
+/project/<id>/      → trash icon on the allocation row
+/allocation/<id>/   → "Delete Allocation…" card
+  → confirmation page lists what goes with it
+    (Slurm account, active members, billing usage rows, IO links, open tickets)
+  → "Confirm — Delete Allocation"
+```
+
+Any status can be deleted **except the default project's allocation** (its
+bare `<pi>` Slurm account belongs to the promote / demote flow). Staff — even
+with `elevate_to_superuser` — and PIs do not get the button; they click
+**Request Deletion** on Allocation Detail instead, which opens a helpdesk
+ticket in their name and shows a "Deletion requested … ticket #N" alert on
+the allocation (with the Delete button for you). Deleting writes an admin
+log entry and resolves that ticket. The orphaned Slurm account is removed by
+the next scheduled full sync (≤15 min); jobs still running under it block
+that removal — check `squeue -A <account>` first.
+
 ### 2. Drain / resume a Slurm node
 
 ```

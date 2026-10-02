@@ -54,6 +54,12 @@ acknowledgement e-mail with the ticket link, can add information by replying,
 and the ticket resolves itself when staff approves or denies the allocation.
 The same happens when you create a project or ask to become a PI.
 
+To retire an allocation you no longer need, open it and click **Request
+Deletion** (a reason is required). Only a ColdFront administrator can delete
+an allocation; your request opens a helpdesk ticket in your name and the
+allocation shows "Deletion requested" until it is handled. A request that is
+still *New* can simply be withdrawn with **Remove Pending Request**.
+
 ### 3. Add users to a project
 
 ```

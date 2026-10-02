@@ -89,6 +89,22 @@ TOTP via the Keycloak account console (same as every other regular
 <p>Approval triggers <code>on_allocation_activated</code>, which provisions the
 Slurm account hierarchy via REST in real time. ToS gate still applies:
 PI association is created only if they have accepted the current ToS.</p>
+<h3>1b. Delete an allocation (superuser only)</h3>
+<pre><code>/project/&lt;id&gt;/      → trash icon on the allocation row
+/allocation/&lt;id&gt;/   → &quot;Delete Allocation…&quot; card
+  → confirmation page lists what goes with it
+    (Slurm account, active members, billing usage rows, IO links, open tickets)
+  → &quot;Confirm — Delete Allocation&quot;
+</code></pre>
+<p>Any status can be deleted <strong>except the default project's allocation</strong> (its
+bare <code>&lt;pi&gt;</code> Slurm account belongs to the promote / demote flow). Staff — even
+with <code>elevate_to_superuser</code> — and PIs do not get the button; they click
+<strong>Request Deletion</strong> on Allocation Detail instead, which opens a helpdesk
+ticket in their name and shows a "Deletion requested … ticket #N" alert on
+the allocation (with the Delete button for you). Deleting writes an admin
+log entry and resolves that ticket. The orphaned Slurm account is removed by
+the next scheduled full sync (≤15 min); jobs still running under it block
+that removal — check <code>squeue -A &lt;account&gt;</code> first.</p>
 <h3>2. Drain / resume a Slurm node</h3>
 <pre><code>/admin/cloack_sync/slurmnode/
   → select node → action &quot;Drain selected nodes&quot; / &quot;Resume&quot;
