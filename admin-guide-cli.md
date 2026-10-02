@@ -141,6 +141,33 @@ user belongs to. Direct URL:
 /billing/import-users/?export=csv&scope=all&affiliation=schmidt
 ```
 
+### List PIs by School / Department (with their allocations)
+
+`scripts/list_pis_by_dept.py` is a read-only Django shell script: it walks
+`Project.department → Department.school` (the same department that drives the
+Slurm account hierarchy) and prints every PI with name, e-mail, projects and
+allocations (status, resources, computed Slurm account). `admin`/`root`/
+`coldfront` are excluded. Filters are environment variables; an empty value
+drops that filter.
+
+```bash
+# PIs whose projects sit under School=IT / Department=ARCH (defaults)
+docker exec -i coldfront coldfront shell < scripts/list_pis_by_dept.py 2>/dev/null
+
+# CSV: username,first_name,last_name,email,school,department,project_id,project_title,
+#      project_status,kind(default|paid),allocation_id,allocation_status,resources,slurm_account
+docker exec -i -e CSV=1 coldfront coldfront shell < scripts/list_pis_by_dept.py 2>/dev/null > pis.csv
+
+# Any school for a department code / any department under a school
+docker exec -i -e SCHOOL= -e DEPT=CS coldfront coldfront shell < scripts/list_pis_by_dept.py 2>/dev/null
+docker exec -i -e SCHOOL=WSE -e DEPT= coldfront coldfront shell < scripts/list_pis_by_dept.py 2>/dev/null
+```
+
+A PI appears once per matching project, so a PI with projects in two
+departments is listed only under the one you filtered on. To see the codes in
+use: `Department.objects.values_list('school__code', 'code', 'name')` in a
+`coldfront shell`.
+
 ---
 
 ## 2. LDAP / Directory
