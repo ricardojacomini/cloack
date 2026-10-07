@@ -93,6 +93,14 @@ sort, "Clear" resets). Inbound mail without a parseable `From:` is rejected at
 intake and never becomes a ticket, so you will not see `Unknown Sender` rows
 any more; the rejection is logged in the container cron log.
 
+The dashboard layout is yours to arrange: each section header has move up,
+move down and hide controls, saved per user. Hidden sections stay listed, with
+their counts, in a **Hidden sections** strip at the top (click **Show** to bring
+one back), and **Reset dashboard layout** at the bottom restores the default
+order. A ticket whose user replied and is still waiting for an answer shows a
+**user reply** chip on the dashboard tables and on the Tickets list, including
+every Saved Query.
+
 ```
 /extensions/skill-matrix/                → skills × categories grid
 /extensions/calendar/                    → workload calendar

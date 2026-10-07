@@ -137,6 +137,13 @@ Queue + Status filter bar (sort links keep the filter, the filter keeps the
 sort, "Clear" resets). Inbound mail without a parseable <code>From:</code> is rejected at
 intake and never becomes a ticket, so you will not see <code>Unknown Sender</code> rows
 any more; the rejection is logged in the container cron log.</p>
+<p>The dashboard layout is yours to arrange: each section header has move up,
+move down and hide controls, saved per user. Hidden sections stay listed, with
+their counts, in a <strong>Hidden sections</strong> strip at the top (click <strong>Show</strong> to bring
+one back), and <strong>Reset dashboard layout</strong> at the bottom restores the default
+order. A ticket whose user replied and is still waiting for an answer shows a
+<strong>user reply</strong> chip on the dashboard tables and on the Tickets list, including
+every Saved Query.</p>
 <pre><code>/extensions/skill-matrix/                → skills × categories grid
 /extensions/calendar/                    → workload calendar
 /extensions/schedule/                    → engineer × day × slot grid +

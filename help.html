@@ -753,27 +753,18 @@ elif weekly_cap_hours:
             <code>cpu</code>, <code>gres/gpu</code> <em>and</em> <code>billing</code> &mdash; so on
             cluster-x the spend cap <em>and</em> the per-allocation core/GPU-hour budgets are all
             <strong>monthly</strong> quotas, and ColdFront's Core Hours Reset must be set to
-            <em>Monthly</em> to match. The Sunday 00:00 machinery in ColdFront
-            (<code>?week_start=</code> on the weekly-usage API, <code>sbalance --week</code>,
-            <code>billing_queries.current_week_window</code> and the Core Hours Reset <em>Weekly</em>
-            period) only lines up with the controller on a cluster actually configured
-            <code>WEEKLY</code>; on cluster-x those views show one week's slice of a month-long counter.
+            <em>Monthly</em> to match. ColdFront reads the cluster's <code>PriorityUsageResetPeriod</code> from the controller (<code>import_slurm_cluster --update</code>, every 10 minutes on bare-metal clusters; shown on Admin &rarr; Slurm Clusters as <em>Usage reset period</em>) and sums the same window: the spend-cap gauge, <code>?week_start=</code> on the weekly-usage API (it selects the period containing that date) and the Submit Job rejection text all follow it, and <code>sbalance --week</code> reads it from the controller itself. A cluster whose period was never imported falls back to the Sunday&rarr;Saturday week.
             <code>check_and_run_core_hours_reset</code> only zeroes the ColdFront gauges and never touches
             Slurm. 
           </div>
 
           <h6>Weekly Cap Usage (live)</h6>
           <p>
-            Served on demand by <code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code>: slurmrestd
-            jobs in the current Sunday&rarr;Saturday window (<code>?week_start=YYYY-MM-DD</code> for a past
-            week, interpreted as 00:00 cluster-local &mdash; pass a Sunday). Current-week hits UPSERT the
+            Served on demand by <code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code>: slurmrestd jobs in the cluster's current usage reset period (<code>?week_start=YYYY-MM-DD</code> selects the period containing that date, 00:00 cluster-local). Current-week hits UPSERT the
             <code>Weekly Cap Usage ($)</code> attribute with a 5-minute debounce.
           </p>
           <div class="alert alert-info">
-            On <strong>cluster-x</strong> the controller resets usage <strong>monthly</strong>, so this
-            gauge (a Sunday&rarr;Saturday slice) is <em>narrower</em> than the period the cap is actually
-            enforced over: spend accrued earlier in the same month still counts against the limit even
-            though it has dropped out of the week shown here.
+            On <strong>cluster-x</strong> the controller resets usage <strong>monthly</strong>, so this gauge sums the calendar month: the same span the cap is enforced over (until 2026-10-02 it showed one week of the month).
           </div></div>
                   </div>
                 </div>
@@ -1222,6 +1213,135 @@ PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=Or
                 
 
                 <div class="card">
+                  <div class="card-header" id="h10">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c10"
+                              aria-expanded="false">Project Storage — WekaFS integration</button>
+                    </h5>
+                  </div>
+                  <div id="c10" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
+one filesystem per PI, one directory per project. Its value is the
+<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
+(the flash/SSD share). The split is invisible in the filesystem; PIs never see
+the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
+<code>/scratch</code>)
+is a separate thing and is not part of Project Storage.</p>
+<p><strong>How PIs request it:</strong> the Create/Update Project forms no
+longer carry storage fields. PIs use the <em>Project Storage</em> card on the
+Project Detail page (<em>Request Storage Change</em>) to submit a change
+request (Project Storage TB + Cache TB + justification, which is required
+above the Cache cap). The request is <em>pending</em> until staff approves or
+denies it — values only land on the project at approval, and a "Project
+Storage under review" banner plus a <em>Pending review</em> badge sit on the
+project page meanwhile. One pending request per project: cancel it to submit
+different values. The card is not offered on default or archived projects, and
+condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
+team instead of submitting.</p>
+<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
+Cache &le; Project Storage; the PI's total Cache across all projects must fit
+the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
+staff). Requests above the cap require a justification and an explicit staff
+override at approval. The re-check uses live sums, so another of the PI's
+projects growing in the meantime can make a pending request fail review.</p>
+<p><strong>Billing:</strong> the Cache and the Project Storage total are each
+billed per TB-month from the rate catalog. The charge does not depend on jobs
+— a billable allocation with provisioned storage gets a monthly usage period,
+so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
+lines even in a month with zero compute.</p>
+<p><strong>Field mapping (legacy names kept):</strong>
+<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
+<code>backup_tb</code> = Project Storage total &rarr; Weka
+<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
+Cache, <code>backup</code> bills the Project Storage total.</p>
+<p><strong>Where to see it:</strong> <em>Projects &rarr; My Storage</em> lists every
+project you lead or belong to that has Project Storage or a pending request: the
+Project Storage and Cache sizes, the pending change, a monthly estimate at today's
+rates and the project directory path. Its <em>Request Storage</em> button lists the
+projects you can request storage on and opens the request form on that project's
+page.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h35">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c35"
+                              aria-expanded="false">Storage Requests — Review Workflow</button>
+                    </h5>
+                  </div>
+                  <div id="c35" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Project Storage changes flow through a <strong>request &rarr; approve</strong>
+lifecycle (model <code>StorageRequest</code>): the PI submits from the Project
+Detail "Project Storage" card; staff reviews at
+<a href="/staff/storage-review/">Storage Review</a> (sidebar &rarr; Admin/Staff
+Tools). Reviewers: superusers or staff with <em>Elevate to superuser for
+approvals</em>. At most one pending request per project — the PI cancels it to
+submit different values. Submit-side gates: default and archived projects
+cannot request storage at all, and on a condo (hardware-credit) project only
+staff may submit (the PI is told to contact the Arch team). While a request is
+pending, Project Detail shows a "Project Storage under review" banner and a
+<em>Pending review</em> badge on the card.</p>
+<p><strong>The queue</strong> lists pending requests oldest-first with the PI's
+<em>Cache after approve</em> (their other projects plus this request) against
+the effective cap, flagged when over. That figure is simulated per row in
+isolation, so two pending requests from the SAME PI interact only at approval
+time, where the live re-validation decides. The last 20 reviewed requests are
+listed underneath.</p>
+<p><strong>Approve</strong> (in order): re-validates the cap with live sums
+&rarr; applies the values to the Project (<code>storage_tb</code>/<code>backup_tb</code>
++ enable flags) &rarr; recalculates AllocationBilling for the project's
+allocations &rarr; best-effort WekaFS provisioning. While the cluster
+kill-switch <code>wekafs_sync_enabled</code> is OFF (or
+<code>WEKAFS_API_ENDPOINT</code> unset) the provisioning step is a silent
+no-op — staff provisions manually via the CLUSTER-X ticket that opened at
+submit. Once sync is enabled, the same approval provisions automatically. The
+same on-commit hook dispatches a per-PI LDAP sync so the
+<code>projects_&lt;pi&gt;</code> member symlinks appear on approval day instead
+of at the next scheduled pass. The submit-time ticket is linked to the
+<code>StorageRequest</code> (Admin &rarr; Helpdesk ticket links), so approve and
+deny post the resolving follow-up and a PI cancel closes it.</p>
+<p><strong>Over-cap requests:</strong> a request above the PI's effective
+Cache cap can only be submitted with a justification, and only approved via
+"Approve (override cap)" — the override is stored on the request
+(<code>cap_override</code>) and in the audit trail. Standing exceptions: set
+the per-PI <em>Cache cap (TB)</em> on the Staff User Profile page or in the
+UserProfile admin.</p>
+<p><strong>Edit Provisioned</strong> (reviewers only — button on the Project
+Storage card, <code>project/&lt;pk&gt;/storage/provisioned/</code>) sets the
+PROVISIONED values directly with no request round-trip: for legacy values left
+by the pre-review project form, or to reconcile the ledger with what really
+exists on Weka. Same validation, billing recalculation and best-effort WekaFS
+provisioning as an approval; over-cap values need the <em>Override cap</em>
+checkbox. A pending request is left untouched — approve or deny it separately.
+To move a whole host's pre-0135 form-era values into the queue instead, run
+<code>coldfront legacy_storage_to_review</code> inside the coldfront container
+(dry-run by default; <code>--yes</code> applies, <code>--project N</code>
+scopes one project): it opens a pending request per project and zeroes the
+provisioned fields, so approval re-applies them through the audited path.</p>
+<p><strong>Deny</strong> requires a reason (shown back to the PI in the card's
+request history). PIs can cancel their own pending request. The "Billing
+Changes Pending Review" queue on Project Reviews is now IO-Number-only;
+"storage pending" badges on New projects link here.</p>
+<p><strong>All Storage</strong> (Admin Tools, or Staff Tools for elevated staff;
+<code>/storage/?show_all=on</code>) is the site-wide version of the My Storage list:
+one row per project with Project Storage or a pending request, a <em>PI Cache /
+cap</em> column (the PI's Cache across all of their projects against their effective
+cap, red when over), state and search filters, and footer totals. It follows the same
+reviewer rule as this queue; for anyone else <code>show_all</code> is ignored and the
+page lists their own projects.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h33">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1306,122 +1426,6 @@ needs a manual edit of <code>.env</code> plus a forced recreate of
 coldfront/qcluster, or the container keeps the old value. Reference:
 <a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
 lifecycle overview</a>.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h10">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c10"
-                              aria-expanded="false">Project Storage — WekaFS integration</button>
-                    </h5>
-                  </div>
-                  <div id="c10" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
-one filesystem per PI, one directory per project. Its value is the
-<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
-(the flash/SSD share). The split is invisible in the filesystem; PIs never see
-the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
-<code>/scratch</code>)
-is a separate thing and is not part of Project Storage.</p>
-<p><strong>How PIs request it:</strong> the Create/Update Project forms no
-longer carry storage fields. PIs use the <em>Project Storage</em> card on the
-Project Detail page (<em>Request Storage Change</em>) to submit a change
-request (Project Storage TB + Cache TB + justification, which is required
-above the Cache cap). The request is <em>pending</em> until staff approves or
-denies it — values only land on the project at approval, and a "Project
-Storage under review" banner plus a <em>Pending review</em> badge sit on the
-project page meanwhile. One pending request per project: cancel it to submit
-different values. The card is not offered on default or archived projects, and
-condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
-team instead of submitting.</p>
-<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
-Cache &le; Project Storage; the PI's total Cache across all projects must fit
-the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
-staff). Requests above the cap require a justification and an explicit staff
-override at approval. The re-check uses live sums, so another of the PI's
-projects growing in the meantime can make a pending request fail review.</p>
-<p><strong>Billing:</strong> the Cache and the Project Storage total are each
-billed per TB-month from the rate catalog. The charge does not depend on jobs
-— a billable allocation with provisioned storage gets a monthly usage period,
-so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
-lines even in a month with zero compute.</p>
-<p><strong>Field mapping (legacy names kept):</strong>
-<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
-<code>backup_tb</code> = Project Storage total &rarr; Weka
-<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
-Cache, <code>backup</code> bills the Project Storage total.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h35">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c35"
-                              aria-expanded="false">Storage Requests — Review Workflow</button>
-                    </h5>
-                  </div>
-                  <div id="c35" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p>Project Storage changes flow through a <strong>request &rarr; approve</strong>
-lifecycle (model <code>StorageRequest</code>): the PI submits from the Project
-Detail "Project Storage" card; staff reviews at
-<a href="/staff/storage-review/">Storage Review</a> (sidebar &rarr; Admin/Staff
-Tools). Reviewers: superusers or staff with <em>Elevate to superuser for
-approvals</em>. At most one pending request per project — the PI cancels it to
-submit different values. Submit-side gates: default and archived projects
-cannot request storage at all, and on a condo (hardware-credit) project only
-staff may submit (the PI is told to contact the Arch team). While a request is
-pending, Project Detail shows a "Project Storage under review" banner and a
-<em>Pending review</em> badge on the card.</p>
-<p><strong>The queue</strong> lists pending requests oldest-first with the PI's
-<em>Cache after approve</em> (their other projects plus this request) against
-the effective cap, flagged when over. That figure is simulated per row in
-isolation, so two pending requests from the SAME PI interact only at approval
-time, where the live re-validation decides. The last 20 reviewed requests are
-listed underneath.</p>
-<p><strong>Approve</strong> (in order): re-validates the cap with live sums
-&rarr; applies the values to the Project (<code>storage_tb</code>/<code>backup_tb</code>
-+ enable flags) &rarr; recalculates AllocationBilling for the project's
-allocations &rarr; best-effort WekaFS provisioning. While the cluster
-kill-switch <code>wekafs_sync_enabled</code> is OFF (or
-<code>WEKAFS_API_ENDPOINT</code> unset) the provisioning step is a silent
-no-op — staff provisions manually via the CLUSTER-X ticket that opened at
-submit. Once sync is enabled, the same approval provisions automatically. The
-same on-commit hook dispatches a per-PI LDAP sync so the
-<code>projects_&lt;pi&gt;</code> member symlinks appear on approval day instead
-of at the next scheduled pass. The submit-time ticket is linked to the
-<code>StorageRequest</code> (Admin &rarr; Helpdesk ticket links), so approve and
-deny post the resolving follow-up and a PI cancel closes it.</p>
-<p><strong>Over-cap requests:</strong> a request above the PI's effective
-Cache cap can only be submitted with a justification, and only approved via
-"Approve (override cap)" — the override is stored on the request
-(<code>cap_override</code>) and in the audit trail. Standing exceptions: set
-the per-PI <em>Cache cap (TB)</em> on the Staff User Profile page or in the
-UserProfile admin.</p>
-<p><strong>Edit Provisioned</strong> (reviewers only — button on the Project
-Storage card, <code>project/&lt;pk&gt;/storage/provisioned/</code>) sets the
-PROVISIONED values directly with no request round-trip: for legacy values left
-by the pre-review project form, or to reconcile the ledger with what really
-exists on Weka. Same validation, billing recalculation and best-effort WekaFS
-provisioning as an approval; over-cap values need the <em>Override cap</em>
-checkbox. A pending request is left untouched — approve or deny it separately.
-To move a whole host's pre-0135 form-era values into the queue instead, run
-<code>coldfront legacy_storage_to_review</code> inside the coldfront container
-(dry-run by default; <code>--yes</code> applies, <code>--project N</code>
-scopes one project): it opens a pending request per project and zeroes the
-provisioned fields, so approval re-applies them through the audited path.</p>
-<p><strong>Deny</strong> requires a reason (shown back to the PI in the card's
-request history). PIs can cancel their own pending request. The "Billing
-Changes Pending Review" queue on Project Reviews is now IO-Number-only;
-"storage pending" badges on New projects link here.</p>
 </div>
                   </div>
                 </div>
@@ -1549,83 +1553,6 @@ Changes Pending Review" queue on Project Reviews is now IO-Number-only;
                 
 
                 <div class="card">
-                  <div class="card-header" id="h36">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c36"
-                              aria-expanded="false">Helpdesk Tickets — ColdFront request bridge</button>
-                    </h5>
-                  </div>
-                  <div id="c36" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p>Requests that need a staff decision &mdash; plus the PI billing hold, which is a
-notification rather than a request &mdash; open a <strong>helpdesk ticket
-automatically</strong>, through the helpdesk internal API, with the
-<strong>requester as the ticket submitter</strong> (the PI or manager who
-clicked — never the shared <code>Arch@alt.example.edu</code> mailbox). The ticket title
-is the same text the old admin e-mail carried
-(<code>[OrgA] Coldfront New Allocation Request: Pat Ng (pi9) - cluster-x</code>);
-the description names the PI, project, resource, justification, pay IO(s) and
-carries direct links to the review pages. When staff decides in ColdFront, the
-ticket receives a public follow-up and is <em>resolved</em> (or reopened /
-closed) by itself — nothing to do on the helpdesk side.</p>
-<table class="table table-sm table-bordered">
-  <thead>
-    <tr><th>ColdFront event</th><th>Ticket opened</th><th>Resolves when…</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Request Resource Allocation</td><td>New Allocation Request</td>
-        <td>allocation approved or denied (<em>Resolved</em>); PI resubmits a denied request (<em>Reopened</em>); PI withdraws it (<em>Closed</em>)</td></tr>
-    <tr><td>Allocation change request</td><td>New Allocation Change Request</td>
-        <td>change request approved or denied</td></tr>
-    <tr><td>Allocation renewal</td><td>Allocation Renewed</td>
-        <td>renewal activated or denied</td></tr>
-    <tr><td>User asks to become a PI</td><td>Upgrade Account Request</td>
-        <td>user promoted to PI, or request cleared on Promote Users</td></tr>
-    <tr><td>New non-default project</td><td>New Project Request (IO validation folded in)</td>
-        <td>project activated or denied; "Request changes" posts a comment and keeps it open; reopen after denial reopens it</td></tr>
-    <tr><td>Project Storage request</td><td><code>[Storage/&lt;org&gt;]</code></td>
-        <td>approved or denied in Storage Review; cancelled by the PI (<em>Closed</em>)</td></tr>
-    <tr><td>IO Number change on Update Project</td><td><code>[IO/&lt;org&gt;]</code> &mdash; or a single <code>[Storage+IO/&lt;org&gt;]</code> ticket when Project Storage and the IO change in the same save</td>
-        <td>staff clears the billing review on Project Reviews</td></tr>
-    <tr><td>PI (or staff) pauses billing on an IO Number</td><td><code>Billing paused on IO Number</code></td>
-        <td>the same IO is resumed (<em>Resolved</em>). This is the only ticket opened straight from a model receiver &mdash; <code>CostCenter.billing_paused</code> has three writers (quick toggle, Edit form, Django Admin) and they all funnel through it. One open ticket per IO; re-pausing after a resume opens a fresh one.</td></tr>
-    <tr><td>Request deletion of an allocation (Allocation Detail)</td><td>Allocation deletion request</td>
-        <td>a superuser deletes the allocation (<em>Resolved</em>). PIs, managers and staff can only
-        <strong>request</strong> deletion; the hard delete (confirmation page, admin log entry) is
-        superuser-only and never offered on the default project's allocation</td></tr>
-  </tbody>
-</table>
-<p><strong>Queue:</strong> <code>CLUSTER-X - OrgA</code> or
-<code>CLUSTER-X - ORGB</code> by the requester's affiliation — the same queues
-the <code>Arch@alt.example.edu</code> / <code>ORGB@alt.example.edu</code> mailboxes feed. The
-submitter gets the helpdesk acknowledgement e-mail and can reply on the ticket;
-the queue's <em>new ticket CC</em> list is notified as for any web-form
-ticket.</p>
-<p><strong>Audit trail:</strong> Django Admin &rarr; CLOACK Stack &rarr;
-<em>Helpdesk ticket links</em> lists every ticket ColdFront opened (event,
-target object, ticket number, submitter, <code>resolved_at</code>, and
-<code>last_error</code> when a decision follow-up could not be posted — the row
-stays open and retries on the next matching transition). On the helpdesk,
-Django Admin &rarr; <em>ColdFront ticket references</em> maps the idempotency
-key of each request to its ticket.</p>
-<p><strong>Fallback and switches:</strong> whenever the bridge is off, the
-helpdesk is unreachable, or the requester has no e-mail, ColdFront sends the
-legacy admin e-mail to <code>EMAIL_TICKET_SYSTEM_ADDRESS</code> exactly as
-before — a ticket whose submitter is the shared mailbox therefore means the API
-path failed (check <code>docker logs coldfront | grep "helpdesk bridge"</code>
-and that <code>HELPDESK_INTERNAL_TOKEN</code> is present in both the
-<code>coldfront</code> and <code>helpdesk</code> containers).
-<code>HELPDESK_TICKET_BRIDGE_ENABLED=False</code> in <code>coldfront.env</code>
-reverts to e-mail without a code change;
-<code>HELPDESK_TICKET_BRIDGE_PUBLIC_FOLLOWUPS=False</code> makes the decision
-follow-ups internal notes.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h13">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1717,6 +1644,87 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
                 
 
                 <div class="card">
+                  <div class="card-header" id="h36">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c36"
+                              aria-expanded="false">Helpdesk Tickets — ColdFront request bridge</button>
+                    </h5>
+                  </div>
+                  <div id="c36" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Requests that need a staff decision &mdash; plus the PI billing hold, which is a
+notification rather than a request &mdash; open a <strong>helpdesk ticket
+automatically</strong>, through the helpdesk internal API, with the
+<strong>requester as the ticket submitter</strong> (the PI or manager who
+clicked — never the shared <code>Arch@alt.example.edu</code> mailbox). The ticket title
+is the same text the old admin e-mail carried
+(<code>[OrgA] Coldfront New Allocation Request: Pat Ng (pi9) - cluster-x</code>);
+the description names the PI, project, resource, justification, pay IO(s) and
+carries direct links to the review pages. When staff decides in ColdFront, the
+ticket receives a public follow-up and is <em>resolved</em> (or reopened /
+closed) by itself — nothing to do on the helpdesk side.</p>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr><th>ColdFront event</th><th>Ticket opened</th><th>Resolves when…</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Request Resource Allocation</td><td>New Allocation Request</td>
+        <td>allocation approved or denied (<em>Resolved</em>); PI resubmits a denied request (<em>Reopened</em>); PI withdraws it (<em>Closed</em>)</td></tr>
+    <tr><td>Allocation change request</td><td>New Allocation Change Request</td>
+        <td>change request approved or denied</td></tr>
+    <tr><td>Allocation renewal</td><td>Allocation Renewed</td>
+        <td>renewal activated or denied</td></tr>
+    <tr><td>User asks to become a PI</td><td>Upgrade Account Request</td>
+        <td>user promoted to PI, or request cleared on Promote Users</td></tr>
+    <tr><td>New non-default project</td><td>New Project Request (IO validation folded in)</td>
+        <td>project activated or denied; "Request changes" posts a comment and keeps it open; reopen after denial reopens it</td></tr>
+    <tr><td>Project Storage request</td><td><code>[Storage/&lt;org&gt;]</code></td>
+        <td>approved or denied in Storage Review; cancelled by the PI (<em>Closed</em>)</td></tr>
+    <tr><td>IO Number change on Update Project</td><td><code>[IO/&lt;org&gt;]</code> &mdash; or a single <code>[Storage+IO/&lt;org&gt;]</code> ticket when Project Storage and the IO change in the same save</td>
+        <td>staff clears the billing review on Project Reviews</td></tr>
+    <tr><td>PI (or staff) pauses billing on an IO Number</td><td><code>Billing paused on IO Number</code></td>
+        <td>the same IO is resumed (<em>Resolved</em>). This is the only ticket opened straight from a model receiver &mdash; <code>CostCenter.billing_paused</code> has three writers (quick toggle, Edit form, Django Admin) and they all funnel through it. One open ticket per IO; re-pausing after a resume opens a fresh one.</td></tr>
+    <tr><td>Request deletion of an allocation (Allocation Detail)</td><td>Allocation deletion request</td>
+        <td>a superuser deletes the allocation (<em>Resolved</em>). PIs, managers and staff can only
+        <strong>request</strong> deletion; the hard delete (confirmation page, admin log entry) is
+        superuser-only and never offered on the default project's allocation</td></tr>
+    <tr><td>Class Request or Request more students (My Classes)</td><td>Class resources request</td>
+        <td>staff approves (<em>Resolved</em>, accounts created) or denies (<em>Resolved</em>, with the
+        reason); "request changes" posts a comment and keeps it open; withdrawn by the PI closes it.
+        When the course ends a separate "Class ended (teardown due)" ticket is opened</td></tr>
+  </tbody>
+</table>
+<p><strong>Queue:</strong> <code>CLUSTER-X - OrgA</code> or
+<code>CLUSTER-X - ORGB</code> by the requester's affiliation — the same queues
+the <code>Arch@alt.example.edu</code> / <code>ORGB@alt.example.edu</code> mailboxes feed. The
+submitter gets the helpdesk acknowledgement e-mail and can reply on the ticket;
+the queue's <em>new ticket CC</em> list is notified as for any web-form
+ticket.</p>
+<p><strong>Audit trail:</strong> Django Admin &rarr; CLOACK Stack &rarr;
+<em>Helpdesk ticket links</em> lists every ticket ColdFront opened (event,
+target object, ticket number, submitter, <code>resolved_at</code>, and
+<code>last_error</code> when a decision follow-up could not be posted — the row
+stays open and retries on the next matching transition). On the helpdesk,
+Django Admin &rarr; <em>ColdFront ticket references</em> maps the idempotency
+key of each request to its ticket.</p>
+<p><strong>Fallback and switches:</strong> whenever the bridge is off, the
+helpdesk is unreachable, or the requester has no e-mail, ColdFront sends the
+legacy admin e-mail to <code>EMAIL_TICKET_SYSTEM_ADDRESS</code> exactly as
+before — a ticket whose submitter is the shared mailbox therefore means the API
+path failed (check <code>docker logs coldfront | grep "helpdesk bridge"</code>
+and that <code>HELPDESK_INTERNAL_TOKEN</code> is present in both the
+<code>coldfront</code> and <code>helpdesk</code> containers).
+<code>HELPDESK_TICKET_BRIDGE_ENABLED=False</code> in <code>coldfront.env</code>
+reverts to e-mail without a code change;
+<code>HELPDESK_TICKET_BRIDGE_PUBLIC_FOLLOWUPS=False</code> makes the decision
+follow-ups internal notes.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h14">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1749,7 +1757,7 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
             <colgroup><col style="width:45%"><col style="width:55%"></colgroup>
             <tbody>
               <tr><td><code>sbalance</code></td><td>Show your accounts' core-hour utilization (current calendar quarter — this is the report window, not the billing/reset period)</td></tr>
-              <tr><td><code>sbalance --week</code></td><td>Show spend-cap status (cap vs usage in $, color-coded). It sums a Sunday-to-Saturday window; on <strong>cluster-x</strong> Slurm resets usage <strong>monthly</strong>, so the cap itself is enforced per month — ColdFront (My Usage &amp; Billing) is the authoritative figure</td></tr>
+              <tr><td><code>sbalance --week</code></td><td>Show spend-cap status (cap vs usage in $, color-coded). It sums the cluster's own reset period, read from the controller (monthly on <strong>cluster-x</strong>): the same window the cap is enforced over</td></tr>
               <tr><td><code>sbalance -p &lt;pi&gt;</code></td><td>Show all accounts for a specific PI</td></tr>
               <tr><td><code>sbalance -u &lt;user&gt;</code></td><td>Show accounts for a specific user</td></tr>
               <tr><td><code>sbalance --usage</code></td><td>Include usage percentage column</td></tr>
@@ -2690,7 +2698,7 @@ Slurm secret.</p>
   <li><strong>OrgB users</strong>: Prepend <code>orgb-</code> prefix to username</li>
   <li>Every created user is sent a <strong>password-reset e-mail</strong> automatically (<code>send_reset_emails</code>); the results card lists which addresses succeeded and which failed. Accounts are created with an unusable password, so that link is how the user first signs in</li>
   <li>Existing users (matched by uid) are skipped</li>
-  <li><strong>Course (class) accounts:</strong> fill the optional <code>Course code</code> field (e.g. <code>en540</code>) and each row's <code>uid</code> becomes <code>&lt;course&gt;-&lt;uid&gt;</code> with a per-course synthetic e-mail, while the reset link still goes to the student's real address. Tear the cohort down later with the red <strong>Delete Course Accounts</strong> card (dry-run preview, then confirm) or <code>coldfront delete_course_users --course en540 --yes</code></li>
+  <li><strong>Course (class) accounts:</strong> fill the optional <code>Course code</code> field (e.g. <code>en540</code>) plus the class details that appear (PI, course name, dates, department, cluster) and the import creates an <strong>approved class</strong>, the same as a reviewed Class Request: each row's <code>uid</code> becomes <code>&lt;course&gt;-ext-&lt;uid&gt;</code> (<code>ext-</code> is added when missing) with a plus-addressed e-mail (<code>&lt;local&gt;+&lt;course code&gt;@&lt;domain&gt;</code>, which the provider delivers to the student's own inbox; older accounts can be converted with <code>coldfront convert_course_emails</code>, dry run first), plus the class project and allocation. The reset link goes to the student's real address, which must be external (OrgA addresses refuse the import, as in a Class Request). Resend links, add TA managers or delete the class from its class page (<strong>All Classes</strong>). CLI: <code>coldfront import_users_csv --course en540 --pi &lt;pi&gt; --course-name ... --start-date ... --end-date ...</code></li>
   <li><strong>Migration mode</strong> on the same page imports a <code>slapcat</code> LDIF dump instead of a CSV, with a duplicate-review step (duplicate e-mail / uidNumber, existing username) that must be resolved before commit</li>
   <li><strong>Export Users</strong> (card on the same page, <code>?export=csv</code>) streams the directory back out as <code>full_name,email,uid,is_pi,members,member_of</code>, filterable by scope and affiliation</li>
   <li>New users get shell <code>/bin/false</code> in LDAP. <code>sync_ldap</code> (<code>reconcile_login_shells</code>) flips it to <code>/bin/bash</code> only when the account is <strong>sponsored</strong> — a PI, a member of a PI's LDAP group, or an active allocation user — <strong>and</strong> has accepted the current Terms of Service (no active ToS ⇒ ToS is not a gate). A staff &quot;Disable login shell&quot; lock (<code>UserProfile.login_shell_locked</code>) forces <code>/bin/false</code> regardless</li>
@@ -3277,6 +3285,101 @@ so the messages name which one applies.</p>
                 
 
                 <div class="card">
+                  <div class="card-header" id="h41">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c41"
+                              aria-expanded="false">Class Requests</button>
+                    </h5>
+                  </div>
+                  <div id="c41" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>PIs request class resources from <strong>Projects &rarr; My Classes &rarr; Class
+Request</strong>; the request lands in <strong>Staff Tools &rarr; Class Requests</strong>
+(superusers and staff with <em>elevate to superuser</em>, the allocation-approval rule)
+and opens a helpdesk ticket with the PI as submitter.</p>
+
+<h5>What Approve creates</h5>
+<ul>
+  <li>A project owned by the PI with abbreviation = the <strong>course code</strong>
+      (lowercase letters and digits, derived from the section number, editable on the
+      review page). The Slurm account is <code>&lt;pi&gt;_&lt;course code&gt;</code>.</li>
+  <li>An allocation on the selected cluster, ending on the course end date, with the
+      no-charge sentinel IO as its pay link (so it is never frozen by the IO gate and
+      bills $0), <code>Weekly Cap ($) = -1</code> (no cap, so it is not held), and
+      <code>QoS</code>/<code>DefaultQoS</code> pinned to the QOS picked on the review page
+      (pre-selected from the PI's MIG answer).</li>
+  <li>One account per roster line, named <code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code>, with
+      a plus-addressed e-mail (<code>&lt;local&gt;+&lt;course code&gt;@&lt;domain&gt;</code>, which the provider delivers to the student's own inbox; older accounts can be converted with <code>coldfront convert_course_emails</code>, dry run first). The password-reset link goes to the student's real
+      <strong>external</strong> address from the roster. An existing account with the same
+      name is reused, not recreated.</li>
+</ul>
+
+<h5>Before Approve is enabled</h5>
+<ul>
+  <li><strong>New school or department.</strong> When the PI picked <em>Other</em>, create
+      it (name + code, the code becomes the Slurm account) or map it to an existing one.
+      A created department is available to every PI afterwards.</li>
+  <li><strong>Course code clash.</strong> Two live classes cannot share a code, because
+      their accounts would collide. Add the term to the code (e.g. <code>cs601471f26</code>).</li>
+  <li><strong>Roster errors.</strong> OrgA e-mail addresses, duplicate campus IDs or malformed
+      lines are refused in the form and checked again here.</li>
+</ul>
+<p><strong>Request changes</strong> keeps the request open and shows your feedback to the
+PI, who edits and resubmits it. <strong>Deny</strong> needs a reason, shown to the PI.</p>
+
+<h5>After approval</h5>
+<p>The PI and any <strong>TA managers</strong> the PI adds (a regular campus ID account, never a
+course account; stored as a project Manager, not an allocation member) can resend the
+reset link to selected students and <em>request more students</em>. A request for more
+students comes back to this queue as type <em>Add students</em>; approving it only creates
+the new accounts.</p>
+
+<h5>End of the course</h5>
+<p>A daily task marks classes past their end date as <em>Ended</em> and opens one
+"teardown due" ticket each. Nothing is deleted automatically: use
+<strong>Delete Class</strong> on the class page (superuser; reached from <strong>All
+Classes</strong> in the admin menu): preview, then confirm. It removes every
+<code>&lt;course code&gt;-ext-*</code> student account (Slurm associations, home directory,
+LDAP entry, ColdFront user), the class project and its allocation, and the class request. The
+PI's and TA managers' own accounts are never deleted, nor is staff, any PI, or any other
+<code>&lt;course code&gt;-*</code> account (for example one created before the
+<code>-ext-</code> naming); the preview lists them as <em>Kept</em> with the reason. The
+course codes <code>ext</code> and <code>orgb</code> are refused, because they are the
+prefixes of permanent accounts; the class Slurm account goes at the next full sync. To
+remove only the accounts, use <strong>Import Users &rarr; Delete Course Accounts</strong>
+with the course code.</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h42">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c42"
+                              aria-expanded="false">Requesting class resources</button>
+                    </h5>
+                  </div>
+                  <div id="c42" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>PIs can request temporary accounts for a class from <strong>Projects &rarr; My
+Classes &rarr; Class Request</strong>. Fill in the course, its dates, school and
+department, and paste the roster, one student or TA per line:</p>
+<pre>Full Name,campus ID-ID,external e-mail</pre>
+<p>Use each student's <strong>external</strong> e-mail (not @example.edu, @alt.example.edu or
+@med.example.edu): the password-reset link for the course account goes there. If your school or
+department is not listed, choose <em>Other</em> and type it; staff adds it while reviewing
+your request.</p>
+<p>Once staff approves, every student gets an account named
+<code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code> and an e-mail to set its password. Students sign in with that username, the password and a TOTP code from an authenticator app (not with campus ID). From the
+class page you (and the TAs you add as managers) can resend that link to selected students
+and request more students, which staff approves the same way.</p>
+<p><strong>All course accounts and their files are deleted at the end of the course.</strong>
+Ask students to copy anything they need before the end date.</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h32">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -3348,12 +3451,12 @@ so the messages name which one applies.</p>
 
           <h6>Live data endpoints (Phase 2)</h6>
           <pre class="bg-light p-3 rounded">
-# Billing spend over the current 7-day window
-# (Sunday 00:00 in settings.TIME_ZONE -> the following Sunday):
+# Billing spend over the cluster's current usage reset period
+# (PriorityUsageResetPeriod, imported; the Sunday week when unknown):
 GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/
 
-# Historical week (does NOT touch the cached AllocationAttribute).
-# Pass a SUNDAY: the date is taken as-is, at 00:00 cluster-local.
+# A past period: the one CONTAINING that date (does NOT touch the
+# cached AllocationAttribute), at 00:00 cluster-local.
 GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/?week_start=2026-05-03
 
 # Both require DRF token or session. PIs see own allocations; staff
@@ -3366,8 +3469,7 @@ GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/?week_start=2026-05-03
             has run <code>MONTHLY</code> since 2026-09-21, so a
             &ldquo;Weekly Cap ($)&rdquo; value is enforced <em>per month</em>
             there and the per-allocation core/GPU-hour budgets are monthly
-            quotas. The Sunday-to-Sunday window matches Slurm only on a
-            cluster configured <code>WEEKLY</code>. ColdFront never resets
+            quotas. The window follows the cluster's imported <code>PriorityUsageResetPeriod</code>. ColdFront never resets
             Slurm usage &mdash; zero it by hand with
             <code>sacctmgr modify account where name=&lt;acct&gt; set
             RawUsage=0 -i</code>.</p>

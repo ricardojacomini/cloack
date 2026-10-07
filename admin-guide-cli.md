@@ -168,6 +168,63 @@ departments is listed only under the one you filtered on. To see the codes in
 use: `Department.objects.values_list('school__code', 'code', 'name')` in a
 `coldfront shell`.
 
+### Finish an incomplete PI demote (`is_pi` off, default project still Active)
+
+Demote normally goes through the PI toggle (Manage Users / Promote PI), which
+turns the flag off AND tears down what promotion provisioned. Turning the flag
+off any other way (the `is_pi` checkbox in Django Admin, or the toggle before
+the teardown existed) leaves the default project, its allocation, the bare
+Slurm account and the LDAP PI group `cn=<user>` alive, and no sync removes
+them: `sync_slurm` follows allocations and never reads `is_pi`, the LDAP PI
+group pass is add-only, and the default-project backfill only heals the
+opposite case. In that state the toggle shows **Not PI** and clicking it
+**promotes** the user again, so finish the teardown from the shell instead.
+
+List affected users (read-only):
+
+```bash
+docker exec -i coldfront coldfront shell <<'EOF'
+from coldfront.core.project.models import Project
+qs = (Project.objects.filter(abbreviation__in=('', 'default'), status__name='Active',
+                             pi__userprofile__is_pi=False)
+      .select_related('pi').order_by('pi__username'))
+for p in qs:
+    print(p.pk, p.pi.username, p.created.date(), p.description[:60])
+print(qs.count(), 'active default projects whose PI has is_pi=False')
+EOF
+```
+
+Before tearing one down, check that nobody else is an active member of that
+allocation and that no job runs on the bare account
+(`docker exec <cluster>-slurmctld squeue -A <user>`). Then:
+
+```bash
+docker exec -i coldfront coldfront shell <<'EOF'
+from django.contrib.auth.models import User
+from coldfront.core.user.views import _demote_default_pi_project
+u = User.objects.get(username='<user>')
+print('depts before', list(u.userprofile.departments.values_list('code', flat=True)))
+for level, msg in _demote_default_pi_project(u):
+    print(level, msg)
+print('depts after ', list(u.userprofile.departments.values_list('code', flat=True)))
+EOF
+```
+
+It archives the default project, expires its allocation, re-points the Slurm
+default account to an account the user still belongs to, removes the bare
+account (and the `pi-<user>` structural node) and the LDAP PI group, and
+recomputes the login shell. Home and scratch are kept. Archiving the project
+re-adds the project's department to the profile (the department signal is
+add-only), so compare the two `depts` lines and remove a placeholder (`ARCH`)
+that was not there before.
+
+The Audit Trail records this run with actor `coldfront` and source `shell`. A
+flag change made before the audit layer was deployed on a host (first entry:
+`LogEntry.objects.filter(change_message__contains='"audit":').order_by('action_time').first()`)
+left no trace at all, since the toggle writes no LogEntry of its own. A Django
+Admin edit always leaves the native "Changed Is pi." entry, which tells the two
+paths apart.
+
 ---
 
 ## 2. LDAP / Directory

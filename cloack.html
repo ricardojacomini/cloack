@@ -458,6 +458,105 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 </tr>
 </tbody>
 </table>
+<h3>Classes — course accounts on request</h3>
+<p>PIs request class resources from <strong>Projects → My Classes → Class Request</strong>
+(course, section, goals, school/department, dates, MIG answer, and a roster of
+<code>Full Name,campus ID-ID,external e-mail</code>). Staff review them in the <strong>Class
+Requests</strong> queue the same way as allocations. Approval creates the class
+project and a no-charge allocation pinned to the class QOS, plus one
+<code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code> account per student with a password-reset link sent
+to the external address. Import Users in course mode creates the same approved
+class. Course accounts are removed at the end of the course.</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th style="text-align: center;">main</th>
+<th style="text-align: center;">prod</th>
+<th style="text-align: center;">dev</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Class Request form</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>/classes/request/</code> — PIs only; roster validated live and server-side (OrgA addresses, duplicate campus IDs refused); school → department cascade with "Other" proposals</td>
+</tr>
+<tr>
+<td>Class Requests queue</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>/staff/class-review/</code> — superuser or staff with elevate_to_superuser; approve / request changes / deny; a proposed school or department must be created or mapped first; course code editable</td>
+</tr>
+<tr>
+<td>Class allocation shape</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>abbreviation = course code; no-charge sentinel IO; <code>Weekly Cap ($) = -1</code>; <code>QoS</code>/<code>DefaultQoS</code> pin; ends on the course end date</td>
+</tr>
+<tr>
+<td>TA managers</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>the PI delegates regular campus ID accounts (project Manager, not allocation members)</td>
+</tr>
+<tr>
+<td>Resend reset link</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>PI / TA managers pick students (All, Not logged in yet, None); sent to the external e-mail</td>
+</tr>
+<tr>
+<td>Request more students</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>same roster box; one open request per class; approved in the same queue</td>
+</tr>
+<tr>
+<td>Import class</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Import Users with a course code (or <code>import_users_csv --course --pi ...</code>) creates an approved class through the same approval path: same accounts, project, allocation and class page</td>
+</tr>
+<tr>
+<td>Course account e-mail</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>plus-addressed <code>&lt;local&gt;+&lt;code&gt;@&lt;domain&gt;</code>: unique for Keycloak, delivered to the student's own inbox (portal, helpdesk and Slurm mail reach them); older <code>&lt;code&gt;-&lt;local&gt;@&lt;domain&gt;</code> accounts convert with <code>coldfront convert_course_emails</code> (dry run first)</td>
+</tr>
+<tr>
+<td>Self-service password reset</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>/user/accounts/password_reset/</code> finds a class account by the student's real e-mail and sends its link only to that inbox, never to the stored per-course address</td>
+</tr>
+<tr>
+<td>Delete Class</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>superuser; removes only the <code>&lt;code&gt;-ext-*</code> student accounts, the class project, allocation and request. The PI, TA managers, campus ID / <code>ext-</code> / <code>orgb-</code> members, staff and any other <code>&lt;code&gt;-*</code> account keep their account (listed in the preview); course codes <code>ext</code> and <code>orgb</code> are refused</td>
+</tr>
+<tr>
+<td>End of course</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>daily task marks the class Ended and opens one teardown ticket; deletion stays a staff action (Delete Class)</td>
+</tr>
+</tbody>
+</table>
 <h3>Project Storage — WekaFS integration</h3>
 <p><strong>Project Storage</strong> is the Weka filesystem as a single thing: its value is the
 TOTAL capacity and it INCLUDES the <strong>Cache</strong> (the flash/SSD share — "10T hot +
@@ -1087,6 +1186,13 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
 <td>The overlay-rendered <strong>Unanswered user replies</strong> and <strong>All tickets</strong> tables sort by every column (<code>?pendreply_sort=</code> / <code>?aat_sort=</code>, allow-listed, queue by title) and carry a Queue + Status filter bar; sort links keep the filter, the form keeps the sort; the parked-reply bar offers only non-open statuses</td>
+</tr>
+<tr>
+<td>Dashboard layout per engineer + list reply chip</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Each staff member moves dashboard sections up/down or hides them (<code>DashboardLayout</code>, migration 0066, one row per user); hidden sections stay listed with their counts in a <strong>Hidden sections</strong> strip, <strong>Reset</strong> restores the default order (now <strong>Assigned to you</strong> above <strong>Unanswered user replies</strong>). The Tickets list and every Saved Query show the same <strong>user reply</strong> chip as the dashboard: <code>datatables_ticket_list</code> is shadowed to add <code>pending_reply</code> per row</td>
 </tr>
 <tr>
 <td>Address-less inbound mail rejected at intake</td>
