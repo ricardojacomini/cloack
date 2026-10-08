@@ -172,25 +172,25 @@ pollute General Support — review them on a separate cadence.</p>
 <td>1</td>
 <td>Open</td>
 <td>Yes</td>
-<td>New, untouched.</td>
+<td>New or active work; SLA / follow-up clock running.</td>
 </tr>
 <tr>
 <td>2</td>
 <td>Reopened</td>
 <td>Yes</td>
-<td>Customer or staff reopened after Resolved / Closed.</td>
+<td>Came back after a user e-mail on a Closed / Archived ticket, or reopened by staff.</td>
 </tr>
 <tr>
 <td>3</td>
 <td>Resolved</td>
 <td>No</td>
-<td>Customer can still reply.</td>
+<td>Fix delivered, waiting for the user to confirm: the user sees an <strong>Accept and Close</strong> button. A user reply does <strong>not</strong> reopen it, and nothing closes it automatically.</td>
 </tr>
 <tr>
 <td>4</td>
 <td>Closed</td>
 <td>No</td>
-<td>Locked.</td>
+<td>Done. A user e-mail reply reopens it automatically.</td>
 </tr>
 <tr>
 <td>5</td>
@@ -204,8 +204,65 @@ pollute General Support — review them on a separate cadence.</p>
 <td><strong>No</strong></td>
 <td><strong>Portal addition.</strong> Resolved / Closed → Archived. Single exit: Archived → Reopened.</td>
 </tr>
+<tr>
+<td><strong>7</strong></td>
+<td><strong>Mitigated</strong></td>
+<td><strong>No</strong></td>
+<td><strong>Portal addition.</strong> Workaround in place, root cause pending. Parks the SLA / strike clocks.</td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td><strong>Staged</strong></td>
+<td><strong>No</strong></td>
+<td><strong>Portal addition.</strong> Fix ready, waiting for a maintenance window. Parks the SLA / strike clocks.</td>
+</tr>
 </tbody>
 </table>
+<h3>When to use each status</h3>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fix delivered and the user needs to test or confirm it</td>
+<td><strong>Resolved</strong>, for a few days only</td>
+</tr>
+<tr>
+<td>The user confirmed, or replied "thanks"</td>
+<td><strong>Closed</strong></td>
+</tr>
+<tr>
+<td>Question answered, nothing to confirm</td>
+<td><strong>Closed</strong></td>
+</tr>
+<tr>
+<td>Resolved for a few days (e.g. 3 to 5) with no word from the user</td>
+<td><strong>Closed</strong></td>
+</tr>
+<tr>
+<td>The user replied to a Resolved ticket with another problem</td>
+<td>Answer them, then <strong>Reopened</strong></td>
+</tr>
+<tr>
+<td>Workaround in place, root cause still pending</td>
+<td><strong>Mitigated</strong></td>
+</tr>
+<tr>
+<td>Fix ready, waiting for a maintenance window</td>
+<td><strong>Staged</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Why: a reply to a Closed ticket reopens it automatically, but a reply to a
+Resolved ticket does not, so it can sit unnoticed (only the <strong>user reply</strong> chip
+and the dashboard's <strong>Unanswered user replies</strong> section show it). Nothing closes
+a Resolved ticket on its own either, so if you use Resolved, come back to it.
+SME points and Slack/Teams notifications fire on both Resolved and Closed, so
+going straight to Closed costs nothing.</p>
 <h3>Priority + SLA windows</h3>
 <table>
 <thead>

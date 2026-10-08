@@ -123,12 +123,33 @@ pollute General Support — review them on a separate cadence.
 
 | ID | Status | Open? | Notes |
 |---|---|---|---|
-| 1 | Open | Yes | New, untouched. |
-| 2 | Reopened | Yes | Customer or staff reopened after Resolved / Closed. |
-| 3 | Resolved | No | Customer can still reply. |
-| 4 | Closed | No | Locked. |
+| 1 | Open | Yes | New or active work; SLA / follow-up clock running. |
+| 2 | Reopened | Yes | Came back after a user e-mail on a Closed / Archived ticket, or reopened by staff. |
+| 3 | Resolved | No | Fix delivered, waiting for the user to confirm: the user sees an **Accept and Close** button. A user reply does **not** reopen it, and nothing closes it automatically. |
+| 4 | Closed | No | Done. A user e-mail reply reopens it automatically. |
 | 5 | Duplicate | No | Customer redirected to canonical ticket. |
 | **6** | **Archived** | **No** | **ARCH Portal addition.** Resolved / Closed → Archived. Single exit: Archived → Reopened. |
+| **7** | **Mitigated** | **No** | **ARCH Portal addition.** Workaround in place, root cause pending. Parks the SLA / strike clocks. |
+| **8** | **Staged** | **No** | **ARCH Portal addition.** Fix ready, waiting for a maintenance window. Parks the SLA / strike clocks. |
+
+### When to use each status
+
+| Situation | Status |
+|---|---|
+| Fix delivered and the user needs to test or confirm it | **Resolved**, for a few days only |
+| The user confirmed, or replied "thanks" | **Closed** |
+| Question answered, nothing to confirm | **Closed** |
+| Resolved for a few days (e.g. 3 to 5) with no word from the user | **Closed** |
+| The user replied to a Resolved ticket with another problem | Answer them, then **Reopened** |
+| Workaround in place, root cause still pending | **Mitigated** |
+| Fix ready, waiting for a maintenance window | **Staged** |
+
+Why: a reply to a Closed ticket reopens it automatically, but a reply to a
+Resolved ticket does not, so it can sit unnoticed (only the **user reply** chip
+and the dashboard's **Unanswered user replies** section show it). Nothing closes
+a Resolved ticket on its own either, so if you use Resolved, come back to it.
+SME points and Slack/Teams notifications fire on both Resolved and Closed, so
+going straight to Closed costs nothing.
 
 ### Priority + SLA windows
 
