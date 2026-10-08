@@ -928,6 +928,13 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td style="text-align: center;">Yes</td>
 <td>FairShare weights configurable per school</td>
 </tr>
+<tr>
+<td>PI primary department</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Required on Upgrade Account (own affiliation only; CLOACK reserved to cluster admins, i.e. <code>cn=admin</code>); promotion creates the default project there; changing it on the User Profile moves the default project and reparents <code>pi-&lt;user&gt;</code>; banner for PIs with none or on CLOACK outside <code>cn=admin</code></td>
+</tr>
 </tbody>
 </table>
 <h3>User Management</h3>
@@ -1066,7 +1073,7 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td style="text-align: center;">Partial</td>
 <td style="text-align: center;">Partial</td>
 <td style="text-align: center;">Yes</td>
-<td>dev: enhanced with department propagation</td>
+<td>dev: enhanced with department propagation; default project created in the requested primary department</td>
 </tr>
 <tr>
 <td>Entra ID integration (OrgA)</td>

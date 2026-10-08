@@ -99,7 +99,9 @@ their counts, in a **Hidden sections** strip at the top (click **Show** to bring
 one back), and **Reset dashboard layout** at the bottom restores the default
 order. A ticket whose user replied and is still waiting for an answer shows a
 **user reply** chip on the dashboard tables and on the Tickets list, including
-every Saved Query.
+every Saved Query. The chip clears once you answer with a written reply, or once
+you resolve or close the ticket after the user's message (moving it to Mitigated
+or Staged does not count, since work is still pending).
 
 ```
 /extensions/skill-matrix/                → skills × categories grid
@@ -176,7 +178,7 @@ e-mail from the shared mailbox. Decide in ColdFront; the ticket follows.
 |---|---|---|
 | `[JHU] Coldfront New Allocation Request: …` | PI/manager requests an allocation | you approve or deny it (Reopened if resubmitted, Closed if withdrawn) |
 | `… New Allocation Change Request` / `… Allocation Renewed` | change request / renewal submitted | change request or renewal approved / denied |
-| `… Upgrade Account Request: …` | a user asks to become a PI | you promote them or clear the request on Promote Users |
+| `… Upgrade Account Request: …` | a user asks to become a PI (the ticket and the Promote Users row show the primary department they chose; promotion creates the default project there) | you promote them or clear the request on Promote Users |
 | `… New Project Request: …` | a new non-default project is created (IO validation text included) | you activate or deny it; "Request changes" only adds a comment |
 | `[Storage/<org>]` / `[IO/<org>]` | Project Storage request / IO Number change | Storage Review decision / billing review cleared |
 | `… Allocation Deletion Request: …` | a PI, manager or staff member clicks **Request Deletion** on Allocation Detail (reason required) | a **superuser** deletes the allocation (Resolved). Only superusers can delete; the default project's allocation is never deletable |

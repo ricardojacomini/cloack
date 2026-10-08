@@ -114,6 +114,22 @@ are excluded from the total due (the GPU-only billing rule, sourced in
 | Renewal Requested | PI | Same as Active, with a renewal note for staff |
 | Expired / Archived | Auto on end_date | Read-only; usage history preserved |
 
+### Primary department
+
+You choose a **primary department** when you ask to become a PI
+(User Profile → **Upgrade Account**). The list only offers departments of
+your own affiliation, and Advanced Research Computing at Hopkins is
+reserved to cluster administrators. When staff approve the request, your
+default project is created in that department, which is also where your
+account sits on the cluster.
+
+To change it later, use the **Primary Department** row on
+`/user/user-profile/`. Your default project moves with it, and the cluster
+account follows within a few minutes. Paid projects keep the department
+you set on each project. If you have no primary department yet, or you
+hold the reserved one without being a cluster administrator, a banner on
+every page asks you to choose one. Nothing is blocked in the meantime.
+
 ### Billing model decision table
 
 | If… | …pick |

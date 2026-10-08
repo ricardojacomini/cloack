@@ -242,6 +242,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
                   </div>
                   <div id="c2" class="collapse " data-parent="#helpAccordion">
                     <div class="card-body"><ol>
+  <li><strong>User requests PI status</strong> &mdash; from <strong>User Profile &rarr; Upgrade Account</strong>. The request requires a <strong>primary department</strong>, chosen among the departments of the user's own affiliation; <em>Advanced Research Computing</em> is reserved to cluster administrators. When staff approve the request, the default project is created in that department, which is also where the account sits in the Slurm hierarchy. The PI can change it later on the User Profile, and the default project moves with it.</li>
   <li><strong>PI creates project</strong> &mdash; sets title, abbreviation, department and IO Number. Must accept ToS if active. Project Storage is <em>not</em> part of this form &mdash; the PI requests it afterwards from the <strong>Project Storage</strong> card on the project page, and staff approves it.</li>
   <li><strong>PI requests allocation</strong> &mdash; chooses the cluster resource, writes a justification and, for a paid allocation, picks the <strong>Pay IO Number</strong> that will fund it. Core-hour and GPU-hour budgets are not typed in here &mdash; they are seeded from the cluster's own defaults when the allocation is activated.</li>
   <li><strong>Staff reviews &amp; approves</strong> &mdash; allocation moves to <span class="badge badge-success">Active</span>.</li>
@@ -314,8 +315,8 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
               <tr><th>Type</th><th>Description</th><th>Rate Applied</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>pay_per_use</code></td><td>Standard pay-per-use billing</td><td>Full rate (compute + O&amp;M bundled)</td></tr>
-              <tr><td><code>credit_holder</code></td><td>Hardware credit holder</td><td>O&amp;M only (credits offset compute)</td></tr>
+              <tr><td><code>pay_per_use</code></td><td>Standard pay-per-use billing</td><td>Compute: SU &times; $0.001 (the <code>billing</code> TRES Slurm records, since migration 0165); the <code>*_full</code> catalog rates only feed estimates and legacy periods without SU</td></tr>
+              <tr><td><code>credit_holder</code></td><td>Hardware credit holder</td><td>O&amp;M by hours at the <code>*_om</code> rates (credits offset compute); SU is recorded for reference only, never priced</td></tr>
               <tr><td><code>no_charge</code></td><td>No billing &mdash; default/scavenger allocation, OrgB PI, no IO Number, or every Pay IO paused</td><td>Not billed</td></tr>
             </tbody>
           </table>
@@ -422,7 +423,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
             <colgroup><col style="width:220px;"><col></colgroup>
             <tbody>
               <tr><td><strong>URL</strong></td><td><a href="/billing/report/">/billing/report/</a></td></tr>
-              <tr><td><strong>Purpose</strong></td><td>Per-PI monthly usage reports showing CPU hours, GPU hours, job count, costs</td></tr>
+              <tr><td><strong>Purpose</strong></td><td>Monthly usage and charges per allocation: CPU hours, GPU hours, SU, job count. Compute is charged in SU (SU &times; $0.001, since migration 0165); CPU/GPU hours at catalog rates are estimates, shown as (est.) and never summed into the total. Condo allocations are charged O&amp;M by hours. Periods written before 0165 without SU keep the hourly rule and are marked legacy.</td></tr>
               <tr><td><strong>Filters</strong></td><td>PI, project, user, affiliation, school, department, billing type, month</td></tr>
               <tr><td><strong>Actions per row</strong></td><td>Admin (Django Admin link), PDF (invoice download), TXT (text invoice), Detail (per-job breakdown)</td></tr>
               <tr><td><strong>Data source</strong></td><td>SlurmAccountUsagePeriod records &mdash; written <strong>only</strong> by the <strong>Compute Billing</strong> button (<code>sync_job_usage</code>), never by a scheduled task</td></tr>
@@ -436,7 +437,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
               <tr><td><strong>URL</strong></td><td><a href="/billing/rates/">/billing/rates/</a></td></tr>
               <tr><td><strong>Rate types</strong></td><td>cpu_full, cpu_om, gpu_full, gpu_om, storage (Cache), backup (Object)</td></tr>
               <tr><td><strong>Effective dates</strong></td><td>Each rate has an effective date for versioning (new rates don't affect past invoices)</td></tr>
-              <tr><td><strong>Used by</strong></td><td>Job Metrics cost calculations, Submit Job estimates, CLI cost filter, invoices</td></tr>
+              <tr><td><strong>Used by</strong></td><td>Estimates: Job Metrics cost figures, Submit Job and the CLI cost filter on partitions without billing weights, the CPU/GPU (est.) columns. Charges: condo O&amp;M by hours, legacy invoice periods without SU, and the storage / backup rates (Cache and Project Storage). Pay-per-use compute is SU &times; $0.001 since migration 0165 and does not read this catalog.</td></tr>
             </tbody>
           </table>
 
@@ -1213,61 +1214,6 @@ PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=Or
                 
 
                 <div class="card">
-                  <div class="card-header" id="h10">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c10"
-                              aria-expanded="false">Project Storage — WekaFS integration</button>
-                    </h5>
-                  </div>
-                  <div id="c10" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
-one filesystem per PI, one directory per project. Its value is the
-<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
-(the flash/SSD share). The split is invisible in the filesystem; PIs never see
-the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
-<code>/scratch</code>)
-is a separate thing and is not part of Project Storage.</p>
-<p><strong>How PIs request it:</strong> the Create/Update Project forms no
-longer carry storage fields. PIs use the <em>Project Storage</em> card on the
-Project Detail page (<em>Request Storage Change</em>) to submit a change
-request (Project Storage TB + Cache TB + justification, which is required
-above the Cache cap). The request is <em>pending</em> until staff approves or
-denies it — values only land on the project at approval, and a "Project
-Storage under review" banner plus a <em>Pending review</em> badge sit on the
-project page meanwhile. One pending request per project: cancel it to submit
-different values. The card is not offered on default or archived projects, and
-condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
-team instead of submitting.</p>
-<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
-Cache &le; Project Storage; the PI's total Cache across all projects must fit
-the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
-staff). Requests above the cap require a justification and an explicit staff
-override at approval. The re-check uses live sums, so another of the PI's
-projects growing in the meantime can make a pending request fail review.</p>
-<p><strong>Billing:</strong> the Cache and the Project Storage total are each
-billed per TB-month from the rate catalog. The charge does not depend on jobs
-— a billable allocation with provisioned storage gets a monthly usage period,
-so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
-lines even in a month with zero compute.</p>
-<p><strong>Field mapping (legacy names kept):</strong>
-<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
-<code>backup_tb</code> = Project Storage total &rarr; Weka
-<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
-Cache, <code>backup</code> bills the Project Storage total.</p>
-<p><strong>Where to see it:</strong> <em>Projects &rarr; My Storage</em> lists every
-project you lead or belong to that has Project Storage or a pending request: the
-Project Storage and Cache sizes, the pending change, a monthly estimate at today's
-rates and the project directory path. Its <em>Request Storage</em> button lists the
-projects you can request storage on and opens the request form on that project's
-page.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h35">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1336,6 +1282,65 @@ cap</em> column (the PI's Cache across all of their projects against their effec
 cap, red when over), state and search filters, and footer totals. It follows the same
 reviewer rule as this queue; for anyone else <code>show_all</code> is ignored and the
 page lists their own projects.</p>
+<p><strong>Archived projects:</strong> Archiving a project cancels its pending storage
+request (the request history shows <em>Cancelled &middot; Project archived</em>
+and its helpdesk ticket is closed), so it never waits in this queue; Approve refuses a
+request whose project is archived.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h10">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c10"
+                              aria-expanded="false">Project Storage — WekaFS integration</button>
+                    </h5>
+                  </div>
+                  <div id="c10" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
+one filesystem per PI, one directory per project. Its value is the
+<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
+(the flash/SSD share). The split is invisible in the filesystem; PIs never see
+the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
+<code>/scratch</code>)
+is a separate thing and is not part of Project Storage.</p>
+<p><strong>How PIs request it:</strong> the Create/Update Project forms no
+longer carry storage fields. PIs use the <em>Project Storage</em> card on the
+Project Detail page (<em>Request Storage Change</em>) to submit a change
+request (Project Storage TB + Cache TB + justification, which is required
+above the Cache cap). The request is <em>pending</em> until staff approves or
+denies it — values only land on the project at approval, and a "Project
+Storage under review" banner plus a <em>Pending review</em> badge sit on the
+project page meanwhile. One pending request per project: cancel it to submit
+different values. The card is not offered on default or archived projects, and
+condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
+team instead of submitting.</p>
+<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
+Cache &le; Project Storage; the PI's total Cache across all projects must fit
+the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
+staff). Requests above the cap require a justification and an explicit staff
+override at approval. The re-check uses live sums, so another of the PI's
+projects growing in the meantime can make a pending request fail review.</p>
+<p><strong>Billing:</strong> the Cache and the Project Storage total are each
+billed per TB-month from the rate catalog. The charge does not depend on jobs
+— a billable allocation with provisioned storage gets a monthly usage period,
+so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
+lines even in a month with zero compute.</p>
+<p><strong>Field mapping (legacy names kept):</strong>
+<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
+<code>backup_tb</code> = Project Storage total &rarr; Weka
+<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
+Cache, <code>backup</code> bills the Project Storage total.</p>
+<p><strong>Where to see it:</strong> <em>Projects &rarr; My Storage</em> lists every
+project you lead or belong to that has Project Storage or a pending request: the
+Project Storage and Cache sizes, the pending change, a monthly estimate at today's
+rates and the project directory path. Its <em>Request Storage</em> button lists the
+projects you can request storage on and opens the request form on that project's
+page.</p>
 </div>
                   </div>
                 </div>
@@ -1474,7 +1479,16 @@ lifecycle overview</a>.</p>
               <strong>no longer exist</strong> (removed by <code>1f42961d</code>).</li>
           </ol>
 
-          <h6>Auto-Propagation Signals</h6>
+          <h6>Primary department (PI request)</h6>
+<ul>
+  <li><code>UserProfile.primary_department</code> is required on the Upgrade Account screen and shown next to the <em>Requested</em> badge on <strong>Promote to PI</strong>.</li>
+  <li>Promotion (<code>_create_default_pi_project</code>, also used by the LDAP safety net and the external promote helper) creates the default project in the primary department. Only a user promoted without one gets the affiliation placeholder (<code>CLOACK</code> / <code>orgb-dep</code>), which ranks 1 above.</li>
+  <li>Changing it (User Profile, or Django Admin &rarr; User profiles) also moves the Active default project and the <code>AllocationBilling.department</code> of its allocations, then queues the per-PI Slurm sync, which reparents <code>pi-&lt;user&gt;</code>. Preview with <code>coldfront sync_slurm --dry-run --pi &lt;user&gt;</code>.</li>
+  <li>Choices are the active departments of the user's own affiliation. <code>CLOACK</code> is offered only to members of the <em>Cluster (LDAP admin)</em> group (LDAP <code>cn=admin</code>); <code>is_staff</code> does not count. A PI or requester with no primary department, or on <code>CLOACK</code> without being a cluster admin, sees a banner asking for a choice. Nothing is blocked meanwhile.</li>
+  <li>Project Create/Update forms are not restricted: a paid project may still be placed under <code>CLOACK</code> deliberately.</li>
+</ul>
+
+<h6>Auto-Propagation Signals</h6>
           <ul>
             <li>Setting <code>AllocationBilling.department</code> on a default project &rarr; propagates to <code>Project.department</code></li>
             <li>Setting <code>AllocationBilling.department</code> &rarr; adds department to PI's <code>UserProfile.departments</code></li>
@@ -1548,6 +1562,87 @@ lifecycle overview</a>.</p>
             <li>PI promotion &mdash; the seed script forces
               <code>exclude_from_staff_views=True</code> and never lets a system account be a PI</li>
           </ul></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h36">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c36"
+                              aria-expanded="false">Helpdesk Tickets — ColdFront request bridge</button>
+                    </h5>
+                  </div>
+                  <div id="c36" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Requests that need a staff decision &mdash; plus the PI billing hold, which is a
+notification rather than a request &mdash; open a <strong>helpdesk ticket
+automatically</strong>, through the helpdesk internal API, with the
+<strong>requester as the ticket submitter</strong> (the PI or manager who
+clicked — never the shared <code>Arch@alt.example.edu</code> mailbox). The ticket title
+is the same text the old admin e-mail carried
+(<code>[OrgA] Coldfront New Allocation Request: Pat Ng (pi9) - cluster-x</code>);
+the description names the PI, project, resource, justification, pay IO(s) and
+carries direct links to the review pages. When staff decides in ColdFront, the
+ticket receives a public follow-up and is <em>resolved</em> (or reopened /
+closed) by itself — nothing to do on the helpdesk side.</p>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr><th>ColdFront event</th><th>Ticket opened</th><th>Resolves when…</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Request Resource Allocation</td><td>New Allocation Request</td>
+        <td>allocation approved or denied (<em>Resolved</em>); PI resubmits a denied request (<em>Reopened</em>); PI withdraws it (<em>Closed</em>)</td></tr>
+    <tr><td>Allocation change request</td><td>New Allocation Change Request</td>
+        <td>change request approved or denied</td></tr>
+    <tr><td>Allocation renewal</td><td>Allocation Renewed</td>
+        <td>renewal activated or denied</td></tr>
+    <tr><td>User asks to become a PI</td><td>Upgrade Account Request</td>
+        <td>user promoted to PI, or request cleared on Promote Users</td></tr>
+    <tr><td>New non-default project</td><td>New Project Request (IO validation folded in)</td>
+        <td>project activated or denied; "Request changes" posts a comment and keeps it open; reopen after denial reopens it</td></tr>
+    <tr><td>Project Storage request</td><td><code>[Storage/&lt;org&gt;]</code></td>
+        <td>approved or denied in Storage Review; cancelled by the PI (<em>Closed</em>)</td></tr>
+    <tr><td>IO Number change on Update Project</td><td><code>[IO/&lt;org&gt;]</code> &mdash; or a single <code>[Storage+IO/&lt;org&gt;]</code> ticket when Project Storage and the IO change in the same save</td>
+        <td>staff clears the billing review on Project Reviews</td></tr>
+    <tr><td>PI (or staff) pauses billing on an IO Number</td><td><code>Billing paused on IO Number</code></td>
+        <td>the same IO is resumed (<em>Resolved</em>). This is the only ticket opened straight from a model receiver &mdash; <code>CostCenter.billing_paused</code> has three writers (quick toggle, Edit form, Django Admin) and they all funnel through it. One open ticket per IO; re-pausing after a resume opens a fresh one.</td></tr>
+    <tr><td>Request deletion of an allocation (Allocation Detail)</td><td>Allocation deletion request</td>
+        <td>a superuser deletes the allocation (<em>Resolved</em>). PIs, managers and staff can only
+        <strong>request</strong> deletion; the hard delete (confirmation page, admin log entry) is
+        superuser-only and never offered on the default project's allocation</td></tr>
+    <tr><td>Class Request or Request more students (My Classes)</td><td>Class resources request</td>
+        <td>staff approves (<em>Resolved</em>, accounts created) or denies (<em>Resolved</em>, with the
+        reason); "request changes" posts a comment and keeps it open; withdrawn by the PI closes it.
+        When the course ends a separate "Class ended (teardown due)" ticket is opened</td></tr>
+  </tbody>
+</table>
+<p><strong>Queue:</strong> <code>CLUSTER-X - OrgA</code> or
+<code>CLUSTER-X - ORGB</code> by the requester's affiliation — the same queues
+the <code>Arch@alt.example.edu</code> / <code>ORGB@alt.example.edu</code> mailboxes feed. The
+submitter gets the helpdesk acknowledgement e-mail and can reply on the ticket;
+the queue's <em>new ticket CC</em> list is notified as for any web-form
+ticket.</p>
+<p><strong>Audit trail:</strong> Django Admin &rarr; CLOACK Stack &rarr;
+<em>Helpdesk ticket links</em> lists every ticket ColdFront opened (event,
+target object, ticket number, submitter, <code>resolved_at</code>, and
+<code>last_error</code> when a decision follow-up could not be posted — the row
+stays open and retries on the next matching transition). On the helpdesk,
+Django Admin &rarr; <em>ColdFront ticket references</em> maps the idempotency
+key of each request to its ticket.</p>
+<p><strong>Fallback and switches:</strong> whenever the bridge is off, the
+helpdesk is unreachable, or the requester has no e-mail, ColdFront sends the
+legacy admin e-mail to <code>EMAIL_TICKET_SYSTEM_ADDRESS</code> exactly as
+before — a ticket whose submitter is the shared mailbox therefore means the API
+path failed (check <code>docker logs coldfront | grep "helpdesk bridge"</code>
+and that <code>HELPDESK_INTERNAL_TOKEN</code> is present in both the
+<code>coldfront</code> and <code>helpdesk</code> containers).
+<code>HELPDESK_TICKET_BRIDGE_ENABLED=False</code> in <code>coldfront.env</code>
+reverts to e-mail without a code change;
+<code>HELPDESK_TICKET_BRIDGE_PUBLIC_FOLLOWUPS=False</code> makes the decision
+follow-ups internal notes.</p>
+</div>
                   </div>
                 </div>
                 
@@ -1644,87 +1739,6 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
                 
 
                 <div class="card">
-                  <div class="card-header" id="h36">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c36"
-                              aria-expanded="false">Helpdesk Tickets — ColdFront request bridge</button>
-                    </h5>
-                  </div>
-                  <div id="c36" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p>Requests that need a staff decision &mdash; plus the PI billing hold, which is a
-notification rather than a request &mdash; open a <strong>helpdesk ticket
-automatically</strong>, through the helpdesk internal API, with the
-<strong>requester as the ticket submitter</strong> (the PI or manager who
-clicked — never the shared <code>Arch@alt.example.edu</code> mailbox). The ticket title
-is the same text the old admin e-mail carried
-(<code>[OrgA] Coldfront New Allocation Request: Pat Ng (pi9) - cluster-x</code>);
-the description names the PI, project, resource, justification, pay IO(s) and
-carries direct links to the review pages. When staff decides in ColdFront, the
-ticket receives a public follow-up and is <em>resolved</em> (or reopened /
-closed) by itself — nothing to do on the helpdesk side.</p>
-<table class="table table-sm table-bordered">
-  <thead>
-    <tr><th>ColdFront event</th><th>Ticket opened</th><th>Resolves when…</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Request Resource Allocation</td><td>New Allocation Request</td>
-        <td>allocation approved or denied (<em>Resolved</em>); PI resubmits a denied request (<em>Reopened</em>); PI withdraws it (<em>Closed</em>)</td></tr>
-    <tr><td>Allocation change request</td><td>New Allocation Change Request</td>
-        <td>change request approved or denied</td></tr>
-    <tr><td>Allocation renewal</td><td>Allocation Renewed</td>
-        <td>renewal activated or denied</td></tr>
-    <tr><td>User asks to become a PI</td><td>Upgrade Account Request</td>
-        <td>user promoted to PI, or request cleared on Promote Users</td></tr>
-    <tr><td>New non-default project</td><td>New Project Request (IO validation folded in)</td>
-        <td>project activated or denied; "Request changes" posts a comment and keeps it open; reopen after denial reopens it</td></tr>
-    <tr><td>Project Storage request</td><td><code>[Storage/&lt;org&gt;]</code></td>
-        <td>approved or denied in Storage Review; cancelled by the PI (<em>Closed</em>)</td></tr>
-    <tr><td>IO Number change on Update Project</td><td><code>[IO/&lt;org&gt;]</code> &mdash; or a single <code>[Storage+IO/&lt;org&gt;]</code> ticket when Project Storage and the IO change in the same save</td>
-        <td>staff clears the billing review on Project Reviews</td></tr>
-    <tr><td>PI (or staff) pauses billing on an IO Number</td><td><code>Billing paused on IO Number</code></td>
-        <td>the same IO is resumed (<em>Resolved</em>). This is the only ticket opened straight from a model receiver &mdash; <code>CostCenter.billing_paused</code> has three writers (quick toggle, Edit form, Django Admin) and they all funnel through it. One open ticket per IO; re-pausing after a resume opens a fresh one.</td></tr>
-    <tr><td>Request deletion of an allocation (Allocation Detail)</td><td>Allocation deletion request</td>
-        <td>a superuser deletes the allocation (<em>Resolved</em>). PIs, managers and staff can only
-        <strong>request</strong> deletion; the hard delete (confirmation page, admin log entry) is
-        superuser-only and never offered on the default project's allocation</td></tr>
-    <tr><td>Class Request or Request more students (My Classes)</td><td>Class resources request</td>
-        <td>staff approves (<em>Resolved</em>, accounts created) or denies (<em>Resolved</em>, with the
-        reason); "request changes" posts a comment and keeps it open; withdrawn by the PI closes it.
-        When the course ends a separate "Class ended (teardown due)" ticket is opened</td></tr>
-  </tbody>
-</table>
-<p><strong>Queue:</strong> <code>CLUSTER-X - OrgA</code> or
-<code>CLUSTER-X - ORGB</code> by the requester's affiliation — the same queues
-the <code>Arch@alt.example.edu</code> / <code>ORGB@alt.example.edu</code> mailboxes feed. The
-submitter gets the helpdesk acknowledgement e-mail and can reply on the ticket;
-the queue's <em>new ticket CC</em> list is notified as for any web-form
-ticket.</p>
-<p><strong>Audit trail:</strong> Django Admin &rarr; CLOACK Stack &rarr;
-<em>Helpdesk ticket links</em> lists every ticket ColdFront opened (event,
-target object, ticket number, submitter, <code>resolved_at</code>, and
-<code>last_error</code> when a decision follow-up could not be posted — the row
-stays open and retries on the next matching transition). On the helpdesk,
-Django Admin &rarr; <em>ColdFront ticket references</em> maps the idempotency
-key of each request to its ticket.</p>
-<p><strong>Fallback and switches:</strong> whenever the bridge is off, the
-helpdesk is unreachable, or the requester has no e-mail, ColdFront sends the
-legacy admin e-mail to <code>EMAIL_TICKET_SYSTEM_ADDRESS</code> exactly as
-before — a ticket whose submitter is the shared mailbox therefore means the API
-path failed (check <code>docker logs coldfront | grep "helpdesk bridge"</code>
-and that <code>HELPDESK_INTERNAL_TOKEN</code> is present in both the
-<code>coldfront</code> and <code>helpdesk</code> containers).
-<code>HELPDESK_TICKET_BRIDGE_ENABLED=False</code> in <code>coldfront.env</code>
-reverts to e-mail without a code change;
-<code>HELPDESK_TICKET_BRIDGE_PUBLIC_FOLLOWUPS=False</code> makes the decision
-follow-ups internal notes.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h14">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1756,7 +1770,7 @@ follow-ups internal notes.</p>
           <table class="table table-sm table-bordered">
             <colgroup><col style="width:45%"><col style="width:55%"></colgroup>
             <tbody>
-              <tr><td><code>sbalance</code></td><td>Show your accounts' core-hour utilization (current calendar quarter — this is the report window, not the billing/reset period)</td></tr>
+              <tr><td><code>sbalance</code></td><td>Show your accounts' SU (service unit) utilization: the <code>billing</code> TRES compute is charged on, not core-hours; the GPU column is GPU-hours (current calendar quarter; the report window, not the billing period)</td></tr>
               <tr><td><code>sbalance --week</code></td><td>Show spend-cap status (cap vs usage in $, color-coded). It sums the cluster's own reset period, read from the controller (monthly on <strong>cluster-x</strong>): the same window the cap is enforced over</td></tr>
               <tr><td><code>sbalance -p &lt;pi&gt;</code></td><td>Show all accounts for a specific PI</td></tr>
               <tr><td><code>sbalance -u &lt;user&gt;</code></td><td>Show accounts for a specific user</td></tr>
@@ -3704,8 +3718,8 @@ truth: ColdFront never generates it. Partition/node edits go into the mirror, th
 <table class="table table-sm">
   <tr><th>From</th><th>To</th><th>Formula</th></tr>
   <tr><td>Dollars</td><td>Slurm <code>GrpTRESMins=billing=</code></td><td><code>$ &times; 1000 &times; 60</code> (1 SU = $0.001)</td></tr>
-  <tr><td>Slurm SU</td><td>Dollars</td><td><code>SU &times; 0.001</code></td></tr>
-  <tr><td>Hours</td><td>Dollars</td><td><code>hours &times; rate_per_unit</code> (by <code>rate_type</code>)</td></tr>
+  <tr><td>Slurm SU</td><td>Dollars</td><td><code>SU &times; 0.001</code>: the pay-per-use compute charge since migration 0165 (<code>SlurmJob.billing_su</code> = <code>billing</code> TRES &times; hours, summed per period by <code>sync_job_usage</code>)</td></tr>
+  <tr><td>Hours</td><td>Dollars (estimate)</td><td><code>hours &times; rate_per_unit</code> (by <code>rate_type</code>): estimates (Submit Job and the CLI cost filter on partitions without billing weights, the CPU/GPU (est.) columns), condo O&amp;M, and legacy periods without SU only; never the pay-per-use compute charge</td></tr>
 </table>
 <p>Helpers in <code>billing_queries.py</code>: <code>dollars_to_grptres_mins()</code>, <code>grptres_mins_to_dollars()</code>, <code>hours_to_dollars()</code>.</p>
 <p><strong>Window.</strong> The <code>GrpTRESMins=billing=</code> budget is checked against the ONE association usage counter slurmctld clears on <code>PriorityUsageResetPeriod</code>. cluster-x runs <code>MONTHLY</code> (since 2026-09-21, matching the 1-month billing period), so a <code>Weekly Cap ($)</code> value is in practice enforced <strong>per month</strong> there — and the per-allocation core / GPU-hour budgets are monthly quotas too, since Slurm has no per-TRES reset period. Keep the ColdFront <em>Core Hours Reset</em> period on <strong>Monthly</strong> so the gauges and the enforcement agree.</p>
