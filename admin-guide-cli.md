@@ -304,6 +304,13 @@ kc get realms --fields realm
 ./scripts/kcq.sh GET 'admin/realms/<realm>/users?username=<user>&exact=true'
 ```
 
+`kcq.sh` takes its helper image from the live `keycloak-config` container, else
+the first local `arch/keycloak-config:latest` / GHCR `keycloak-config` tag, so it
+also works on hosts that keep no `keycloak-config` container. Force
+one with `KCQ_IMAGE=<image with bash+curl+jq>`. Before `32bacda2` it failed there
+with `docker: invalid reference format`; on a host that has not pulled yet, run
+the fixed copy with `git show origin/dev:scripts/kcq.sh > /tmp/kcq.sh; bash /tmp/kcq.sh …`.
+
 ### Inspect / repair one user
 
 ```bash
@@ -443,6 +450,58 @@ hour. The task is always scheduled and returns `SKIP` while the flag is off, so
 arming it needs only the env flip and a qcluster recreate — `env_file` is read at
 container CREATE, not at restart.
 
+Keep it armed on every host; it is the steady-state repair, not a one-off. The
+cause is an ordering that cannot be reversed: a new JHED's first Entra login
+happens before ColdFront has created their user, so before `sync_ldap` writes
+`uid=<jhed>`, and Keycloak creates a local row that later collides with that
+entry on e-mail. Since the `| localpart` mapper those rows are named with the
+bare JHED (OnDemand works for them), but the collision, the `email_in_use`
+login failures and the hourly import errors remain until the row is converted.
+The task runs at `:40`, never forces past a session, and writes one admin
+LogEntry per run that converts someone. On the first production rollout
+(2026-10-08) a backlog of ~690 rows converted in one evening with `errors=0`.
+
+**Reading a batch run.** Each `--apply --limit N` run walks the sorted list
+from the start and stops after N conversions, so users converted by earlier
+runs come back as `already_federated` and `skipped` grows by about N per run.
+The backlog is done when a run prints `federated=0`. A loop that stops on its
+own:
+
+```bash
+while :; do
+  out=$(docker exec coldfront coldfront converge_keycloak_federation --apply --limit 100 2>&1)
+  echo "$out" | grep -E '^(federated=|ERROR|.*not.imported)'
+  echo "$out" | grep -q '^federated=0 ' && break
+  echo "$out" | grep -q ' errors=0 ' || break
+  echo "$out" | grep -qi 'not.imported' && break
+done
+```
+
+**Verifying.** All read-only:
+
+```bash
+# realm snapshot: ldap_without_entra_yet only trends DOWN (ext-* and password-only SSH never use Entra)
+docker exec -i postgres psql -U "$(grep '^POSTGRESQL_USER=' .env | cut -d= -f2-)" -d keycloak <<'SQL'
+SELECT count(*) AS total,
+       count(*) FILTER (WHERE u.federation_link IS NOT NULL) AS ldap_linked,
+       count(*) FILTER (WHERE u.federation_link IS NULL AND u.service_account_client_link IS NULL) AS local_rows,
+       count(*) FILTER (WHERE u.federation_link IS NULL AND u.username LIKE '%@%') AS local_at_jh,
+       count(*) FILTER (WHERE u.federation_link IS NOT NULL
+                          AND NOT EXISTS (SELECT 1 FROM federated_identity f WHERE f.user_id = u.id)) AS ldap_without_entra_yet
+FROM user_entity u JOIN realm r ON r.id = u.realm_id AND r.name = 'jhu';
+SQL
+# email_in_use should be gone; user_not_found from typos is background
+docker logs keycloak --since 3h 2>&1 | grep 'realmName="jhu"' | grep -o 'error="[a-z_]*"' | sort | uniq -c | sort -rn
+# converted users re-linking to Entra at their next login
+./scripts/kcq.sh GET 'admin/realms/jhu/events?type=FEDERATED_IDENTITY_LINK&dateFrom=<YYYY-MM-DD>&max=1000' 2>/dev/null | jq length
+# hourly import errors after the next :26
+docker logs keycloak --since 70m 2>&1 | grep 'Sync all users finished' | tail -1
+```
+
+To prove the path end to end without asking anyone to log in, read a
+converted user's events: a `LOGIN` through `entra-jhu` after the conversion
+time, plus `links:["entra-jhu"]` on `users/<id>/federated-identity`.
+
 **Converting an admin.** A `cn=admin` member with an enrolled TOTP loses it
 (`--allow-credential-loss`). Confirm their pubkey break-glass first, convert,
 have them log into the portal to auto-link, then re-plant enrolment:
@@ -492,6 +551,50 @@ docker exec -u 0 keycloak rm -f /opt/keycloak/data/.config_done
 docker compose -f docker-compose-dev.yml run --rm keycloak-config   # dev
 # (prod: use the prod compose file; `./start.sh update` does this at step 6.5)
 ```
+
+### Self-registration is off on every realm
+
+Keycloak's own signup form is disabled on `master`, `jhu` and `schmidt`
+(`registrationAllowed=false`, asserted by `configure_realm_themes` on every
+`keycloak-config` run; `jhu` since `2a86d546`, 2026-10-08). ColdFront
+(`/user/jhu/register/`, `/user/schmidt/register/`) is the only registration
+entry point, and it never calls Keycloak's endpoint. The `jhu` realm used to
+carry `true` only so the login theme would show the Register link, which left
+`/realms/jhu/protocol/openid-connect/registrations` open with a free-form
+username and no e-mail verification; ColdFront and OnDemand both take identity
+from `preferred_username`, so a username chosen there was trusted downstream.
+
+The `arch-jhu` login theme now renders **Register** and **Forgot password?**
+from the `coldFrontRegisterUrl` theme property, independent of the flag, so on
+`jhu` those links are expected to stay visible. Check a host:
+
+```bash
+./scripts/kcq.sh GET admin/realms/jhu | jq '{registrationAllowed, registrationEmailAsUsername, verifyEmail}'
+```
+
+`configure-keycloak.sh` is **baked into the `keycloak-config` image**. After
+pulling a change to it, rebuild the image (`docker compose -f docker-compose.yml
+build keycloak-config`, base compose file on a local-build host) and never
+`docker restart keycloak-config`: a restart reuses the old container and
+therefore the old script.
+
+Audit for accounts that are neither LDAP-federated nor Entra-linked (a
+self-registered row would show up here, with a `password` credential):
+
+```bash
+docker exec -i postgres psql -U "$(grep '^POSTGRESQL_USER=' .env | cut -d= -f2-)" -d keycloak -At -F' | ' <<'SQL'
+SELECT u.username, coalesce(u.email,'-'), to_char(to_timestamp(u.created_timestamp/1000),'YYYY-MM-DD HH24:MI'),
+       coalesce(string_agg(DISTINCT c.type, ','), 'no-credential')
+FROM user_entity u JOIN realm r ON r.id=u.realm_id AND r.name='jhu'
+LEFT JOIN federated_identity f ON f.user_id=u.id LEFT JOIN credential c ON c.user_id=u.id
+WHERE u.federation_link IS NULL AND u.service_account_client_link IS NULL AND f.user_id IS NULL
+GROUP BY u.id, u.username, u.email, u.created_timestamp ORDER BY u.created_timestamp;
+SQL
+```
+
+The postgres container runs `America/New_York`, so the timestamps are local. A
+password dated *before* the account row means an import or a hand-made account,
+not the signup form, which creates both in the same second.
 
 ### Dev-only: unpoison HSTS (portal unreachable after visiting KC over https)
 
@@ -1221,7 +1324,7 @@ docker exec helpdesk python manage.py get_email   # drain Maildir → tickets
 | `slurm_load_partitions: Unable to contact slurm controller` | slurmctld died — check `docker logs <cluster>-slurmctld`. Common: `fatal: Invalid node names in partition` (empty-node partition) → regenerate `slurm.conf` (§5). |
 | `getaddrinfo(slurmdbd:6819) failed` | slurmctld can't resolve `slurmdbd` — shared core services down or not on the same docker network. |
 | Login node shows empty `/home` (users missing) | Container mounts the **dev named volume** instead of the real WekaFS. Prod must bind-mount `${HOME_DATA}:/home` / `${SCRATCH_DATA}:/scratch`. Check `docker inspect <node> --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}'`. |
-| Keycloak login still shows "Register" after disabling it | Old theme/realm still live — restage themes + `docker restart keycloak`, and re-run `keycloak-config` to apply `registrationAllowed=false` (§3). |
+| Keycloak login still shows "Register" after disabling it | On `jhu` that is expected: since `2a86d546` the Register / Forgot password links point at ColdFront and render regardless of `registrationAllowed`. What must be off is Keycloak's own form: `kcq.sh GET admin/realms/jhu` → `registrationAllowed:false`. On `master`/`schmidt` the link should be gone; if not, the old theme/realm is still live: restage themes, and run `keycloak-config` from a rebuilt image (§3). |
 | Portal unreachable (`Up (unhealthy)`, curl 000) after visiting KC | HSTS poisoning (dev http portal). Unpoison the browser (§3). |
 | `502 Bad Gateway` (nginx) on `/pun/*` after a successful OOD login, anonymous requests fine | Stale per-user PUN socket. `/var/run` is the container's writable layer, so `passenger.sock` outlives the PUN. Confirm with `docker exec ood /opt/ood/nginx_stage/sbin/nginx_stage pun -u <user> -a "<url>"` → `bind() … 98: Address already in use`. Since the `pun_pre_hook` landed this self-heals: the hook drops the socket before staging when nothing is listening. If an older image is running, `docker restart ood` (the entrypoint clears stale PUN state at boot) or per user `nginx_stage nginx -u <user> -s stop` then remove the socket. |
 | A proxied request fails and you do not know which NPM to blame | Read `$upstream_status $status` in `/data/logs/proxy-host-<id>_access.log`. Equal values mean the error came from upstream — the proxy only relayed it. An empty `_error.log` next to a 502 confirms that layer is innocent. |
@@ -1241,7 +1344,8 @@ docker exec helpdesk python manage.py get_email   # drain Maildir → tickets
 | qcluster logs `arch_sync: reactivated <user>@<acct>` every 15 min | The user association still shows `MaxJobs`/`GrpJobs=0` after the clear; inspect with `sacctmgr show assoc … WOPLimits` (§5). |
 | Keycloak `error="user_temporarily_disabled"` | Brute-force lockout after repeated bad password/TOTP, usually a client retrying on its own; inspect/clear via `attack-detection/brute-force/users/<id>` (§3). |
 | `kcadm.sh … PKIX path building failed` | Self-signed cert: use `--server http://localhost:8080` inside the container, or `scripts/kcq.sh` (§3). |
-| `Sync all users finished: … N users failed sync!` | `ModelDuplicateException` on e-mail: a local broker-created `<jhed>@<domain>` user holds the LDAP entry's e-mail. Login unaffected, but OnDemand and LDAP role mappers are. Repair with `converge_keycloak_federation` (§3). |
+| `Sync all users finished: … N users failed sync!` | `ModelDuplicateException` on e-mail: a local broker-created `<jhed>@<domain>` (or, since the `localpart` mapper, bare `<jhed>`) user holds the LDAP entry's e-mail. **Logins are affected**: a login that looks up the bare username falls through to LDAP, the import collides and the person gets `error="email_in_use"` (portal form, `ssh-client-jhu`); OnDemand and the LDAP role mappers break too. Repair with `converge_keycloak_federation` and keep the hourly task armed (§3). |
+| OnDemand: `Error -- can't find user for <jhed>@<domain>` | OnDemand maps `preferred_username` raw, and the person's Keycloak row is the broker-local `<jhed>@<domain>` one. `converge_keycloak_federation --user <jhed>` (dry run first; `--force-sessions` if `has_sessions`), then the person logs out of OnDemand (`/logout`) or uses a private window: mod_auth_openidc keeps the old claims for up to 8 h (§3). |
 | Deep link on the Schmidt portal (`portal.<schmidt>/project/`) redirects to `auth.<jhu>/realms/jhu` | Pre-`37c8c1ec` `LOGIN_URL` was hardcoded to `/oidc/jhu/authenticate/`; since then `/oidc/authenticate/` picks the realm from the host (`portal.<CLOACK_DOMAIN_SCHMIDT>` → schmidt). Needs `CLOACK_DOMAIN_SCHMIDT` in the root `.env` + `docker restart coldfront qcluster`. Verify: `curl -sI -H 'Host: portal.<schmidt>' http://127.0.0.1:8000/oidc/authenticate/ \| grep -i location` inside the coldfront container. |
 | Keycloak WARN `Expected String but attribute 'cn' has more values '[<group>, <Real Name>]'` on `ou=Groups` | Legacy migration groups carry the PI's real name as a second `cn`. Harmless; one-off `ldapmodify delete: cn` cleanup (§2). |
 | "There are no backups" — `/opt/mprov/cloack/backups/` only has July files | Wrong folder: the cron writes to `${BASE_DATA}/backup/` (singular, `var/backup/` on mgmt02); check `backup.log` for `0 component(s) failed` (§7). |

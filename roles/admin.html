@@ -582,7 +582,12 @@ to keep current behaviour.</p>
 <tr>
 <td>Hourly <code>Sync all users finished: … N users failed sync!</code></td>
 <td><code>ModelDuplicateException</code> on e-mail: a broker-created local <code>&lt;campus-id&gt;@&lt;domain&gt;</code> user holds the LDAP entry's e-mail</td>
-<td>Login is unaffected; LDAP-group → role mappers skip those users — see <code>admin-guide-cli.md</code> §3</td>
+<td>Logins are affected (<code>email_in_use</code> on the portal form and SSH), and so are OnDemand and the LDAP-group → role mappers. Repair with <code>converge_keycloak_federation</code> and keep its hourly task armed — see <code>admin-guide-cli.md</code> §3</td>
+</tr>
+<tr>
+<td>OnDemand <code>Error -- can't find user for &lt;campus-id&gt;@&lt;domain&gt;</code></td>
+<td>The person's Keycloak row is the broker-local <code>&lt;campus-id&gt;@&lt;domain&gt;</code> one</td>
+<td><code>converge_keycloak_federation --user &lt;campus-id&gt;</code>, then the person logs out of OnDemand — see <code>admin-guide-cli.md</code> §3</td>
 </tr>
 <tr>
 <td>Pending jobs stuck in <code>Reason=InvalidQOS</code> right after a QOS pin / retirement</td>
