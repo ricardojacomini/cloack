@@ -74,11 +74,11 @@ allocations, drain or resume Slurm nodes, reset stale OTP credentials,
 rotate the local <code>/admin/</code> break-glass password, and read the qcluster
 audit log for every async task.</p>
 <p>You typically also operate the cluster (deploy via <code>start.sh</code>, manage
-Ansible bundles) — for that side read <a href="admin.md"><code>admin.md</code></a>. For
-helpdesk-side work see <a href="staff.md"><code>staff.md</code></a>. You authenticate via
+Ansible bundles) — for that side read <a href="admin.html"><code>admin.md</code></a>. For
+helpdesk-side work see <a href="staff.html"><code>staff.md</code></a>. You authenticate via
 Entra Federation if you use a campus ID; if you are an <code>ext-*</code> user you use
 TOTP via the Keycloak account console (same as every other regular
-<a href="user.md"><code>user.md</code></a>).</p>
+<a href="user.html"><code>user.md</code></a>).</p>
 <h2>Quick start</h2>
 <h3>1. Approve / deny an allocation request</h3>
 <pre><code>/admin/allocation/allocation/?status__name=New
@@ -116,7 +116,7 @@ on the right cluster. The action is also surfaced on the live
 <h3>3. Reset a stale OTP credential</h3>
 <pre><code>docker exec keycloak bash -c '/opt/keycloak/bin/kcadm.sh ...'
 </code></pre>
-<p>See the recipe in <a href="../../keycloak/README.md"><code>keycloak/README.md</code></a>
+<p>See the recipe in <code>keycloak/README.md</code>
 "Clear a stale OTP credential" — it requires:</p>
 <ul>
 <li><code>kcadm config credentials</code> once per session (writes
@@ -134,7 +134,7 @@ on the right cluster. The action is also surfaced on the live
 <p>Generates a 32-char password, applies it via <code>manage.py changepassword</code>
 inside the coldfront container, appends an entry to the gitignored
 audit log, and prints the password once for paste into the team vault.
-See <a href="../break-glass-admin.md"><code>docs/break-glass-admin.md</code></a> for the
+See <code>docs/break-glass-admin.md</code> for the
 full runbook (vault location, quarterly rotation cadence,
 <code>admin_login_alert_task</code> alert wiring).</p>
 <h3>5. Read the qcluster audit trail</h3>
@@ -364,13 +364,13 @@ failure, duration, and result snippet.</p>
 <ul>
 <li><code>/admin/</code> — Django Admin (Home → Administration → Log entries for
   the qcluster task audit trail).</li>
-<li><a href="../break-glass-admin.md"><code>docs/break-glass-admin.md</code></a> — full
+<li><code>docs/break-glass-admin.md</code> — full
   break-glass <code>/admin/</code> rotation runbook (vault, audit log, alerts).</li>
-<li><a href="../../keycloak/README.md"><code>keycloak/README.md</code></a> — kcadm recipes
+<li><code>keycloak/README.md</code> — kcadm recipes
   (OTP credentials, theme re-apply, realm settings inspection).</li>
 <li><code>/staff/help/</code> — in-app help with operational notes.</li>
-<li><a href="admin.md"><code>admin.md</code></a> — cluster ops side.</li>
-<li><a href="README.md"><code>README.md</code></a> — the role index.</li>
+<li><a href="admin.html"><code>admin.md</code></a> — cluster ops side.</li>
+<li><a href="index.html"><code>README.md</code></a> — the role index.</li>
 </ul></div>
       </main>
     </div>

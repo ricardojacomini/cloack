@@ -453,7 +453,7 @@ SLURM_NOOP=0
 </table>
 <p><strong>Why they must stay separate:</strong> if both use the same password, anyone who knows the ColdFront admin login also has full LDAP admin access (create/delete users, modify ACLs, read all attributes). In production this is a security risk.</p>
 <p>Other password variables: <code>LDAP_ROOT_PASS</code> (LDAP <code>cn=root</code> — used internally by <code>replace_ldif.sh</code> for LDIF imports), <code>POSTGRESQL_PASSWORD</code>, <code>COLDFRONT_DB_PASSWORD</code>, <code>KEYCLOAK_DB_PASSWORD</code>.</p>
-<p><strong>Break-glass <code>admin</code> account:</strong> after the passwordless rollout (<code>auth-passwordless-model</code>), the local Django <code>admin</code> user is the only password-backed entry point left in the stack — every other path goes through Keycloak / OIDC. Its credential handling (strong random password, enterprise vault, quarterly rotation, audit logging via <code>admin_login_alert_task</code>) is documented in <a href="docs/break-glass-admin.md"><code>docs/break-glass-admin.md</code></a>. Quarterly rotation is automated by <a href="scripts/rotate-admin-password.sh"><code>scripts/rotate-admin-password.sh</code></a>: it generates a 32-char password via <code>openssl rand</code>, applies it inside the container via <code>manage.py changepassword</code>, appends an entry to the gitignored audit log, and prints the new value once so it can be pasted into the team vault. Run with <code>--help</code> for usage / flags.</p>
+<p><strong>Break-glass <code>admin</code> account:</strong> after the passwordless rollout (<code>auth-passwordless-model</code>), the local Django <code>admin</code> user is the only password-backed entry point left in the stack — every other path goes through Keycloak / OIDC. Its credential handling (strong random password, enterprise vault, quarterly rotation, audit logging via <code>admin_login_alert_task</code>) is documented in <code>docs/break-glass-admin.md</code>. Quarterly rotation is automated by <a href="scripts/rotate-admin-password.sh"><code>scripts/rotate-admin-password.sh</code></a>: it generates a 32-char password via <code>openssl rand</code>, applies it inside the container via <code>manage.py changepassword</code>, appends an entry to the gitignored audit log, and prints the new value once so it can be pasted into the team vault. Run with <code>--help</code> for usage / flags.</p>
 <h3>Deploy flows</h3>
 <h4><code>update</code> vs <code>deploy</code> — quick reference</h4>
 <table>
@@ -664,7 +664,7 @@ docker exec openldap ldapsearch -H ldapi:/// -x \
 <p>The CLOACK stack moves through 4 environments along a single pipeline. Each
 stage has a clear responsibility; tagged GHCR images flow under explicit
 operator control. Full strategy in
-<a href="docs/deploy-pipeline-4-stages.md"><code>docs/deploy-pipeline-4-stages.md</code></a>.</p>
+<code>docs/deploy-pipeline-4-stages.md</code>.</p>
 <pre><code>[1] dev laptop          [2] dev VM Proxmox       [3] val-login bare-metal    [4] portal bare-metal
     macOS arm64             Linux amd64               Linux amd64                Linux amd64
     build local             build local               pull GHCR :dev             pull GHCR :prod
@@ -751,7 +751,7 @@ source images must pull successfully before any push). See
 <code>configure_realm_frontend_urls</code> in <code>configure-keycloak.sh</code>. All defaults
 preserve single-FQDN dev behaviour. See
 <code>docs/deploy-pipeline-4-stages.md</code> Phase 2 for the full operator
-env-var glossary, and <a href="docs/roles/admin.md"><code>docs/roles/admin.md</code></a> for the
+env-var glossary, and <code>docs/roles/admin.md</code> for the
 runbook.</p>
 <p><strong>Role-based User Guide:</strong> five role guides ship at
 <a href="docs/roles/"><code>docs/roles/</code></a> — pick the one that matches your role
@@ -764,7 +764,7 @@ is the printable / offline mirror.</p>
 <p>For the full bare-metal deployment guide (5 playbooks, what each
 delivers end-to-end, what is intentionally NOT covered, single
 source-of-truth conventions, version pin policy), see
-<strong><a href="slurm/ANSIBLE.md">slurm/ANSIBLE.md</a></strong>.</p>
+<strong>slurm/ANSIBLE.md</strong>.</p>
 <p>The production artifact is the <code>cloack-deploy</code> RPM (Rocky 9). It ships
 the Ansible tree plus a <code>cloack-deploy</code> CLI wrapper, all under
 <code>/opt/cloack/</code>, with <code>/usr/bin/cloack-deploy</code> as a PATH symlink so cron
@@ -1217,7 +1217,7 @@ coldfront recalculate_billing --all
 coldfront sync_job_usage
 </code></pre>
 <p>Rationale: staff wanted a predictable, explicit compute step so the ledger never advances on its own (see <code>project_billing_manual_only</code> memory). The 15-min <code>sync_slurm_all</code> task keeps the Core Usage (Hours) gauge and per-user snapshots fresh, but it leaves the billing ledger untouched.</p>
-<p><strong>Offline recompute / audit.</strong> For finance handoff, historical recompute, or air-gapped review, <code>scripts/billing_offline.py</code> produces the same <code>PI,IO,Total</code> summary from a Slurm <code>sacct</code> export, a finance-supplied <code>accounts.csv</code> (<code>[pi,]account,io[,share,storage_tb,backup_tb]</code>), and a copy of <code>slurm/conf/rates.lua</code> — pure stdlib, zero ColdFront dependency. Multi-IO splits use <code>share_percent</code> mirroring <code>AllocationCostCenter</code>. The optional <code>pi</code> column lets the script work with project-based account naming (e.g. Discovery's <code>pmcmood-projects</code>) where PI cannot be derived from the account name — see <a href="scripts/README_billing.md"><code>scripts/README_billing.md</code></a> and <a href="scripts/README_billing_DISCOVERY.md"><code>scripts/README_billing_DISCOVERY.md</code></a>.</p>
+<p><strong>Offline recompute / audit.</strong> For finance handoff, historical recompute, or air-gapped review, <code>scripts/billing_offline.py</code> produces the same <code>PI,IO,Total</code> summary from a Slurm <code>sacct</code> export, a finance-supplied <code>accounts.csv</code> (<code>[pi,]account,io[,share,storage_tb,backup_tb]</code>), and a copy of <code>slurm/conf/rates.lua</code> — pure stdlib, zero ColdFront dependency. Multi-IO splits use <code>share_percent</code> mirroring <code>AllocationCostCenter</code>. The optional <code>pi</code> column lets the script work with project-based account naming (e.g. Discovery's <code>pmcmood-projects</code>) where PI cannot be derived from the account name — see <code>scripts/README_billing.md</code> and <code>scripts/README_billing_DISCOVERY.md</code>.</p>
 <h4><strong>Printable Invoices</strong></h4>
 <p>PIs can view and print invoices from their dashboard:
 - Access: <code>/billing/my-invoice/&lt;allocation-id&gt;/</code>
@@ -2649,14 +2649,14 @@ SlurmCluster(name=&quot;my_cluster-gpu&quot;, root_account=&quot;my_cluster&quot
 <h2>Monitoring</h2>
 <p>External Grafana + Prometheus at https://dash.hpc.example.edu/ scrape our hosts in <strong>pull mode</strong> over the OrgA LAN. Exporters and scrape configs live under <a href="monitoring/"><code>monitoring/</code></a>:</p>
 <ul>
-<li><a href="monitoring/README.md"><code>monitoring/README.md</code></a> — entry point, daemon × layout matrix</li>
-<li><a href="monitoring/catalog.md"><code>monitoring/catalog.md</code></a> — canonical exporter inventory (image, port, DSN shape)</li>
+<li><code>monitoring/README.md</code> — entry point, daemon × layout matrix</li>
+<li><code>monitoring/catalog.md</code> — canonical exporter inventory (image, port, DSN shape)</li>
 <li><a href="monitoring/docker/"><code>monitoring/docker/</code></a> — sidecars for the Docker side (Layout A + D, and the <code>cf-vm</code> of B/C)</li>
 <li><a href="monitoring/ansible/roles/monitoring/"><code>monitoring/ansible/roles/monitoring/</code></a> — bare-metal exporters (Layout B + C)</li>
 <li><a href="monitoring/scrape_configs/"><code>monitoring/scrape_configs/layout_{a,b,c,d}.yml</code></a> — per-layout target snippets to hand to the <code>dash</code> operator</li>
 </ul>
 <p>Covered daemons: coldfront + qcluster + helpdesk (django-prometheus + custom view), postgres (<code>:5432</code>), mariadb (Slurm acct DB on the non-standard <code>:3307</code>), openldap, keycloak (built-in <code>/metrics</code>), slurmctld/slurmdbd/slurmrestd (single exporter via REST + rotating JWT), munge (textfile collector), cli_filter (login nodes only), plus node_exporter + cadvisor everywhere. Compute nodes (<code>cn-XX</code>) are intentionally out of scope.</p>
-<p>The <code>slurm_exporter</code> reuses the rotating token that <code>start.sh</code> already keeps fresh at <code>${BASE_ETC}/slurm/slurm_jwt.token</code> (cron 03:00 daily, lifespan 30 days) — no manual token generation. See memory <a href=".claude/projects/-Users-ricardo-my_cluster-orga-partnerinst-orgb/memory/project_monitoring_dash.md"><code>project_monitoring_dash</code></a> for the full handoff details.</p>
+<p>The <code>slurm_exporter</code> reuses the rotating token that <code>start.sh</code> already keeps fresh at <code>${BASE_ETC}/slurm/slurm_jwt.token</code> (cron 03:00 daily, lifespan 30 days) — no manual token generation. See memory <code>project_monitoring_dash</code> for the full handoff details.</p>
 <hr /></div>
     </main>
   </div>
