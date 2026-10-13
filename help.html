@@ -761,6 +761,7 @@ elif weekly_cap_hours:
           </div>
 
           <h6>Weekly Cap Usage (live)</h6>
+          <p>The gauge renders two figures from the live payload: &ldquo;N SU available until the &lt;date&gt; reset&rdquo; (limit minus Slurm&rsquo;s weighted count minus SU held by running jobs, the number that decides whether a new job is accepted) and &ldquo;N SU used this period&rdquo; (the accounting total, the figure billed); the bar segment is <em>Used</em>, and the (i) / <em>details</em> link shows limit, Slurm count and held. The cap card says &ldquo;available&rdquo; for the same reason. Period name and reset date come from the payload, so they follow the cluster&rsquo;s usage reset period.</p>
           <p>
             Served on demand by <code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code>: slurmrestd jobs in the cluster's current usage reset period (<code>?week_start=YYYY-MM-DD</code> selects the period containing that date, 00:00 cluster-local). Current-week hits UPSERT the
             <code>Weekly Cap Usage ($)</code> attribute with a 5-minute debounce.
@@ -1773,13 +1774,15 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
           <table class="table table-sm table-bordered">
             <colgroup><col style="width:45%"><col style="width:55%"></colgroup>
             <tbody>
-              <tr><td><code>sbalance</code></td><td>Show your accounts' SU (service unit) utilization: the <code>billing</code> TRES compute is charged on, not core-hours; the GPU column is GPU-hours (current calendar quarter; the report window, not the billing period)</td></tr>
+              <tr><td><code>sbalance</code></td><td>Per account: <strong>SU Used</strong> this period (the <code>billing</code> TRES compute is charged on, the figure billed) and <strong>Available</strong> (what Slurm will still accept until the reset: limit minus Slurm's weighted count minus SU held by running jobs). Window = the cluster's usage reset period, read from the controller</td></tr>
               <tr><td><code>sbalance --week</code></td><td>Show spend-cap status (cap vs usage in $, color-coded). It sums the cluster's own reset period, read from the controller (monthly on <strong>cluster-x</strong>): the same window the cap is enforced over</td></tr>
               <tr><td><code>sbalance -p &lt;pi&gt;</code></td><td>Show all accounts for a specific PI</td></tr>
               <tr><td><code>sbalance -u &lt;user&gt;</code></td><td>Show accounts for a specific user</td></tr>
               <tr><td><code>sbalance --usage</code></td><td>Include usage percentage column</td></tr>
               
               <tr><td><code>sbalance --by-partition</code></td><td>Break usage down per partition x user (CPU-hours + GPU-hours), same window as the default report</td></tr>
+              <tr><td><code>sbalance --detail</code></td><td>Show how Available is computed: the limit, Slurm's count (older usage weighs less) and the SU held by running jobs</td></tr>
+              <tr><td><code>sbalance --held</code></td><td>Administrators: every account with jobs held by its SU limit (<code>AssocGrpBillingMinutes</code>), with limit, Used, Slurm count, held and Available</td></tr>
               <tr><td><code>sbalance -M cluster-x</code></td><td>Scope to a specific cluster</td></tr>
             </tbody>
           </table>
@@ -1889,88 +1892,6 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
                 
 
                 <div class="card">
-                  <div class="card-header" id="h40">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c40"
-                              aria-expanded="false">Default vs Paid Allocations</button>
-                    </h5>
-                  </div>
-                  <div id="c40" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>Every PI gets a <strong>default allocation</strong> automatically. It is free, it is
-ready to use, and it is deliberately small — enough to learn the cluster, port a
-workflow, size a job and see what it costs. Sustained work belongs on a
-<strong>paid project</strong>, where you set the spending limit yourself.</p>
-
-<table class="table table-sm">
-  <thead><tr><th>&nbsp;</th><th>Default (free)</th><th>Paid project</th></tr></thead>
-  <tbody>
-    <tr><td>Budget</td>
-        <td>a fixed allowance, the same for everyone</td>
-        <td>no fixed ceiling — you pay for what you use</td></tr>
-    <tr><td>What limits you</td>
-        <td>that allowance</td>
-        <td>the <strong>spending limit you set</strong></td></tr>
-    <tr><td>Who raises it</td>
-        <td>CLOACK staff, on request</td>
-        <td><strong>you</strong>, at any time</td></tr>
-    <tr><td>Ready to run</td>
-        <td>immediately</td>
-        <td>after you set a spending limit, or choose <em>No cap</em></td></tr>
-  </tbody>
-</table>
-
-<h5>Your budget is one pool</h5>
-<p>Where pooled budgets are in use, CPU and GPU work draw on the <em>same</em> budget
-rather than on two separate quotas. You decide the mix: spend it all on CPU hours,
-all on GPU hours, or anything between. The trade-off is real, because hardware differs
-by more than an order of magnitude — an hour on the newest GPUs costs many times an
-hour on an older one, and far more than an hour of CPU. Your allocation page shows a
-single gauge with what you have used and what is left.</p>
-
-<p>The budget is measured in <strong>service units (SU)</strong>. Each partition is worth
-a published number of SU per hour; that rate is what makes one budget able to pay for
-both kinds of work. Before submitting, <code>sbalance</code> shows what you have left,
-and the submit prompt shows what the job will cost and what would remain after it.</p>
-
-<h5>A refused job means one of three things</h5>
-<p>These are not the same situation, and the message tells you which one you are in:</p>
-<ul>
-  <li><strong>"Spending limit not set."</strong> A new paid allocation starts with its
-      limit at 0, so nothing runs until the PI sets a cap or chooses <em>No cap</em> on the
-      allocation page.</li>
-  <li><strong>"Billing is paused on the IO funding this project."</strong> See below.</li>
-</ul>
-<p>Running <em>out</em> of budget is different and is <strong>not</strong> a refusal: the
-job is accepted and waits, and it starts on its own when the cluster's usage period
-resets. You do not need to resubmit it. If it is urgent, raise the limit and the job
-starts at the next scheduling pass.</p>
-
-<h5>Pausing an IO Number stops work, not just billing</h5>
-<p>Pausing an IO is useful when funding has not been confirmed: it is never charged and
-cannot be attached to new projects. But it also <strong>blocks job submission</strong> on
-every paid allocation it funds — the free default allocation keeps running, so nobody is
-locked off the cluster entirely.</p>
-<p>Pausing opens a helpdesk ticket, and <strong>only CLOACK staff can resume it</strong>.
-Reply to that ticket when the funding is in place. Nothing is unlinked while paused:
-your projects, storage and data are untouched.</p>
-
-<h5>Moving to a paid project</h5>
-<ol>
-  <li>Create a project and request an allocation on it — the default project cannot host
-      one, which is why the button is not offered there.</li>
-  <li>Attach the IO Number that will fund it.</li>
-  <li>Once staff activate it, <strong>set a spending limit</strong>, or choose
-      <em>No cap</em>. Work starts then.</li>
-</ol>
-<p>The limit is yours to change at any time, which is the point: it is a safety net
-against an unexpected bill, not an approval step. Only the PI can change it — a member
-of the project has to ask.</p></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h38">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -2011,6 +1932,88 @@ The Allocation Attribute admin action &ldquo;Zero accrued Slurm usage&rdquo; run
 <code>sync_slurm --dry-run</code> prints <code>[DRY-RUN] GrpSubmitJobs=0 for &lt;account&gt;</code>
 before anything is written.</p>
 <div class="alert alert-warning mt-3"><strong>Caps are per reset period, not per week.</strong> The <code>billing</code> TRES above is consumed against the counter Slurm clears on <code>PriorityUsageResetPeriod</code> — <strong>MONTHLY</strong> on cluster-x since 2026-09-21. Clearing and re-applying a limit does <em>not</em> reset accrued usage; only <code>sacctmgr modify account &hellip; set RawUsage=0</code> (or the scheduled reset) does.</div></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h40">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c40"
+                              aria-expanded="false">Default vs Paid Allocations</button>
+                    </h5>
+                  </div>
+                  <div id="c40" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>Every PI gets a <strong>default allocation</strong> automatically. It is free, it is
+ready to use, and it is deliberately small — enough to learn the cluster, port a
+workflow, size a job and see what it costs. Sustained work belongs on a
+<strong>paid project</strong>, where you set the spending limit yourself.</p>
+
+<table class="table table-sm">
+  <thead><tr><th>&nbsp;</th><th>Default (free)</th><th>Paid project</th></tr></thead>
+  <tbody>
+    <tr><td>Budget</td>
+        <td>a fixed allowance, the same for everyone</td>
+        <td>no fixed ceiling — you pay for what you use</td></tr>
+    <tr><td>What limits you</td>
+        <td>that allowance</td>
+        <td>the <strong>spending limit you set</strong></td></tr>
+    <tr><td>Who raises it</td>
+        <td>CLOACK staff, on request</td>
+        <td><strong>you</strong>, at any time</td></tr>
+    <tr><td>Ready to run</td>
+        <td>immediately</td>
+        <td>after you set a spending limit, or choose <em>No cap</em></td></tr>
+  </tbody>
+</table>
+
+<h5>Your budget is one pool</h5>
+<p>Where pooled budgets are in use, CPU and GPU work draw on the <em>same</em> budget
+rather than on two separate quotas. You decide the mix: spend it all on CPU hours,
+all on GPU hours, or anything between. The trade-off is real, because hardware differs
+by more than an order of magnitude — an hour on the newest GPUs costs many times an
+hour on an older one, and far more than an hour of CPU. Your allocation page shows a
+single gauge with two numbers: what you have <strong>used</strong> this period (the figure a bill is based on) and what is still <strong>available</strong> until the next reset (what the scheduler will still accept). They are not simply limit minus used: the scheduler gives older usage less weight as the period goes on, so Available can be larger than that difference. The (i) next to the gauge, and <code>sbalance --detail</code> on a login node, show the breakdown.</p>
+
+<p>The budget is measured in <strong>service units (SU)</strong>. Each partition is worth
+a published number of SU per hour; that rate is what makes one budget able to pay for
+both kinds of work. Before submitting, <code>sbalance</code> shows what you have left,
+and the submit prompt shows what the job will cost and what would remain after it.</p>
+
+<h5>A refused job means one of three things</h5>
+<p>These are not the same situation, and the message tells you which one you are in:</p>
+<ul>
+  <li><strong>"Spending limit not set."</strong> A new paid allocation starts with its
+      limit at 0, so nothing runs until the PI sets a cap or chooses <em>No cap</em> on the
+      allocation page.</li>
+  <li><strong>"Billing is paused on the IO funding this project."</strong> See below.</li>
+</ul>
+<p>Running <em>out</em> of budget is different and is <strong>not</strong> a refusal: the
+job is accepted and waits, and it starts on its own when the cluster's usage period
+resets. You do not need to resubmit it. If it is urgent, raise the limit and the job
+starts at the next scheduling pass.</p>
+
+<h5>Pausing an IO Number stops work, not just billing</h5>
+<p>Pausing an IO is useful when funding has not been confirmed: it is never charged and
+cannot be attached to new projects. But it also <strong>blocks job submission</strong> on
+every paid allocation it funds — the free default allocation keeps running, so nobody is
+locked off the cluster entirely.</p>
+<p>Pausing opens a helpdesk ticket, and <strong>only CLOACK staff can resume it</strong>.
+Reply to that ticket when the funding is in place. Nothing is unlinked while paused:
+your projects, storage and data are untouched.</p>
+
+<h5>Moving to a paid project</h5>
+<ol>
+  <li>Create a project and request an allocation on it — the default project cannot host
+      one, which is why the button is not offered there.</li>
+  <li>Attach the IO Number that will fund it.</li>
+  <li>Once staff activate it, <strong>set a spending limit</strong>, or choose
+      <em>No cap</em>. Work starts then.</li>
+</ol>
+<p>The limit is yours to change at any time, which is the point: it is a safety net
+against an unexpected bill, not an approval step. Only the PI can change it — a member
+of the project has to ask.</p></div>
                   </div>
                 </div>
                 
@@ -3292,6 +3295,10 @@ allocation until its PI sets a cap or <code>-1</code> for none; or every Pay IO 
 jobs queue with <code>Reason=AssocGrpBillingMinutes</code> until the cluster's usage
 reset frees the counter. The two look alike on the surface and are opposite situations,
 so the messages name which one applies.</p>
+
+<h5>Used and Available are two different numbers</h5>
+<p>The same account in the same period has two correct figures, and every surface shows both. <strong>Used</strong> is the accounting total for the period, the TRES-minutes the slurmdbd rollup credited to the account (<code>sreport -T billing</code>): no decay, clipped to the window, the figure a bill is based on. <strong>Available</strong> is what Slurm will still accept: <code>Limit &minus; Slurm&rsquo;s count &minus; SU held by running jobs</code>. Slurm&rsquo;s count is the association usage <code>slurmctld</code> checks the limit against (<code>scontrol show assoc_mgr accounts=&lt;acct&gt; flags=assoc</code>, <code>GrpTRESMins=&hellip;billing=LIMIT(USED)</code>); with a non-zero <code>PriorityDecayHalfLife</code> it gives older usage less weight as the period goes on, so Available can be larger than Limit minus Used, and an account can still be admitted after its accounting total has passed the budget. The held figure is the usage side of <code>GrpTRESRunMins=&hellip;billing</code>: what running jobs still reserve.</p>
+<p>Where each one shows: Allocation Detail prints &ldquo;N SU available until the &lt;date&gt; reset&rdquo; and &ldquo;N SU used this period&rdquo;, with the limit / Slurm count / held breakdown behind the (i) and the <em>details</em> link; the spend-cap card says &ldquo;available&rdquo;; <code>sbalance</code> prints <em>SU Used</em> and <em>Available</em> by default and the breakdown with <code>--detail</code>; <code>interact</code> and <code>cli_filter</code> show the limit and what is available; <code>sbalance --held</code> (administrators) lists every account whose jobs are held by their SU limit. The invoice follows Used, never the Slurm count, so with decay a period can be billed above the cap a PI set. Read the live decay and reset values from <code>scontrol show config</code> (<code>PriorityDecayHalfLife</code>, <code>PriorityUsageResetPeriod</code>); a half-life of <code>0</code> makes the two figures coincide.</p>
 
 <h5>Where the live values are</h5>
 <ul>
