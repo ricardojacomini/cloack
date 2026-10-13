@@ -80,50 +80,50 @@ you need more.</p>
 </thead>
 <tbody>
 <tr>
-<td>A researcher submitting jobs (campus ID, <code>ext-*</code>, or <code>orgb-*</code>)</td>
+<td>A researcher submitting jobs (campus ID, <code>ext-*</code>, <code>orgb-*</code>, or a class account)</td>
 <td><a href="user.html"><code>user.md</code></a></td>
-<td>How to log in, submit <code>sbatch</code>, check <code>sbalance</code>, read your usage</td>
+<td>How to log in, submit <code>sbatch</code>, use Submit Job and OnDemand, check <code>sbalance</code>, read your usage</td>
 </tr>
 <tr>
-<td>A PI managing a project, its allocations, and billing</td>
+<td>A PI managing a project, its allocations, storage, classes and billing</td>
 <td><a href="pi.html"><code>pi.md</code></a></td>
-<td>How to request a paid allocation, add users, set weekly caps, read the billing report</td>
+<td>How to request a paid allocation, add users, set the spend cap, request storage and class resources, read the billing report</td>
 </tr>
 <tr>
 <td>Helpdesk staff handling tickets</td>
 <td><a href="staff.html"><code>staff.md</code></a></td>
-<td>How to triage, route by skill, escalate, hit FQR / SLA, run analytics</td>
+<td>How to triage, route by skill, escalate, transfer, hit FQR / SLA, run analytics</td>
 </tr>
 <tr>
 <td>A ColdFront / Django <strong>superuser</strong> (cluster ops + identity)</td>
 <td><a href="superuser.html"><code>superuser.md</code></a></td>
-<td>How to approve allocations, drain nodes, reset OTP, rotate the <code>/admin/</code> password</td>
+<td>How to review projects, allocations, storage and classes, drain nodes, manage PIs, reset OTP, rotate the <code>/admin/</code> password</td>
 </tr>
 <tr>
 <td>A cluster / DevOps <strong>admin</strong> running <code>start.sh</code> and Ansible</td>
 <td><a href="admin.html"><code>admin.md</code></a></td>
-<td>How to build, publish, promote, and deploy the 4-stage pipeline</td>
+<td>How to build, publish, validate, promote and deploy; bare-metal Slurm via Ansible</td>
 </tr>
 </tbody>
 </table>
-<p>Not sure which one applies? The roles are not mutually exclusive — a PI may
+<p>Not sure which one applies? The roles are not mutually exclusive: a PI may
 also be a user; a superuser may also be an admin. Read the role(s) that
 match what you are <strong>doing right now</strong>, then follow the cross-links.</p>
 <h2>What lives where</h2>
 <ul>
-<li><strong>In-app help</strong> — <code>/user/help/</code> (all signed-in users) and <code>/staff/help/</code>
+<li><strong>In-app help</strong>: <code>/user/help/</code> (all signed-in users) and <code>/staff/help/</code>
   (Helpdesk staff / superusers) are the live, admin-editable surface for
   short-form operational notes. They overlap with this directory by design:
   these role guides are the offline / pre-login / printable reference,
   the in-app pages are the live working surface.</li>
-<li><strong>Deep technical docs</strong> — <code>slurm/README.md</code>, <code>coldfront/BILLING_SETUP_GUIDE.md</code>,
+<li><strong>Deep technical docs</strong>: <code>slurm/README.md</code>, <code>coldfront/BILLING_SETUP_GUIDE.md</code>,
   the top-level <code>README.md</code>, and <code>CLOACK.md</code> cover architecture and the full
   feature matrix. Each role guide links into them rather than duplicating
   the content.</li>
-<li><strong>Operator runbooks</strong> — <code>docs/ansible-remote-deploy.md</code> and
-  <code>docs/break-glass-admin.md</code> are referenced from the Admin and Superuser
-  guides respectively.</li>
-<li><strong>PDF</strong> — <code>docs/CLOACK_User_Guide.pdf</code> concatenates all 5 role guides
+<li><strong>Operator runbooks</strong>: <code>docs/admin-guide-cli.md</code>,
+  <code>docs/ansible-remote-deploy.md</code> and <code>docs/break-glass-admin.md</code> are
+  referenced from the Admin and Superuser guides.</li>
+<li><strong>PDF</strong>: <code>docs/CLOACK_User_Guide.pdf</code> concatenates all 5 role guides
   with a TOC; the developer-facing <code>docs/CLOACK_Documentation.pdf</code> covers
   the technical architecture instead.</li>
 </ul>
@@ -131,28 +131,33 @@ match what you are <strong>doing right now</strong>, then follow the cross-links
 <p>Every role doc follows the same 5 sections so you always know where to
 look:</p>
 <ol>
-<li><strong>Who you are + scope</strong> — 2–3 sentences clarifying which permissions
+<li><strong>Who you are + scope</strong>: 2–3 sentences clarifying which permissions
    and realms this role typically holds, and which adjacent roles to read
    if you might be in the wrong place.</li>
-<li><strong>Quick start</strong> — the 5–10 most common tasks for this role as a
+<li><strong>Quick start</strong>: the 5–10 most common tasks for this role as a
    copy-pasteable checklist.</li>
-<li><strong>Reference matrices</strong> — the few tables you'll come back to (partitions,
-   ticket statuses, deploy stages, etc.).</li>
-<li><strong>Troubleshooting</strong> — symptom → likely cause → fix, indexed by error
+<li><strong>Reference matrices</strong>: the few tables you'll come back to (partitions,
+   ticket statuses, deploy pipeline, etc.).</li>
+<li><strong>Troubleshooting</strong>: symptom → likely cause → fix, indexed by error
    message.</li>
-<li><strong>Where to go next</strong> — links to the deep docs (<code>slurm/README.md</code>,
+<li><strong>Where to go next</strong>: links to the deep docs (<code>slurm/README.md</code>,
    <code>CLOACK.md</code>, etc.) and to the in-app help.</li>
 </ol>
+<p>Writing rule: the guides describe how the software behaves, not the
+state of one installation. Where a value is per cluster (partition names,
+rates, the usage reset period), the text names the page or command that
+shows it.</p>
 <h2>How this directory is maintained</h2>
 <ul>
 <li><strong>Hand-authored Markdown</strong> lives in <code>docs/roles/*.md</code>.</li>
-<li><strong>HTML mirrors</strong> in <code>docs/roles/*.html</code> are regenerated by
-  <code>images/generate_docs_html.py</code> (run via the <code>/docs</code> skill).</li>
+<li><strong>HTML mirrors</strong> in <code>docs/roles/*.html</code> (plus <code>roles/index.html</code> from
+  this file) are regenerated by <code>python3 images/generate_docs_html.py</code>
+  (the <code>/docs</code> skill), which also writes <code>docs/help.html</code> from the live
+  User Help sections.</li>
 <li><strong>PDF</strong> in <code>docs/CLOACK_User_Guide.pdf</code> is regenerated by
-  <code>python3 .claude/skills/pdf/generate_cloack_pdf.py --mode users</code>.</li>
-<li>The <code>/cloack</code> skill picks all of this up automatically and pushes to
-  the public GitHub Pages mirror at <code>cloack.github.io/example-org</code> (after
-  the Phase 0 GitHub org transfer lands).</li>
+  <code>python3 .claude/skills/pdf/generate_user_guide_pdf.py</code>.</li>
+<li>The <code>/cloack</code> skill regenerates everything and pushes the HTML-only,
+  institution-neutral copy to the public GitHub Pages mirror.</li>
 </ul></div>
       </main>
     </div>

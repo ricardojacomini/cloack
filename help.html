@@ -246,6 +246,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
   <li><strong>PI creates project</strong> &mdash; sets title, abbreviation, department and IO Number. Must accept ToS if active. Project Storage is <em>not</em> part of this form &mdash; the PI requests it afterwards from the <strong>Project Storage</strong> card on the project page, and staff approves it.</li>
   <li><strong>PI requests allocation</strong> &mdash; chooses the cluster resource, writes a justification and, for a paid allocation, picks the <strong>Pay IO Number</strong> that will fund it. Core-hour and GPU-hour budgets are not typed in here &mdash; they are seeded from the cluster's own defaults when the allocation is activated.</li>
   <li><strong>Staff reviews &amp; approves</strong> &mdash; allocation moves to <span class="badge badge-success">Active</span>.</li>
+  <li><strong>Review outcomes</strong> &mdash; a <em>New</em> project is activated, sent back with <strong>Request changes</strong> (feedback required; the PI resubmits by saving the project) or <strong>denied</strong> (archived with the reason; the PI can reopen and resubmit). An allocation is approved or denied from <strong>Allocation Requests</strong> or Allocation Detail, the deny reason landing in the allocation description. <strong>Approve is refused while another live allocation of the same project resolves to the same Slurm account name</strong> (a second allocation without a SubProject suffix): staff set the suffix on the SubProject Scheme card first; suffixes are never assigned automatically. A paid allocation whose spend cap is still unset (<code>Weekly Cap ($)</code> = 0) is activated but its account is held (<code>GrpSubmitJobs=0</code>) until the PI or staff set a cap or choose <em>No cap</em>.</li>
   <li><strong>Auto-seed on activation:</strong>
     <ul>
       <li>Default attributes seeded: Core Usage (Hours), Extra Core usage (Hours), Accelerator Usage (Hours), Extra Accelerator Usage (Hours), plus the blank <code>QoS</code> / <code>DefaultQoS</code> overrides</li>
@@ -1672,6 +1673,8 @@ follow-ups internal notes.</p>
               <tr><td><code>refresh_slurm_jwt_task</code></td><td>Every 6 h (:17)</td><td>Regenerate the slurmrestd JWT (30-day lifespan) into <code>/etc/slurm/slurm_jwt.token</code>. Without it every REST write silently degrades to the <code>sacctmgr</code> CLI and trips the fallback WARN threshold.</td></tr>
               <tr><td><code>renew_service_api_tokens</code></td><td>Daily 3 AM</td><td>Slide the <code>created</code> date of the service DRF tokens in <code>API_TOKEN_SERVICE_USERS</code> (default <code>coldfront</code> &mdash; the account the helpdesk authenticates as) so the 30-day <code>API_TOKEN_TTL_DAYS</code> never expires the SAME key.</td></tr>
               <tr><td><code>converge_keycloak_federation_task</code></td><td>Hourly</td><td>Convert broker-local campus ID Keycloak rows (realm <code>orga</code>) onto LDAP federation. <strong>Always scheduled, inert by default</strong>: returns <code>SKIP</code> unless <code>KEYCLOAK_FEDERATION_CONVERGE_ENABLED=True</code> in the host-local <code>coldfront.env</code> (env_file &rArr; qcluster <em>recreate</em>, not restart).</td></tr>
+              <tr><td><code>reconcile_overdue_io_pauses</code></td><td>Daily 04:15</td><td>Applies the overdue-invoice rule once the grace window has elapsed (<code>SiteConfiguration.overdue_pause_window</code>: quarterly by default, monthly, or none): every Pay IO of an allocation with an <em>Overdue</em> billing period is paused with <code>pause_reason='overdue'</code>, and the pause is lifted when no period the IO funds is still Overdue. A status change on a period reconciles at once; this task only applies the date crossing.</td></tr>
+              <tr><td><code>flag_ended_classes</code></td><td>Daily 04:30</td><td>Marks class requests whose course end date has passed as <em>Ended</em> and opens one teardown ticket per class. Never deletes anything: student accounts go only through <strong>Delete Class</strong> on the class page.</td></tr>
               <tr><td><code>rotate_admin_log_task</code></td><td>Monthly</td><td>Archive-then-purge <code>django_admin_log</code>: rows older than <code>CLOACK_AUDIT_RETENTION_MONTHS</code> (default 12) are exported as gzip JSONL under <code>CLOACK_AUDIT_ARCHIVE_DIR</code>, then deleted.</td></tr>
             </tbody>
           </table>
@@ -1835,13 +1838,14 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
           </table>
 
           <h6><code>interact</code> — Interactive Sessions</h6>
+          <p><code>-a &lt;account&gt;</code> is required: <code>interact</code> never chooses which allocation a session is charged to. <code>interact -l</code> lists your accounts; an account that is not one of yours is refused before the job is submitted.</p>
           <table class="table table-sm table-bordered">
             <colgroup><col style="width:45%"><col style="width:55%"></colgroup>
             <tbody>
               <tr><td><code>interact -l</code></td><td>List available partitions + your accounts &amp; QOS</td></tr>
-              <tr><td><code>interact -p scavenger -n 4</code></td><td>4 cores, 1 hour, scavenger (free)</td></tr>
-              <tr><td><code>interact -p a100 -a pi_proj -g 1</code></td><td>1 GPU on the <code>a100</code> partition with a paid account</td></tr>
-              <tr><td><code>interact -m 8G -n 2 -t 2:00:00</code></td><td>2 cores, 8GB, 2 hours</td></tr>
+              <tr><td><code>interact -a &lt;account&gt; -n 4</code></td><td>4 cores, 1 hour, the cluster's default partition</td></tr>
+              <tr><td><code>interact -a &lt;account&gt; -p &lt;gpu-partition&gt; -g 1</code></td><td>1 GPU on a GPU partition</td></tr>
+              <tr><td><code>interact -a &lt;account&gt; -m 8G -n 2 -t 2:00:00</code></td><td>2 cores, 8GB, 2 hours</td></tr>
             </tbody>
           </table>
           <div class="alert alert-secondary py-1 px-2 mb-3" style="font-size:0.85rem;">
@@ -2352,6 +2356,8 @@ Slurm secret.</p>
               <tr><td><i class="fas fa-tachometer-alt fa-fw"></i> Home</td><td>Landing dashboard &mdash; your projects, allocations and portal announcements.</td></tr>
               <tr><td><i class="fas fa-chart-pie fa-fw"></i> Center Summary</td><td>Center-wide usage charts (jobs, users, core hours).</td></tr>
               <tr><td><i class="fas fa-project-diagram fa-fw"></i> Projects</td><td>My Projects, Allocations and Resources. PIs also get <strong>User Allocations</strong> &mdash; every allocation their users belong to.</td></tr>
+              <tr><td><i class="fas fa-chalkboard-teacher fa-fw"></i> My Classes <em>(PI)</em></td><td><code>/classes/</code> &mdash; the PI's class resource requests: <strong>Class Request</strong> (course code, dates, roster), TA managers, resend password links to selected students, <strong>Request more students</strong>. Staff decide on <strong>Class Requests</strong>.</td></tr>
+              <tr><td><i class="fas fa-hdd fa-fw"></i> My Storage <em>(PI)</em></td><td><code>/storage/</code> &mdash; every project of the PI with its provisioned Cache / Project Storage, pending requests and the monthly estimate at current rates.</td></tr>
               <tr><td><i class="fas fa-file-invoice fa-fw"></i> My Usage &amp; Billing <em>(PI)</em></td><td>Per-allocation usage and charges, invoices, and the PI's Cost Centers card.</td></tr>
               <tr><td><i class="fas fa-wallet fa-fw"></i> Cost Centers <em>(PI)</em></td><td><code>/billing/cost-centers/</code> &mdash; the PI's IO Numbers: create, edit, and <strong>pause/resume</strong> billing on an IO. While every pay IO of an allocation is paused the allocation is recomputed as <strong>No Charge</strong> and its Slurm account accepts no new job submissions; the free default (scavenger) account is never affected.</td></tr>
               <tr><td><i class="fas fa-chart-line fa-fw"></i> Billing Report <em>(PI)</em></td><td>The PI's own monthly billing report.</td></tr>
@@ -2378,6 +2384,9 @@ Slurm secret.</p>
               <tr><td><i class="fas fa-cubes fa-fw"></i> All Allocations</td><td>List all allocations across all projects (admin view).</td></tr>
               <tr><td><i class="fas fa-clipboard-check fa-fw"></i> Project Reviews</td><td>New projects pending approval + billing changes pending review + annual reviews. Outcomes: Activate, Request changes, Deny.</td></tr>
               <tr><td><i class="fas fa-hdd fa-fw"></i> Storage Review</td><td><code>/staff/storage-review/</code> &mdash; approve or deny pending Project Storage requests (superuser, or staff with <code>elevate_to_superuser</code>).</td></tr>
+              <tr><td><i class="fas fa-chalkboard-teacher fa-fw"></i> Class Requests</td><td><code>/staff/class-review/</code> &mdash; approve, request changes or deny class resource requests (superuser, or staff with <code>elevate_to_superuser</code>). Approval creates the class project, its allocation and the <code>&lt;code&gt;-ext-&lt;campus-id&gt;</code> student accounts, and e-mails each student a password link.</td></tr>
+              <tr><td><i class="fas fa-chalkboard fa-fw"></i> All Classes</td><td><code>/classes/?show_all=on</code> &mdash; every class across all PIs; the class page offers <strong>Delete Class</strong> (removes only the <code>&lt;code&gt;-ext-*</code> accounts) to superusers.</td></tr>
+              <tr><td><i class="fas fa-database fa-fw"></i> All Storage</td><td><code>/storage/?show_all=on</code> &mdash; provisioned storage and pending requests across all PIs.</td></tr>
               <tr><td><i class="fas fa-inbox fa-fw"></i> Allocation Requests</td><td>Pending allocation requests from PIs — approve or deny.</td></tr>
               <tr><td><i class="fas fa-exchange-alt fa-fw"></i> Change Requests</td><td>Allocation change requests (e.g. PI requesting more Core Hours).</td></tr>
               <tr><td><i class="fas fa-chart-line fa-fw"></i> API Token Usage</td><td>Which REST API tokens are being used, by whom and when they were last seen.</td></tr>

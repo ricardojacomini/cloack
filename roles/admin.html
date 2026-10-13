@@ -67,67 +67,69 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
       <main class="page-content">
         <div class="md-content"><h1>Admin — cluster / DevOps operator running start.sh and Ansible</h1>
 <h2>Who you are + scope</h2>
-<p>You operate the Portal stack on <strong>physical hosts</strong>: the dev VM on
-Proxmox, the <strong>val-login</strong> bare-metal validation host, and the
-production <strong>portal</strong> bare-metal host. You run <code>./start.sh deploy /
-start / publish / promote</code>, you ship images to GHCR, you run
-<code>ansible-playbook</code> for the bare-metal Slurm cluster install, and you
-own the rotation of the GHCR PATs.</p>
+<p>You operate the Portal stack on <strong>physical hosts</strong>: your laptop,
+the bare-metal <strong>validation host</strong> that builds and publishes images, and
+the <strong>production host</strong>. You run <code>./start.sh deploy / start / publish /
+promote</code>, you ship images to GHCR, you run <code>ansible-playbook</code> for the
+bare-metal Slurm cluster install, and you own the rotation of the GHCR
+PATs.</p>
 <p>You are the only role that needs read-write access to GHCR. You
-typically also have <code>is_superuser=True</code> in ColdFront — for the cluster
+typically also have <code>is_superuser=True</code> in ColdFront: for the cluster
 ops Django side read <a href="superuser.html"><code>superuser.md</code></a>. For helpdesk
 work see <a href="staff.html"><code>staff.md</code></a>. You authenticate the same way every
 other user does (<a href="user.html"><code>user.md</code></a>).</p>
 <h2>Quick start</h2>
-<p>Five recipes you will run most days. Every command assumes you have
-already <code>git clone</code>'d the repo at the canonical path on whatever host
-you are on.</p>
-<h3>1. Local laptop dev (Stage 1)</h3>
-<pre><code class="language-bash">cd ~/cloack-stack
-./start.sh deploy dev -y --paid-accounts   # full clean + reseed dev stack
-bash scripts/verify-deploy.sh              # confirm 8/8 checks green
+<p>Four recipes you will run most days. Server hosts keep the repo at
+<code>/opt/cloack</code>; the laptop wherever you cloned it.</p>
+<h3>1. Laptop: full local stack with test data</h3>
+<pre><code class="language-bash">./start.sh deploy dev -y --paid-accounts   # full clean + reseed dev stack
+bash scripts/verify-deploy.sh              # 15 checks; exit code = number of red checks
 </code></pre>
 <p>Use this when you want a clean known-good state. It wipes named
 volumes and reseeds 4 test users (<code>ext-staff</code>, <code>ext-user</code>,
-<code>orgb-staff</code>, <code>orgb-user</code>, password <code>123</code>).</p>
-<h3>2. Build and publish on the Proxmox VM (Stage 2)</h3>
-<pre><code class="language-bash">ssh proxmox-vm
-cd ~/example-org
-git pull origin dev
-./start.sh start dev          # local build, no GHCR
-bash scripts/verify-deploy.sh # optional smoke
-./start.sh publish            # docker push :dev + :sha-&lt;git-short&gt;
-</code></pre>
-<p>Publish refuses with a clear error when the working tree is dirty
-(the <code>:sha-*</code> tag would lie about content). Override with
-<code>--tag &lt;something-other-than-dev&gt;</code> if you genuinely want a throwaway tag.</p>
-<h3>3. Promote on val-login (Stage 3)</h3>
-<pre><code class="language-bash">ssh val-login
-cd ~/example-org
-git pull origin dev                          # configs / templates only
-./start.sh start --from-ghcr dev             # docker pull :dev, no build
-bash scripts/verify-deploy.sh                # mandatory pre-flight
-./start.sh promote                           # :dev -&gt; :prod + :rc-&lt;UTC&gt;
-# Rollback if a bad promotion slipped through:
-./start.sh promote --rollback rc-2026-06-09-1430
+<code>orgb-staff</code>, <code>orgb-user</code>, password <code>123</code>). <code>deploy</code> is only ever run
+with the <code>dev</code> argument on a host whose <code>coldfront.env</code> says
+<code>CLOACK_ENV=dev</code>; on <code>CLOACK_ENV=prod</code> hosts <code>start.sh</code> refuses the dev
+compose file.</p>
+<h3>2. Build, publish, validate and promote on the validation host</h3>
+<pre><code class="language-bash">ssh &lt;validation-host&gt;
+cd /opt/cloack
+git pull origin dev               # clean tree: publish refuses a dirty one
+./start.sh rebuild                # local build of every cloack/&lt;svc&gt; image
+docker images | grep ^cloack/       # prune stale cloack/* images: publish pushes ALL of them
+./start.sh publish --check        # dry run: the retag plan
+./start.sh publish                # docker push :dev + :sha-&lt;git-short&gt;
+./start.sh start --from-ghcr dev  # run the PUBLISHED images, no build
+bash scripts/verify-deploy.sh     # mandatory pre-flight
+./start.sh promote                # :dev -&gt; :prod + :rc-&lt;UTC&gt;
 </code></pre>
 <p><code>promote</code> runs <code>verify-deploy.sh</code> as a pre-flight gate by default; use
 <code>--skip-verify</code> only as an emergency override. <strong>Never</strong> run <code>./start.sh
-deploy --from-ghcr</code> — it is hard-refused. Stages 3 and 4 must never
-populate test data (the deploy command's job).</p>
-<h3>4. Deploy on prod portal (Stage 4)</h3>
-<pre><code class="language-bash">ssh portal
-cd ~/example-org
-git pull origin dev                          # configs only
+deploy --from-ghcr</code>: it is hard-refused, because the validation and
+production hosts must never be populated with test data.</p>
+<h3>3. Deploy on the production host</h3>
+<pre><code class="language-bash">ssh &lt;production-host&gt;
+cd /opt/cloack
+git pull --ff-only origin dev                # configs, templates, migrations
 ./start.sh start --from-ghcr prod            # docker pull :prod, no build
 bash scripts/verify-deploy.sh
-./start.sh ldap-reinit                       # only if LDAP needs re-seed
+docker restart coldfront qcluster            # when tasks.py or base.py changed
+./start.sh helpdesk restart                  # helpdesk code is staged from the repo, not baked
 </code></pre>
-<p>Portal can run Slurm via Docker (pull the slurm images) <strong>or</strong> via
-bare-metal Ansible (see playbook recipes below). The compose overlay
-controls which one is active.</p>
-<h3>5. Bare-metal Slurm via Ansible</h3>
-<pre><code class="language-bash">cd ~/example-org
+<p>A host that still runs locally built <code>cloack/&lt;svc&gt;</code> images is moved to the
+registry names with the <code>/retag</code> runbook (tag the running-good local
+image, never pull a registry copy that may be stale). <code>./start.sh deploy</code>
+on a server host calls <code>ff_pull_or_die</code>, which resets the tree to
+<code>origin/dev</code> and removes untracked files: revert any path checkouts and
+move stray files first, or run with <code>CLOACK_NO_AUTO_RESET=1</code>.</p>
+<p>A <strong>hybrid</strong> cluster (topology D below) has bare-metal compute nodes while
+the controller, login node, <code>slurmdbd</code> and <code>slurmrestd</code> run as containers
+of the stack (<code>&lt;cluster&gt;-slurmctld</code>, <code>&lt;cluster&gt;-login01</code>,
+<code>&lt;cluster&gt;-slurmdbd</code>, <code>&lt;cluster&gt;-slurmrestd</code>). The controller is
+configless; with <code>SlurmCluster.manage_config</code> off, the per-cluster mirror
+<code>${BASE_DATA}/slurm/&lt;cluster&gt;/slurm.conf</code> is the source of truth.</p>
+<h3>4. Bare-metal Slurm via Ansible</h3>
+<pre><code class="language-bash">cd /opt/cloack
 ./start.sh slurm ansible all                 # regenerate ansible/ tree
 ansible-playbook -i ansible/clusters/&lt;name&gt;/inventory.ini \
   ansible/slurm-server/playbook.yml          # slurmctld + slurmdbd + slurmrestd
@@ -135,289 +137,278 @@ ansible-playbook -i ansible/clusters/&lt;name&gt;/inventory.ini \
   ansible/slurm-client/playbook.yml          # slurmd on every compute node
 ansible-playbook -i ansible/clusters/&lt;name&gt;/inventory.ini \
   ansible/slurm-verify/playbook.yml          # read-only pre-flight (no changes)
+./start.sh slurm prod-sim &lt;name&gt;             # ansible --check --diff, read-only
 </code></pre>
-<p><code>slurm-verify</code> is safe to run any time and reports a 14-check matrix
-across OS, UIDs, munge, Slurm version, SPANK support, ports, SSSD TTL,
-and PAM stack.</p>
+<p><code>slurm-verify</code> is safe to run any time and reports OS, UIDs 449/450,
+munge key, Slurm version, SPANK support, ports, SSSD cache TTL and the
+PAM stack. Compute nodes may be Rocky 9 or Debian-family (DGX Spark);
+the roles key the difference off <code>ansible_os_family</code> at run time.</p>
 <h2>Reference matrices</h2>
-<h3>4-stage deploy pipeline</h3>
+<h3>Deploy pipeline</h3>
 <table>
 <thead>
 <tr>
-<th>Stage</th>
+<th>Step</th>
 <th>Host</th>
 <th>What you run</th>
 <th>Result</th>
-<th>Image flow</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>1</strong> Laptop coding</td>
-<td>macOS arm64</td>
-<td><code>./start.sh deploy dev -y --paid-accounts</code></td>
-<td>Full local dev stack with test data</td>
-<td><code>cloack/&lt;svc&gt;</code> built locally</td>
+<td>Code</td>
+<td>laptop</td>
+<td><code>./start.sh deploy dev -y --paid-accounts</code>, tests, <code>git push origin dev</code></td>
+<td>Source on GitHub</td>
 </tr>
 <tr>
-<td><strong>1</strong>→<strong>2</strong></td>
-<td>Laptop</td>
-<td><code>git push origin dev</code></td>
-<td>Source code is on GitHub</td>
-<td>—</td>
+<td>Build</td>
+<td>validation host</td>
+<td><code>git pull</code>, <code>./start.sh rebuild</code></td>
+<td><code>cloack/&lt;svc&gt;:latest</code> built on amd64</td>
 </tr>
 <tr>
-<td><strong>2</strong> dev VM build</td>
-<td>Proxmox Linux amd64</td>
-<td><code>git pull origin dev</code></td>
-<td>Code on the builder host</td>
-<td>—</td>
-</tr>
-<tr>
-<td><strong>2</strong></td>
-<td>Proxmox</td>
-<td><code>./start.sh start dev</code></td>
-<td>Local build matching prod my_cluster</td>
-<td><code>cloack/&lt;svc&gt;</code> built locally on amd64</td>
-</tr>
-<tr>
-<td><strong>2</strong></td>
-<td>Proxmox</td>
+<td>Publish</td>
+<td>validation host</td>
 <td><code>./start.sh publish</code></td>
-<td><code>:dev</code> + <code>:sha-*</code> pushed to GHCR</td>
-<td><code>ghcr.io/example-org/cloack/&lt;svc&gt;:dev</code> + <code>:sha-&lt;git-short&gt;</code></td>
+<td><code>ghcr.io/&lt;org&gt;/cloack/&lt;svc&gt;:dev</code> + <code>:sha-&lt;short&gt;</code></td>
 </tr>
 <tr>
-<td><strong>3</strong> val-login bare-metal</td>
-<td>Linux amd64</td>
-<td><code>git pull origin dev</code></td>
-<td>Configs / templates on val-login</td>
-<td>—</td>
+<td>Validate</td>
+<td>validation host</td>
+<td><code>./start.sh start --from-ghcr dev</code> + <code>bash scripts/verify-deploy.sh</code></td>
+<td>The published images run clean</td>
 </tr>
 <tr>
-<td><strong>3</strong></td>
-<td>val-login</td>
-<td><code>./start.sh start --from-ghcr dev</code></td>
-<td>Stack runs the <code>:dev</code> images, no build</td>
-<td><code>ghcr.io/...:dev</code> pulled</td>
-</tr>
-<tr>
-<td><strong>3</strong></td>
-<td>val-login</td>
-<td><code>bash scripts/verify-deploy.sh</code></td>
-<td>8-check validation result</td>
-<td>—</td>
-</tr>
-<tr>
-<td><strong>3</strong></td>
-<td>val-login</td>
+<td>Promote</td>
+<td>validation host</td>
 <td><code>./start.sh promote</code></td>
-<td><code>:dev</code> retagged → <code>:prod</code> + <code>:rc-&lt;UTC&gt;</code></td>
-<td><code>ghcr.io/...:prod</code> + <code>:rc-*</code> pushed</td>
+<td><code>:dev</code> retagged <code>:prod</code> + <code>:rc-&lt;UTC&gt;</code> (same digest)</td>
 </tr>
 <tr>
-<td><strong>4</strong> portal bare-metal</td>
-<td>Linux amd64</td>
-<td><code>git pull origin dev</code></td>
-<td>Configs on portal</td>
-<td>—</td>
+<td>Deploy</td>
+<td>production host</td>
+<td><code>git pull</code>, <code>./start.sh start --from-ghcr prod</code>, <code>verify-deploy.sh</code></td>
+<td>Stack on <code>:prod</code></td>
 </tr>
 <tr>
-<td><strong>4</strong></td>
-<td>portal</td>
-<td><code>./start.sh start --from-ghcr prod</code></td>
-<td>Stack runs the <code>:prod</code> images</td>
-<td><code>ghcr.io/...:prod</code> pulled</td>
-</tr>
-<tr>
-<td><strong>4</strong></td>
-<td>portal</td>
-<td><code>./start.sh ldap-reinit</code> (manual)</td>
-<td>LDAP re-seeded if needed</td>
-<td>—</td>
+<td>Rollback</td>
+<td>production host</td>
+<td><code>./start.sh promote --rollback rc-&lt;UTC&gt;</code> from the validation host, then <code>start --from-ghcr prod</code></td>
+<td>Previous release candidate</td>
 </tr>
 </tbody>
 </table>
 <p>Direction of artifacts:</p>
-<pre><code>git origin/dev                          GHCR registry
-       ↓                                    ↓
-laptop ──push──&gt; origin            Stage 2 ──push :dev, :sha-*─&gt; GHCR
-       ↑                                    ↓
-proxmox ──pull──&gt; origin           Stage 3 ──pull :dev, push :prod, :rc-*─&gt; GHCR
-       ↑                                    ↓
-val-login ──pull──&gt; origin          Stage 4 ──pull :prod
-       ↑                                    ↑
-portal ──pull──&gt; origin            (portal never pushes)
+<pre><code>git origin/dev                     GHCR registry
+      ↓                                 ↓
+laptop ──push──&gt; origin          validation host ──push :dev, :sha-*, :prod, :rc-*──&gt; GHCR
+                                                                                      ↓
+validation host ──pull──&gt; origin production host ──pull :prod  (never pushes)
+production host ──pull──&gt; origin
 </code></pre>
 <h3>GHCR registry namespace and PATs</h3>
 <table>
 <thead>
 <tr>
-<th>Stage</th>
+<th>Host</th>
 <th>PAT scope</th>
 <th>Operations</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>1 (laptop)</td>
+<td>laptop</td>
 <td>none</td>
 <td>git push only</td>
 </tr>
 <tr>
-<td>2 (Proxmox)</td>
+<td>validation host</td>
 <td><code>GHCR_BUILDER_PAT</code> (write)</td>
-<td><code>docker push :dev</code> + <code>:sha-*</code></td>
+<td><code>docker push :dev</code> + <code>:sha-*</code>, <code>:prod</code> + <code>:rc-*</code></td>
 </tr>
 <tr>
-<td>3 (val-login)</td>
-<td><code>GHCR_BUILDER_PAT</code> (write)</td>
-<td><code>docker pull :dev</code>, <code>docker push :prod</code> + <code>:rc-*</code></td>
-</tr>
-<tr>
-<td>4 (portal)</td>
+<td>production host</td>
 <td><code>GHCR_CONSUMER_PAT</code> (read-only)</td>
 <td><code>docker pull :prod</code> only</td>
 </tr>
 </tbody>
 </table>
-<p>Registry path: <code>ghcr.io/example-org/cloack/&lt;image&gt;:&lt;tag&gt;</code>.</p>
-<p>Cross-org topology: the repo lives in the <code>cloack</code> GitHub org, packages
-live in the <code>example-org</code> org. The two PATs are <strong>fine-grained</strong>, scoped
-to the <code>example-org</code> org, and <strong>SSO-authorized</strong> for the host institution
-University Enterprise. Rotation cadence: ≤ 1 year (fine-grained PAT
-maximum lifetime).</p>
-<h3>Image inventory (13 runtime — 7 cloack apps + 6 Slurm services; +<code>cn-rockylinux</code> build-only = 14 published)</h3>
+<p>Registry path: <code>ghcr.io/&lt;org&gt;/cloack/&lt;image&gt;:&lt;tag&gt;</code>. Both PATs are
+<strong>fine-grained</strong>, scoped to the packages org, <strong>SSO-authorized</strong> for the
+institution, and rotated at most yearly (fine-grained PAT maximum
+lifetime).</p>
+<h3>Image inventory</h3>
 <table>
 <thead>
 <tr>
 <th>Track</th>
 <th>Image</th>
 <th>Built from</th>
-<th>Promoted past <code>:dev</code>?</th>
+<th>Published?</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Cloack</td>
+<td>Portal</td>
 <td><code>coldfront</code>, <code>helpdesk</code>, <code>keycloak</code>, <code>keycloak-config</code>, <code>openldap</code>, <code>phpldapadmin</code>, <code>postgres</code></td>
 <td>each service's <code>Dockerfile</code></td>
-<td>Yes — Stage 3 + 4</td>
+<td>Yes</td>
 </tr>
 <tr>
-<td>Slurm (base)</td>
+<td>Edge and side services</td>
+<td><code>mta</code> (postfix relay), <code>ood</code> (Open OnDemand), <code>ai-engine</code> (llama.cpp)</td>
+<td><code>mta/</code>, <code>ondemand/</code>, <code>ai-engine/</code></td>
+<td><code>mta</code> yes; <code>ood</code> and <code>ai-engine</code> are built on the host (<code>./start.sh ood start</code>, <code>./start.sh ai start</code>)</td>
+</tr>
+<tr>
+<td>Third-party</td>
+<td><code>npm</code> (Nginx Proxy Manager, the in-stack edge), <code>slurm-db</code> (MariaDB)</td>
+<td>upstream images</td>
+<td>pulled from their registries</td>
+</tr>
+<tr>
+<td>Slurm base</td>
 <td><code>cn-rockylinux</code></td>
 <td><code>slurm/base/Dockerfile</code></td>
-<td><strong>No</strong> — build dep only, never pulled by runtime hosts</td>
+<td>Build dependency only; its layers travel inside the service images</td>
 </tr>
 <tr>
-<td>Slurm (services)</td>
-<td><code>slurmctld</code>, <code>slurmdbd</code>, <code>slurmrestd</code>, <code>slurm-munge</code>, <code>mariadb</code>, <code>slurmd</code></td>
+<td>Slurm services</td>
+<td><code>slurmctld</code>, <code>slurmdbd</code>, <code>slurmrestd</code>, <code>slurm-munge</code>, <code>slurmd</code></td>
 <td><code>slurm/&lt;svc&gt;/Dockerfile</code></td>
-<td>Yes — <code>promote</code> retags these <strong>best-effort</strong> (skips any not published, e.g. bare-metal Slurm). <code>slurmd</code> is the login-node image too, so it promotes even when compute workers run bare-metal.</td>
+<td>Yes; <code>promote</code> retags them best-effort. <code>slurmd</code> is also the login-node image, so it is needed even when compute nodes are bare metal</td>
 </tr>
 </tbody>
 </table>
-<p>Note that <code>cn-rockylinux</code> is consumed at <strong>build time</strong> by the other
-Slurm images (each does a <code>FROM cloack/cn-rockylinux</code>). Once a Slurm
-service image is pushed, the cn-rockylinux layers travel inside it —
-runtime hosts (Stage 3 + 4) never pull cn-rockylinux as a standalone
-image.</p>
-<h3>Stage 4 dual-mode Slurm</h3>
+<p>Two compose services share an image: <code>qcluster</code> runs <code>coldfront</code>,
+<code>helpdesk-qcluster</code> runs <code>helpdesk</code> (<code>HELPDESK_ROLE=qcluster</code>).
+<code>munge-key</code>, <code>ood-sss-cache</code> and <code>keycloak-config</code> are one-shot init
+containers; "Exited (0)" is their normal state.</p>
+<h3>Slurm topologies</h3>
+<p><code>SlurmCluster.cluster_type</code> says where the compute runs,
+<code>core_services</code> where <code>slurmdbd</code> / <code>slurmrestd</code> run:</p>
 <table>
 <thead>
 <tr>
-<th>Mode</th>
-<th>Slurm runs as</th>
-<th>What portal pulls</th>
-<th>When to use</th>
+<th>cluster_type</th>
+<th>core_services</th>
+<th>Scenario</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>A — Docker Slurm</strong></td>
-<td>containers</td>
-<td>7 cloack apps + 6 Slurm services</td>
-<td>All-Docker portal, smaller HPC scale</td>
+<td>container</td>
+<td>shared_container</td>
+<td>All-Docker cluster</td>
 </tr>
 <tr>
-<td><strong>B — Bare-metal Slurm</strong></td>
-<td>services on real hosts via Ansible roles</td>
-<td>7 cloack apps only</td>
-<td>Real HPC scale, dedicated compute nodes, kernel-level features</td>
+<td>bare_metal</td>
+<td>dedicated</td>
+<td>Bare-metal cluster with its own slurmdbd / slurmrestd</td>
 </tr>
 <tr>
-<td><strong>A′ — current target</strong></td>
-<td>core Slurm containerized; <strong>compute workers excluded</strong></td>
-<td>7 cloack apps + 6 Slurm services (workers not started; login-node <code>slurmd</code> still runs)</td>
-<td>Containerized controller + login + <code>slurmdbd</code>/<code>slurmrestd</code>/<code>mariadb</code>, compute nodes added later (bare-metal or Docker)</td>
+<td>container</td>
+<td>dedicated</td>
+<td>Docker compute + external accounting</td>
+</tr>
+<tr>
+<td>bare_metal</td>
+<td>shared_container</td>
+<td><strong>Hybrid</strong>: bare-metal compute, controller + login + core in the stack</td>
 </tr>
 </tbody>
 </table>
-<p>In Mode B the operator runs <code>ansible/slurm-server/playbook.yml</code> and
-<code>ansible/slurm-client/playbook.yml</code> against the cluster inventory.
-<code>cluster_manager.write_compose_overlay</code> honours
-<code>CLOACK_FROM_GHCR=1</code> to rewrite Slurm image refs to <code>ghcr.io/...:prod</code>
-in Mode A.</p>
-<h3><code>start.sh</code> subcommands by stage</h3>
+<p>"Is there a container for this cluster on this host" is answered by
+<code>core_services</code>, never by <code>cluster_type</code>.</p>
+<h3><code>start.sh</code> subcommands</h3>
 <table>
 <thead>
 <tr>
 <th>Subcommand</th>
-<th>Stage(s)</th>
 <th>What it does</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>init [dev]</code></td>
-<td>1, 2</td>
-<td>Bootstrap user/group/dirs/<code>.env</code>. Run once before first <code>start</code>.</td>
+<td>Bootstrap user/group/dirs, write <code>.env</code> (appends missing keys only), install the backup cron on Linux hosts.</td>
 </tr>
 <tr>
 <td><code>start [dev]</code></td>
-<td>1, 2</td>
 <td>Build (or skip build) and start managed services.</td>
 </tr>
 <tr>
-<td><code>start --from-ghcr [dev\|prod]</code></td>
-<td>3, 4</td>
+<td><code>start --from-ghcr &lt;dev / prod&gt;</code></td>
 <td>Pull from GHCR, skip build. Refuses if <code>docker-compose-ghcr.yml</code> is missing.</td>
 </tr>
 <tr>
-<td><code>deploy [dev] -y [--paid-accounts]</code></td>
-<td>1, 2</td>
-<td>Destructive: clean + init + start + populate test data. Hard-refused with <code>--from-ghcr</code>.</td>
+<td><code>stop</code> / <code>destroy</code> / <code>rebuild</code></td>
+<td>Stop; stop + remove containers (keeps volumes); rebuild every image with <code>--no-cache</code>.</td>
+</tr>
+<tr>
+<td><code>deploy [dev] -y [--paid-accounts] [--no-slurm]</code></td>
+<td>Destructive: clean + init + start + Slurm + helpdesk + LDAP re-init + test data. Hard-refused with <code>--from-ghcr</code>.</td>
 </tr>
 <tr>
 <td><code>publish [--tag &lt;tag&gt;] [--check]</code></td>
-<td>2</td>
-<td>Retag local <code>cloack/&lt;svc&gt;</code> as <code>ghcr.io/...:&lt;tag&gt;</code> + <code>:sha-&lt;short&gt;</code> and push. Refuses dirty working tree.</td>
+<td>Retag local <code>cloack/&lt;svc&gt;:latest</code> as <code>ghcr.io/...:&lt;tag&gt;</code> + <code>:sha-&lt;short&gt;</code> and push. Refuses a dirty tree.</td>
 </tr>
 <tr>
 <td><code>promote [--from &lt;tag&gt;] [--rc &lt;label&gt;] [--check] [--rollback &lt;rc-tag&gt;] [--skip-verify]</code></td>
-<td>3</td>
 <td>Pull <code>:dev</code>, run <code>verify-deploy.sh</code>, retag + push <code>:prod</code> + <code>:rc-&lt;UTC&gt;</code>.</td>
 </tr>
 <tr>
 <td><code>ldap-reinit [dev]</code></td>
-<td>3, 4</td>
-<td>Re-initialise OpenLDAP from migration LDIF, force sync with ColdFront.</td>
+<td>Re-initialise OpenLDAP (restores <code>migration/ldap-*.cat</code> when present), force sync with ColdFront.</td>
 </tr>
 <tr>
-<td><code>slurm {create\|start\|stop\|restart\|status\|test-jobs\|ansible\|prod-sim}</code></td>
-<td>varies</td>
-<td>Per-cluster Slurm operations. <code>ansible all</code> regenerates the bare-metal scaffold.</td>
+<td><code>populate [dev] [--partitions ...] [--with-billing]</code></td>
+<td>Departments, rates, standard partitions / QoS, fake billing data.</td>
 </tr>
 <tr>
-<td><code>helpdesk {start\|populate\|restart\|stop}</code></td>
-<td>1, 2</td>
-<td>Helpdesk container lifecycle.</td>
+<td><code>slurm {create / start / stop / restart / rebuild / destroy / status / test-jobs / ansible / prod-sim}</code></td>
+<td>Per-cluster Slurm operations; <code>ansible all</code> regenerates the bare-metal scaffold.</td>
+</tr>
+<tr>
+<td><code>helpdesk {start / stop / restart / status / destroy / log / populate}</code></td>
+<td>Helpdesk lifecycle. <code>restart</code> re-stages the code from the repo and migrates. <code>populate</code> seeds sample queues and hundreds of synthetic tickets: only for a throwaway installation.</td>
+</tr>
+<tr>
+<td><code>ai {pull / start / stop / status / log}</code></td>
+<td>Local LLM engine: download the model, run the container.</td>
+</tr>
+<tr>
+<td><code>mta {create / start / stop / restart / status / log}</code></td>
+<td>Postfix relay (<code>my_cluster-mta</code>): outbound smart-host relay or legacy inbound intake.</td>
+</tr>
+<tr>
+<td><code>ood {start / stop / seed-apps / seed-config / ...}</code></td>
+<td>Open OnDemand: builds, seeds the host-bound app tree and config dir, starts.</td>
+</tr>
+<tr>
+<td><code>wekafs-sync</code></td>
+<td>Append <code>WEKAFS_*</code> from <code>wekafs.env</code> into <code>.env</code> and recreate coldfront + qcluster.</td>
+</tr>
+<tr>
+<td><code>clean [--all]</code></td>
+<td>Remove the stack's containers, volumes and images; <code>--all</code> also prunes orphans of other projects on the host.</td>
+</tr>
+<tr>
+<td><code>test [module]</code>, <code>test deploy</code>, <code>test status</code></td>
+<td>Django unit tests, the 16-phase integration test, container health.</td>
+</tr>
+<tr>
+<td><code>log [service]</code></td>
+<td>Tail a service's logs.</td>
 </tr>
 <tr>
 <td><code>doctor</code></td>
-<td>any</td>
-<td>Read-only validation of <code>.env</code> ↔ realm config ↔ TLS cert ↔ Host header drift.</td>
+<td>Read-only validation of <code>.env</code>, realm config, TLS cert and Host-header drift.</td>
+</tr>
+<tr>
+<td><code>bash scripts/backup.sh</code></td>
+<td><code>pg_dumpall</code> + <code>slapcat</code> + <code>mysqldump</code> into <code>${BASE_DATA}/backup/</code>, 14-day retention (daily 00:30 via cron on Linux hosts).</td>
 </tr>
 </tbody>
 </table>
@@ -438,12 +429,12 @@ in Mode A.</p>
 </tr>
 <tr>
 <td><code>ansible/slurm-client/playbook.yml</code></td>
-<td>Same build stack plus slurmd on every compute node and login node</td>
+<td>Same build stack plus slurmd on every compute node and login node (Rocky 9 or Debian-family)</td>
 <td>New compute node, or after <code>slurm-server</code></td>
 </tr>
 <tr>
 <td><code>ansible/slurm-verify/playbook.yml</code></td>
-<td>Read-only 14-check pre-flight (OS, UIDs, munge, Slurm version, SPANK, ports, SSSD TTL, PAM stack). No changes applied.</td>
+<td>Read-only pre-flight (OS, UIDs, munge, Slurm version, SPANK, ports, SSSD TTL, PAM stack). No changes applied.</td>
 <td>Any time you want a confidence check</td>
 </tr>
 <tr>
@@ -453,57 +444,88 @@ in Mode A.</p>
 </tr>
 <tr>
 <td><code>cloack-deploy</code> RPM</td>
-<td>Thin packaging of the Ansible tree + a <code>cloack-deploy</code> CLI wrapper</td>
+<td>The Ansible tree + a <code>cloack-deploy</code> CLI; per-cluster inventories fetched from the portal API</td>
 <td>Sites that prefer an RPM-driven flow over <code>ansible-playbook</code> directly</td>
 </tr>
 </tbody>
 </table>
-<h3>Environment variables you will set on Stage 3 / Stage 4 hosts</h3>
-<p>Phase 2 (commit <code>a525237</code>) added multi-FQDN reverse-proxy support. The
-following env vars are <strong>opt-in</strong>; leave them empty in single-FQDN dev
-to keep current behaviour.</p>
+<p>The static files behind the scaffold live in
+<code>coldfront/custom/plugins/cloack_sync/ansible_scaffold_data.py</code>; edit under
+<code>ansible/</code>, then <code>python3 scripts/regen_ansible_scaffold.py</code>.</p>
+<h3>Environment variables you will set on server hosts</h3>
+<p>Root <code>.env</code> is written by <code>init</code> and read by compose; <code>coldfront.env</code>
+and <code>helpdesk.env</code> are host-local, gitignored (skip-worktree on server
+hosts). An <code>env_file</code> change needs a container <strong>recreate</strong>, not a
+restart.</p>
 <table>
 <thead>
 <tr>
 <th>Variable</th>
+<th>Where</th>
 <th>Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>CLOACK_PUBLIC_HOST</code></td>
-<td>The portal FQDN (<code>portal.hpc.example.edu</code>). Used everywhere.</td>
+<td><code>CLOACK_ENV</code></td>
+<td><code>coldfront.env</code></td>
+<td><code>prod</code> arms the production guards: dev compose refused, Delete All hidden, <code>manage_config</code> cannot be enabled, Service Health container actions disabled.</td>
 </tr>
 <tr>
-<td><code>KEYCLOAK_HOSTNAME_OrgA</code></td>
-<td>OrgA realm FQDN (<code>auth.hpc.example.edu</code>). Empty → single-FQDN.</td>
+<td><code>CLOACK_TEST_BANNER</code></td>
+<td><code>coldfront.env</code></td>
+<td><code>True</code> shows the yellow TEST ENVIRONMENT strip on a host that keeps <code>CLOACK_ENV=prod</code> (validation hosts).</td>
 </tr>
 <tr>
-<td><code>KEYCLOAK_HOSTNAME_ORGB</code></td>
-<td>OrgB realm FQDN. Empty → single-FQDN.</td>
+<td><code>CLOACK_SUPERUSERS</code></td>
+<td><code>.env</code></td>
+<td>Usernames promoted to Django superuser when they appear in LDAP <code>cn=admin</code>.</td>
 </tr>
 <tr>
-<td><code>KC_HOSTNAME</code></td>
-<td>Empty in multi-FQDN; Keycloak uses inbound Host instead.</td>
+<td><code>CLOACK_DOMAIN_OrgA</code>, <code>CLOACK_DOMAIN_ORGB</code></td>
+<td><code>.env</code></td>
+<td>Edge model: one host per service and org (<code>portal.</code>, <code>auth.</code>, <code>helpdesk.</code>, <code>ood.</code> under each domain), routed by the in-stack NPM; drives realm selection on the portal and helpdesk login paths.</td>
 </tr>
 <tr>
-<td><code>KC_HOSTNAME_BACKCHANNEL_DYNAMIC</code></td>
-<td><code>true</code> in multi-FQDN deploys (trust <code>X-Forwarded-Host</code>).</td>
+<td><code>CLOACK_PUBLIC_HOST</code>, <code>KEYCLOAK_HOSTNAME_*</code>, <code>KC_HOSTNAME_BACKCHANNEL_DYNAMIC</code></td>
+<td><code>.env</code></td>
+<td>Public FQDNs behind the reverse proxy; Keycloak trusts <code>X-Forwarded-Host</code> when the backchannel flag is <code>true</code>.</td>
 </tr>
 <tr>
-<td><code>HELPDESK_SCRIPT_NAME</code></td>
-<td><code>/helpdesk</code> in prod to route <code>portal.hpc.example.edu/helpdesk</code> to the helpdesk container. Empty → no prefix.</td>
+<td><code>KEYCLOAK_FEDERATION_CONVERGE_ENABLED</code></td>
+<td><code>coldfront.env</code></td>
+<td>Arms the hourly re-federation of broker-local campus ID rows (recreate qcluster).</td>
 </tr>
 <tr>
-<td><code>CLOACK_IMAGE_TAG</code></td>
-<td>Auto-set by <code>--from-ghcr</code>; override only for rollback (<code>sha-abc123</code> or <code>rc-YYYY-MM-DD-HHMM</code>).</td>
+<td><code>HELPDESK_INTERNAL_TOKEN</code></td>
+<td><code>.env</code></td>
+<td>Shared secret of the ColdFront → helpdesk ticket bridge (both containers).</td>
 </tr>
 <tr>
-<td><code>CLOACK_FROM_GHCR</code></td>
-<td>Auto-set by <code>--from-ghcr</code>; do not set by hand.</td>
+<td><code>OOD_HOST_REGEX</code>, <code>OOD_GRAFANA_URL</code>, <code>OOD_ALLOWLIST_PATH</code></td>
+<td><code>.env</code></td>
+<td>OnDemand node proxy for Interactive Apps (no quotes), Grafana job-stats target, Files allowlist.</td>
+</tr>
+<tr>
+<td><code>OOD_MEM_LIMIT</code>, <code>AI_MEM_LIMIT</code>, <code>SLURMRESTD_MEM_LIMIT</code></td>
+<td><code>.env</code></td>
+<td>Container memory caps (applied on recreate / <code>slurm start</code>).</td>
+</tr>
+<tr>
+<td><code>MTA_MODE</code>, <code>MTA_RELAYHOST</code></td>
+<td><code>mta.env</code></td>
+<td><code>outbound</code> relay through the campus smart host, or legacy <code>inbound</code> intake.</td>
+</tr>
+<tr>
+<td><code>CLOACK_IMAGE_TAG</code>, <code>CLOACK_FROM_GHCR</code></td>
+<td>auto</td>
+<td>Set by <code>--from-ghcr</code>; override the tag only for a rollback.</td>
 </tr>
 </tbody>
 </table>
+<p>Never put <code>SLURM_CONF=&lt;host path&gt;</code> into <code>.env</code>: it is an <code>env_file</code> of
+the containers and the path does not exist inside them. For a host shell,
+<code>source scripts/loadenv.sh</code> resolves it.</p>
 <h2>Troubleshooting</h2>
 <table>
 <thead>
@@ -515,54 +537,54 @@ to keep current behaviour.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>keycloak-config Error... exit 5</code> on first deploy</td>
-<td><code>jq</code> could not index into an error response on <code>/auth/flows</code> (realm not imported yet)</td>
-<td>Already fixed in commit <code>cd35aad</code>; if reappears, check the <code>_GHCR_IMAGE_REWRITE_RE</code> regex hasn't been broken by a new image name pattern</td>
+<td>Every Slurm client on the host hangs 60 s with <code>s_p_parse_file: cannot stat file :</code></td>
+<td><code>SLURM_CONF=</code> (empty) exported from <code>.env</code> by a wholesale <code>set -a; . .env</code></td>
+<td><code>unset SLURM_CONF</code>, or load the env with <code>source scripts/loadenv.sh</code></td>
 </tr>
 <tr>
-<td><code>keycloak-config Error... exit 3</code> on first deploy</td>
-<td><code>jq</code> tried <code>ascii_downcase</code> on a null <code>displayName</code> (Keycloak default executions list)</td>
-<td>Fixed in <code>8443758</code> — re-pull the latest dev if you see this</td>
+<td>Containers recreated by hand come up with wrong secrets or paths</td>
+<td><code>source base/base.config</code> in the shell exported its <code>${VAR:-default}</code> fallbacks, which compose prefers over <code>.env</code></td>
+<td>Never source it before a manual compose; <code>unset</code> the <code>BASE_*</code>/<code>OIDC*</code>/<code>LDAP_*</code>/<code>*_PASS*</code> variables and <code>--force-recreate</code> only the affected services</td>
 </tr>
 <tr>
-<td><code>curl: URL malformed</code> in configure-keycloak.sh</td>
-<td>Copied flow has a literal space in its sub-flow alias (<code>passwordless-browser forms</code>)</td>
-<td>Fixed in <code>d0dfafe</code> — <code>${forms_sub_alias// /%20}</code> URL-encodes the space</td>
+<td><code>start.sh</code> aborts with "dev compose is forbidden on this host"</td>
+<td><code>CLOACK_ENV=prod</code> and a <code>dev</code> argument (or the deploy auto-switch)</td>
+<td>Correct: server hosts use the base compose; <code>CLOACK_FORCE_DEV=1</code> only on a throwaway box</td>
 </tr>
 <tr>
-<td><code>IntegrityError: null value in column "totp_enrolled"</code></td>
-<td>Postgres trigger <code>tr_auth_user_after_insert_fn</code> was created before the <code>totp_enrolled</code> column existed</td>
-<td>Fixed in <code>1bffe47</code> — drop the trigger and re-run <code>ldap_sync_postgres_run_it_once.py</code></td>
+<td><code>/home</code> or <code>/scratch</code> writes from <code>sync_ldap</code> vanish</td>
+<td>Containers were created from <code>docker-compose-dev.yml</code> (named volumes) on a server host</td>
+<td><code>verify-deploy.sh</code> check 15 flags it; recreate from the base compose, then <code>scripts/heal_scratch_links.sh --all</code></td>
 </tr>
 <tr>
-<td>Themes do not apply on first deploy (default Keycloak look)</td>
-<td><code>configure_realm_themes</code> ran before <code>import_keycloak_providers</code> so PUT returned 404 silently</td>
-<td>Fixed in <code>b7efa22</code> — re-runs the idempotent block after realms are imported</td>
+<td>Parented Slurm account creates fail from the coldfront container</td>
+<td>The CLI shim cannot find the controller container</td>
+<td>Export <code>SLURMCTLD_CONTAINER=&lt;cluster&gt;-slurmctld</code> or let discovery match <code>(^|-)slurmctld$</code>; on bare-metal hosts <code>SLURM_BIN</code> is empty by design</td>
 </tr>
 <tr>
 <td><code>publish: working tree is dirty</code></td>
-<td>You have uncommitted source changes</td>
-<td>Commit them, or use <code>./start.sh publish --tag wip-&lt;something&gt;</code> to bypass the SHA-tag promise</td>
+<td>Uncommitted source changes</td>
+<td>Commit them, or <code>./start.sh publish --tag wip-&lt;something&gt;</code> to bypass the SHA-tag promise</td>
 </tr>
 <tr>
 <td><code>deploy --from-ghcr is not allowed</code></td>
-<td>Stages 3 and 4 must never populate test data</td>
-<td>Use <code>./start.sh start --from-ghcr &lt;tag&gt;</code> plus <code>./start.sh ldap-reinit</code> instead</td>
+<td>Validation and production hosts must never be populated with test data</td>
+<td><code>./start.sh start --from-ghcr &lt;tag&gt;</code> plus <code>./start.sh ldap-reinit</code></td>
 </tr>
 <tr>
 <td><code>publish: no GHCR auth in ~/.docker/config.json</code></td>
 <td>Builder PAT not loaded</td>
-<td><code>echo $GHCR_BUILDER_PAT \| docker login ghcr.io -u &lt;user&gt; --password-stdin</code></td>
+<td>pipe <code>echo $GHCR_BUILDER_PAT</code> into <code>docker login ghcr.io -u &lt;user&gt; --password-stdin</code></td>
 </tr>
 <tr>
 <td><code>--from-ghcr: docker-compose-ghcr.yml not found</code></td>
-<td>Phase 0 file missing in the repo on this host</td>
-<td>Pull latest dev (<code>52b709f</code> introduced the file)</td>
+<td>File missing on this host</td>
+<td>Pull the latest <code>dev</code></td>
 </tr>
 <tr>
 <td><code>pgrep -f "start.sh deploy"</code> loop never exits</td>
-<td>The waiter's own command line contains the pattern, deadlock</td>
-<td>Track <code>$DEPLOY_PID</code> directly with <code>wait $DEPLOY_PID</code>; see memory <code>feedback_pgrep_self_match_deadlock</code></td>
+<td>The waiter's own command line contains the pattern</td>
+<td>Track <code>$DEPLOY_PID</code> directly with <code>wait $DEPLOY_PID</code></td>
 </tr>
 <tr>
 <td>Slurm overlay still emits <code>cloack/&lt;svc&gt;</code> after <code>--from-ghcr</code></td>
@@ -570,64 +592,71 @@ to keep current behaviour.</p>
 <td>Re-run <code>./start.sh slurm create &lt;name&gt;</code> after exporting the var</td>
 </tr>
 <tr>
-<td><code>configure_realm_frontend_urls</code> did nothing visible</td>
-<td><code>KEYCLOAK_HOSTNAME_OrgA</code> / <code>_ORGB</code> are empty</td>
-<td>Set them in <code>.env</code> for multi-FQDN, or leave them empty for single-FQDN — the function is a no-op then by design</td>
-</tr>
-<tr>
 <td><code>kcadm.sh … PKIX path building failed</code> inside the keycloak container</td>
 <td>kcadm does not trust the self-signed cert on <code>:8443</code></td>
-<td>Use <code>--server http://localhost:8080</code> (internal listener) or <code>scripts/kcq.sh</code> from the host — see <code>admin-guide-cli.md</code> §3</td>
+<td>Use <code>--server http://localhost:8080</code>, or <code>scripts/kcq.sh</code> from the host; see <code>admin-guide-cli.md</code> §3</td>
 </tr>
 <tr>
 <td>Hourly <code>Sync all users finished: … N users failed sync!</code></td>
-<td><code>ModelDuplicateException</code> on e-mail: a broker-created local <code>&lt;campus-id&gt;@&lt;domain&gt;</code> user holds the LDAP entry's e-mail</td>
-<td>Logins are affected (<code>email_in_use</code> on the portal form and SSH), and so are OnDemand and the LDAP-group → role mappers. Repair with <code>converge_keycloak_federation</code> and keep its hourly task armed — see <code>admin-guide-cli.md</code> §3</td>
+<td><code>ModelDuplicateException</code> on e-mail: a broker-created local <code>&lt;campus-id&gt;@&lt;domain&gt;</code> Keycloak user holds the LDAP entry's e-mail</td>
+<td>Logins fail with <code>email_in_use</code>; repair with <code>converge_keycloak_federation</code> and keep its hourly task armed; see <code>admin-guide-cli.md</code> §3</td>
 </tr>
 <tr>
 <td>OnDemand <code>Error -- can't find user for &lt;campus-id&gt;@&lt;domain&gt;</code></td>
 <td>The person's Keycloak row is the broker-local <code>&lt;campus-id&gt;@&lt;domain&gt;</code> one</td>
-<td><code>converge_keycloak_federation --user &lt;campus-id&gt;</code>, then the person logs out of OnDemand — see <code>admin-guide-cli.md</code> §3</td>
+<td><code>converge_keycloak_federation --user &lt;campus-id&gt;</code>, then the person logs out of OnDemand</td>
 </tr>
 <tr>
-<td>Pending jobs stuck in <code>Reason=InvalidQOS</code> right after a QOS pin / retirement</td>
+<td>OnDemand dashboard POSTs return 422 <code>InvalidAuthenticityToken</code></td>
+<td>Rails saw <code>http</code> while the browser came over <code>https</code></td>
+<td>The vhost sets <code>X-Forwarded-Ssl on</code> in OIDC mode; rebuild <code>ood</code> if the entrypoint is older</td>
+</tr>
+<tr>
+<td>Pending jobs stuck in <code>Reason=InvalidQOS</code> after a QOS pin / retirement</td>
 <td>Queued jobs keep the QOS they were submitted with</td>
-<td><code>scontrol update job &lt;id&gt; qos=&lt;new&gt; TimeLimit=&lt;same&gt;</code> — keep the time limit in the same command; see <code>admin-guide-cli.md</code> §5</td>
+<td><code>scontrol update job &lt;id&gt; qos=&lt;new&gt; TimeLimit=&lt;same&gt;</code>; see <code>admin-guide-cli.md</code> §5</td>
 </tr>
 <tr>
 <td>qcluster logs <code>cloack_sync: reactivated &lt;user&gt;@&lt;acct&gt;</code> every 15 min</td>
 <td>The user association still shows <code>MaxJobs</code>/<code>GrpJobs=0</code> after the sync's clear</td>
-<td><code>sacctmgr show assoc … WOPLimits</code> inventory — see <code>admin-guide-cli.md</code> §5</td>
+<td><code>sacctmgr show assoc … WOPLimits</code> inventory; see <code>admin-guide-cli.md</code> §5</td>
 </tr>
 <tr>
-<td>OrgB portal deep link (<code>/project/</code>, e-mail or helpdesk URL) lands on <code>auth.&lt;orga&gt;/realms/orga</code></td>
-<td><code>LOGIN_URL</code> hardcoded to the OrgA realm (only the <code>/</code> picker was host-neutral); the OIDC <code>SessionRefresh</code> also refreshed against the OrgA realm and logged OrgB users out after 1 h</td>
-<td>Fixed in <code>37c8c1ec</code> (host-aware <code>/oidc/authenticate/</code> + realm-aware <code>ArchSessionRefresh</code>) — <code>git pull</code> + <code>docker restart coldfront qcluster</code>; root <code>.env</code> must carry <code>CLOACK_DOMAIN_ORGB</code></td>
+<td>Portal deep link on the second org's host lands on the first org's realm</td>
+<td>Root <code>.env</code> lacks <code>CLOACK_DOMAIN_*</code></td>
+<td>Set both domains; <code>docker restart coldfront qcluster</code></td>
 </tr>
 <tr>
-<td>Keycloak logs <code>Expected String but attribute 'cn' has more values</code> for <code>cn=&lt;group&gt;,ou=Groups</code></td>
-<td>Migration-era group entries keep the PI's real name as a second <code>cn</code> value</td>
-<td>Harmless; one-off <code>ldapmodify delete: cn</code> — recipe in <code>admin-guide-cli.md</code> §2</td>
+<td>Keycloak logs <code>Expected String but attribute 'cn' has more values</code> for a group</td>
+<td>Migration-era group entries keep the PI's real name as a second <code>cn</code></td>
+<td>Harmless; one-off <code>ldapmodify delete: cn</code>, recipe in <code>admin-guide-cli.md</code> §2</td>
+</tr>
+<tr>
+<td>Node <code>IDLE+COMPLETING+NOT_RESPONDING</code>, slurmd <code>Deferring ... connections</code></td>
+<td>An epilog / prolog drop-in made an unbounded call off-node</td>
+<td>Drain the node, kill the stuck prolog/epilog/squeue, restart slurmd; keep <code>PrologEpilogTimeout=120</code> and timeouts in the drop-ins</td>
 </tr>
 </tbody>
 </table>
 <h2>Where to go next</h2>
 <ul>
-<li><code>docs/admin-guide-cli.md</code> — day-to-day CLI and
+<li><code>docs/admin-guide-cli.md</code>: day-to-day CLI and
   troubleshooting: users/LDAP/Keycloak, Slurm sync, billing, stack health.</li>
-<li><code>docs/ansible-remote-deploy.md</code> — full
+<li><code>docs/ansible-remote-deploy.md</code>: full
   bare-metal Ansible deploy guide, RPM install, idempotent re-runs.</li>
-<li><code>docs/break-glass-admin.md</code> — <code>/admin/</code>
+<li><code>docs/break-glass-admin.md</code>: <code>/admin/</code>
   break-glass rotation (vault, audit log, alerts).</li>
-<li><code>slurm/README.md</code> — full Slurm config
-  reference (partitions, QOS, weekly cap, CLI tools).</li>
-<li><code>slurm/ANSIBLE.md</code> — bare-metal Slurm install
-  via the <code>cloack-deploy</code> RPM path.</li>
-<li><code>docs/deploy-pipeline-4-stages.md</code> — the design plan behind
-  the matrix on this page; read when the model needs to evolve.</li>
-<li><a href="superuser.html"><code>superuser.md</code></a> — ColdFront / Django admin side
-  (drain nodes, approve allocations, qcluster audit, OTP resets).</li>
-<li><a href="index.html"><code>README.md</code></a> — the role index.</li>
+<li><code>slurm/README.md</code>: full Slurm config
+  reference (partitions, QOS, spend cap, CLI tools).</li>
+<li><code>slurm/ANSIBLE.md</code>: bare-metal Slurm install
+  via the <code>cloack-deploy</code> RPM path, Debian / DGX Spark notes.</li>
+<li><code>ondemand/README.md</code>: OnDemand edge
+  routes, Interactive Apps, Job Stats, host-bound app tree.</li>
+<li><code>docs/deploy-pipeline-4-stages.md</code>: the design document behind the
+  pipeline table; read when the model needs to evolve.</li>
+<li><a href="superuser.html"><code>superuser.md</code></a>: ColdFront / Django admin side
+  (reviews, nodes, users, qcluster audit, OTP resets).</li>
+<li><a href="index.html"><code>README.md</code></a>: the role index.</li>
 </ul></div>
       </main>
     </div>

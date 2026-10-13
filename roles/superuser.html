@@ -70,26 +70,57 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <p>You have <code>is_superuser=True</code> on your Django <code>User</code>. You typically also
 belong to the LDAP <code>cn=admin</code> group (cluster sudoers) and the
 <code>helpdesk-admin</code> group (helpdesk privileges). You approve / deny
-allocations, drain or resume Slurm nodes, reset stale OTP credentials,
-rotate the local <code>/admin/</code> break-glass password, and read the qcluster
-audit log for every async task.</p>
+projects, allocations, storage and class requests, drain or resume Slurm
+nodes, manage users and PIs, reset stale OTP credentials, rotate the
+local <code>/admin/</code> break-glass password, and read the qcluster audit log for
+every async task.</p>
 <p>You typically also operate the cluster (deploy via <code>start.sh</code>, manage
-Ansible bundles) — for that side read <a href="admin.html"><code>admin.md</code></a>. For
+Ansible bundles): for that side read <a href="admin.html"><code>admin.md</code></a>. For
 helpdesk-side work see <a href="staff.html"><code>staff.md</code></a>. You authenticate via
-Entra Federation if you use a campus ID; if you are an <code>ext-*</code> user you use
+Entra federation if you use a campus ID; if you are an <code>ext-*</code> user you use
 TOTP via the Keycloak account console (same as every other regular
 <a href="user.html"><code>user.md</code></a>).</p>
+<p>Staff who are not superusers get a subset of this through
+<code>StaffResourceAssignment</code>: <code>elevate_to_superuser</code> unlocks the review
+queues below (allocations, projects, storage, classes); cluster and
+affiliation scopes limit what they see.</p>
 <h2>Quick start</h2>
 <h3>1. Approve / deny an allocation request</h3>
-<pre><code>/admin/allocation/allocation/?status__name=New
-  → open the allocation
-  → review IO, Project Storage, Weekly Cap
-  → action &quot;Approve&quot; or &quot;Deny&quot; (deny requires a reason)
+<pre><code>Admin Tools → Allocation Requests   (/allocation/request-list/)
+  → &quot;Approve&quot; on the row, or open the allocation
+/allocation/&lt;id&gt;/
+  → review IO Number(s), spend cap, QoS pins, SubProject Scheme card
+  → &quot;Approve&quot; / &quot;Deny&quot; (the deny reason is saved to the allocation description)
 </code></pre>
 <p>Approval triggers <code>on_allocation_activated</code>, which provisions the
-Slurm account hierarchy via REST in real time. ToS gate still applies:
-PI association is created only if they have accepted the current ToS.</p>
-<h3>1b. Delete an allocation (superuser only)</h3>
+Slurm account hierarchy in real time. The ToS gate still applies: a user
+association is created only for users who accepted the current ToS.</p>
+<p>Two gates on Approve:</p>
+<ul>
+<li><strong>Slurm account-name conflict</strong>: another live allocation of the same
+  project resolves to the same account name (a second allocation without
+  a SubProject suffix). Approve is disabled on the row and refused on
+  POST until you set the suffix on the <strong>SubProject Scheme</strong> card. Suffixes
+  are never assigned automatically.</li>
+<li><strong>Spend cap not set</strong> (<code>Weekly Cap ($)</code> = 0): the allocation activates,
+  but its account is held (<code>GrpSubmitJobs=0</code>) until the PI or you set a
+  cap or click <strong>No cap</strong> on Allocation Detail.</li>
+</ul>
+<h3>1b. Review a new project, a storage request, a class request</h3>
+<pre><code>Admin Tools → Project Reviews   (/project/project-review-list)
+  → Activate | Request changes (feedback required; the PI resubmits by saving the project)
+    | Deny (archived with the reason; the PI may Reopen &amp; resubmit)
+  → Delete: superusers only, for projects that were never activated
+Admin Tools → Storage Review    (/staff/storage-review/)
+  → Approve | Approve (override cap) | Deny; &quot;Edit Provisioned&quot; on the project card
+    sets the provisioned values directly
+Admin Tools → Class Requests    (/staff/class-review/)
+  → resolve the department (&quot;Other&quot; needs Create or Map), fix the course code if needed,
+    Approve (creates project, allocation and the &lt;code&gt;-ext-&lt;campus-id&gt; accounts) | Request changes | Deny
+</code></pre>
+<p>Project Reviews also lists <strong>Billing Changes Pending Review</strong> (an IO
+Number changed on Update Project): "Approve Changes" clears the flag.</p>
+<h3>1c. Delete an allocation (superuser only)</h3>
 <pre><code>/project/&lt;id&gt;/      → trash icon on the allocation row
 /allocation/&lt;id&gt;/   → &quot;Delete Allocation…&quot; card
   → confirmation page lists what goes with it
@@ -97,49 +128,84 @@ PI association is created only if they have accepted the current ToS.</p>
   → &quot;Confirm — Delete Allocation&quot;
 </code></pre>
 <p>Any status can be deleted <strong>except the default project's allocation</strong> (its
-bare <code>&lt;pi&gt;</code> Slurm account belongs to the promote / demote flow). Staff — even
-with <code>elevate_to_superuser</code> — and PIs do not get the button; they click
+bare <code>&lt;pi&gt;</code> Slurm account belongs to the promote / demote flow). Staff, even
+with <code>elevate_to_superuser</code>, and PIs do not get the button; they click
 <strong>Request Deletion</strong> on Allocation Detail instead, which opens a helpdesk
 ticket in their name and shows a "Deletion requested … ticket #N" alert on
 the allocation (with the Delete button for you). Deleting writes an admin
 log entry and resolves that ticket. The orphaned Slurm account is removed by
 the next scheduled full sync (≤15 min); jobs still running under it block
-that removal — check <code>squeue -A &lt;account&gt;</code> first.</p>
+that removal: check <code>squeue -A &lt;account&gt;</code> first.</p>
 <h3>2. Drain / resume a Slurm node</h3>
-<pre><code>/admin/cloack_sync/slurmnode/
-  → select node → action &quot;Drain selected nodes&quot; / &quot;Resume&quot;
-  → reason is logged on the SlurmNode row
+<pre><code>Clusters → All Clusters → &lt;cluster&gt;   (/cluster/)
+  → node table → &quot;Drain&quot; (reason required) / &quot;Resume&quot;
 </code></pre>
-<p>Behind the scenes this calls <code>slurmrestd</code> (or <code>scontrol</code> as fallback)
-on the right cluster. The action is also surfaced on the live
-<code>/cluster/&lt;id&gt;/</code> page for staff with the cluster in their scope.</p>
-<h3>3. Reset a stale OTP credential</h3>
+<p>The action goes to <code>slurmrestd</code> for the right cluster (CLI fallback on
+container clusters) and is available to superusers and to staff with that
+cluster in their Cluster Scope. Django Admin › Slurm Clusters offers the
+cluster-level actions instead: Deploy / Stop / Restart / Build images
+(container clusters), Apply shares, Import from slurmrestd, Update from
+slurmrestd, Check drift.</p>
+<h3>3. Manage users and PIs</h3>
+<pre><code>Admin Tools → Manage Users   (/user/staff-manage-users/)
+  → toggle PI, clear a pending PI request, assign Cluster / Affiliation scope
+Admin Tools → Promote to PI  (/user/staff-promote-pi/)
+Admin Tools → Import Users   (/billing/import-users/)
+</code></pre>
+<ul>
+<li><strong>Promote</strong> creates the default project (in the primary department the
+  user chose), its scavenger allocation, the LDAP PI group and the Slurm
+  account. <strong>Demote</strong> (the same toggle, with a confirm dialog) tears all
+  of that down again (project archived, allocations expired, bare account
+  and LDAP group removed, shell recomputed; home and scratch kept) and is
+  refused while the PI owns non-archived paid projects. Flipping <code>is_pi</code>
+  in Django Admin does not run the teardown.</li>
+<li><strong>Import Users</strong> handles CSV imports (new accounts with reset e-mails),
+  LDIF migration imports with a duplicate-resolution preview, an
+  approved class from a roster (course mode), <strong>Export Users</strong> CSV, and
+  course-account teardown.</li>
+<li><strong>Login shell</strong>: <code>/bin/bash</code> only for admins and for users sponsored by
+  a PI who accepted the ToS; the per-user "Disable login shell" checkbox
+  on the profile forces <code>/bin/false</code> through every sync.</li>
+<li><strong>Delete All</strong> on Manage Users exists only on hosts running with
+  <code>CLOACK_ENV=dev</code>.</li>
+</ul>
+<h3>4. Reset a stale OTP credential</h3>
 <pre><code>docker exec keycloak bash -c '/opt/keycloak/bin/kcadm.sh ...'
 </code></pre>
 <p>See the recipe in <code>keycloak/README.md</code>
-"Clear a stale OTP credential" — it requires:</p>
+"Clear a stale OTP credential". It requires:</p>
 <ul>
 <li><code>kcadm config credentials</code> once per session (writes
   <code>/tmp/kcadm.config</code>).</li>
 <li><code>kcadm get users -q username=$USER</code> to fetch the user id.</li>
 <li><code>kcadm delete users/$UID/credentials/&lt;cred-id&gt;</code> to drop the OTP row.</li>
 </ul>
-<p>Alternative — force the user to re-enrol on their next login:</p>
+<p>Alternative, force the user to re-enrol on their next login:</p>
 <pre><code class="language-bash">kcadm update users/$UID --config /tmp/kcadm.config -r orga \
   -s 'requiredActions=[&quot;CONFIGURE_TOTP&quot;]'
 </code></pre>
-<h3>4. Rotate the break-glass <code>/admin/</code> password</h3>
+<h3>5. Rotate the break-glass <code>/admin/</code> password</h3>
 <pre><code class="language-bash">bash scripts/rotate-admin-password.sh
 </code></pre>
-<p>Generates a 32-char password, applies it via <code>manage.py changepassword</code>
+<p>Generates a 32-char password, applies it via <code>changepassword</code>
 inside the coldfront container, appends an entry to the gitignored
 audit log, and prints the password once for paste into the team vault.
 See <code>docs/break-glass-admin.md</code> for the
 full runbook (vault location, quarterly rotation cadence,
 <code>admin_login_alert_task</code> alert wiring).</p>
-<h3>5. Read the qcluster audit trail</h3>
+<h3>6. Maintenance mode</h3>
+<p>Admin → <strong>Site Configuration</strong> → Maintenance: <code>maintenance_mode</code> shows the
+announcement banner (message + severity) on the portal and every page;
+<code>maintenance_hide_actions</code> hides the login buttons and the helpdesk card
+on the landing page; <code>maintenance_lockout</code> serves a 503 page to everyone
+who is not staff (admins keep signing in through <code>/admin/</code> and the SSO
+paths, healthchecks and the <code>/api/v1/maintenance/</code> poll stay open). The
+three toggles are independent.</p>
+<h3>7. Read the qcluster audit trail</h3>
 <pre><code>/admin/django_q/task/
 /admin/?app=admin&amp;model=logentry   → Home → Administration → Log entries
+Admin Tools → Audit Trail          (/staff/audit-trail/)
 </code></pre>
 <p>Every <code>async_task()</code> call uses the <code>task_completion_hook</code> so the
 admin LogEntry table records when each scheduled task ran, success or
@@ -158,7 +224,7 @@ failure, duration, and result snippet.</p>
 <tr>
 <td><code>sync-ldap-daily</code></td>
 <td>02:00 daily</td>
-<td>Full LDAP sync (PIs, members, groups, home dirs).</td>
+<td>Full LDAP sync (PIs, members, groups, home dirs, scratch and project symlinks, login shells).</td>
 </tr>
 <tr>
 <td><code>sync-slurm</code></td>
@@ -168,12 +234,27 @@ failure, duration, and result snippet.</p>
 <tr>
 <td><code>collect-sacct-periodic</code></td>
 <td>every 15 min</td>
-<td>Pull completed jobs from sacct into <code>SlurmJob</code>.</td>
+<td>Pull completed jobs into <code>SlurmJob</code>, 1-day lookback (shallow).</td>
+</tr>
+<tr>
+<td><code>collect-sacct-deep</code></td>
+<td>02:45 daily</td>
+<td>Same import over a 7-day window; heals late accounting updates.</td>
 </tr>
 <tr>
 <td><code>check-core-hours-reset</code></td>
 <td>01:00 daily</td>
-<td>Trigger scheduled period resets on allocations.</td>
+<td>Zero the ColdFront usage gauges on the scheduled reset date (never touches Slurm).</td>
+</tr>
+<tr>
+<td><code>reconcile-overdue-io-pauses</code></td>
+<td>04:15 daily</td>
+<td>Apply the overdue-invoice pause once the grace window elapsed; status changes reconcile immediately.</td>
+</tr>
+<tr>
+<td><code>flag-ended-classes</code></td>
+<td>04:30 daily</td>
+<td>Mark classes past their end date as Ended and open one teardown ticket each.</td>
 </tr>
 <tr>
 <td><code>cleanup-task-queue</code></td>
@@ -186,17 +267,34 @@ failure, duration, and result snippet.</p>
 <td>Mirror Keycloak TOTP enrolment state into <code>UserProfile.totp_enrolled</code>.</td>
 </tr>
 <tr>
+<td><code>converge-keycloak-federation</code></td>
+<td>hourly :40</td>
+<td>Re-federate broker-local campus ID Keycloak rows; returns SKIP unless <code>KEYCLOAK_FEDERATION_CONVERGE_ENABLED=True</code>.</td>
+</tr>
+<tr>
 <td><code>refresh-slurm-jwt</code></td>
 <td>every 6 h (:17)</td>
-<td>Re-issue the slurmrestd JWT to <code>/etc/slurm/slurm_jwt.token</code>.</td>
+<td>Re-issue the slurmrestd JWT (file + <code>SlurmCluster.jwt_token</code>).</td>
+</tr>
+<tr>
+<td><code>renew-service-api-tokens</code></td>
+<td>03:00 daily</td>
+<td>Slide the created date of the service API tokens so the helpdesk's key never expires.</td>
 </tr>
 <tr>
 <td><code>sync-bare-metal-topology</code></td>
 <td>every 10 min</td>
-<td><code>import_slurm_cluster --update</code> per bare-metal cluster — Service Health reflects newly-added nodes within 10 min.</td>
+<td><code>import_slurm_cluster --update</code> per bare-metal cluster (nodes, partitions, usage reset period).</td>
+</tr>
+<tr>
+<td><code>rotate-admin-log</code></td>
+<td>monthly</td>
+<td>Archive, then purge, admin log entries older than the retention window.</td>
 </tr>
 </tbody>
 </table>
+<p>Adding or changing a task needs <code>docker restart coldfront qcluster</code>:
+the worker caches the task module at start.</p>
 <h3>LDAP privilege groups (per affiliation tree)</h3>
 <table>
 <thead>
@@ -208,32 +306,34 @@ failure, duration, and result snippet.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>cn=admin,ou=Groups,ou=orga</code></td>
+<td><code>cn=admin,ou=Groups,ou=&lt;aff&gt;</code></td>
 <td>reserved</td>
-<td>Cluster sudoers; <code>sudo</code> on every Slurm node. Also auto-imports as Django <code>is_staff=True</code> via <code>seed_initial_data.sync_admin_group_to_is_staff</code>.</td>
+<td>Cluster sudoers; <code>sudo</code> on every Slurm node. Members are imported as Django <code>is_staff=True</code> + the "Cluster (LDAP admin)" group at first deploy.</td>
 </tr>
 <tr>
-<td><code>cn=helpdesk-admin,ou=Groups,ou=orga</code></td>
+<td><code>cn=helpdesk-admin,ou=Groups,ou=&lt;aff&gt;</code></td>
 <td>per affiliation</td>
 <td>Helpdesk admin (manage queues, change ticket status, edit categories).</td>
 </tr>
 <tr>
-<td><code>cn=helpdesk-staff,ou=Groups,ou=orga</code></td>
+<td><code>cn=helpdesk-staff,ou=Groups,ou=&lt;aff&gt;</code></td>
 <td>per affiliation</td>
 <td>Helpdesk staff (work tickets, classify, reply).</td>
 </tr>
 <tr>
 <td>Cluster (LDAP admin) Django Group</td>
 <td>n/a</td>
-<td>Mirrors <code>cn=admin</code> membership for the Django side. Manage at <code>/admin/auth/group/</code>.</td>
+<td>Source of <code>cn=admin</code> membership: manage at <code>/admin/auth/group/</code>; the <code>m2m_changed</code> signal publishes to LDAP and every sync reconciles.</td>
 </tr>
 <tr>
 <td><code>CLOACK_SUPERUSERS</code> env var</td>
 <td>n/a</td>
-<td>Comma-separated usernames auto-promoted to <code>is_superuser=True</code> when they land in <code>cn=admin</code>.</td>
+<td>Comma-separated usernames promoted to <code>is_superuser=True</code> when they appear in <code>cn=admin</code>.</td>
 </tr>
 </tbody>
 </table>
+<p><code>User.is_staff</code> / <code>is_superuser</code> are decoupled from <code>cn=admin</code>: toggling
+them never changes LDAP.</p>
 <h3>Cluster Scope + Affiliation Scope (delegated staff admin)</h3>
 <table>
 <thead>
@@ -247,7 +347,7 @@ failure, duration, and result snippet.</p>
 <tr>
 <td>Cluster Scope</td>
 <td><code>Resource</code> (type Cluster)</td>
-<td>Drain / resume nodes, view cluster detail, regenerate the per-cluster Ansible bundle</td>
+<td>Drain / resume nodes, view cluster detail, fetch the per-cluster Ansible bundle</td>
 </tr>
 <tr>
 <td>Affiliation Scope</td>
@@ -257,54 +357,95 @@ failure, duration, and result snippet.</p>
 <tr>
 <td><code>elevate_to_superuser</code></td>
 <td>bool</td>
-<td>Lets a non-superuser staff approve / deny allocations within their scope</td>
+<td>Lets a non-superuser staff approve / deny allocations, projects, storage and class requests within their scope</td>
 </tr>
 </tbody>
 </table>
-<h3>Common Django Admin actions</h3>
+<h3>Per-allocation controls on Allocation Detail</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Who</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Weekly Cap ($)</code> / <code>Weekly Cap (SU)</code> + <strong>No cap</strong></td>
+<td>PI, staff</td>
+<td>Spend cap on the account association; 0 = held, −1 = none</td>
+</tr>
+<tr>
+<td><code>QoS</code> / <code>DefaultQoS</code></td>
+<td>staff</td>
+<td>Pin the account's QoS list / default (condo, class, elevated GPU tier); blank = cluster default for the account class; enforced by every sync</td>
+</tr>
+<tr>
+<td>SubProject Scheme card</td>
+<td>staff, not on Active</td>
+<td>Set the account suffix (<code>&lt;pi&gt;_&lt;proj&gt;_A</code>); the only way to resolve an account-name conflict</td>
+</tr>
+<tr>
+<td>IO Assignment card</td>
+<td>staff, PI</td>
+<td>Pay links; the last pay link cannot be removed; paused / inactive IOs refused as new links</td>
+</tr>
+<tr>
+<td>Sync Now</td>
+<td>staff</td>
+<td>Immediate per-allocation Slurm sync</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Django Admin pages</h3>
 <table>
 <thead>
 <tr>
 <th>Path</th>
-<th>Action</th>
 <th>What it does</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>/admin/allocation/allocation/</code></td>
-<td>Approve / Deny</td>
-<td>Approves an allocation, fires real-time Slurm provisioning</td>
-</tr>
-<tr>
-<td><code>/admin/cloack_sync/slurmnode/</code></td>
-<td>Drain / Resume</td>
-<td>Slurm node state via REST</td>
-</tr>
-<tr>
 <td><code>/admin/cloack_sync/slurmcluster/</code></td>
-<td>Action "Action import from slurmrestd" / "Update from slurmrestd" / "Check drift"</td>
-<td>Mirror Slurm topology into ColdFront DB</td>
+<td>Topology, account defaults (usage seeds, hide-usage toggles), <code>manage_config</code>, actions Import / Update / Check drift</td>
+</tr>
+<tr>
+<td><code>/admin/cloack_sync/slurmpartition/</code></td>
+<td><code>is_available</code> (uncheck to hide a partition from Submit Job instead of deleting it; the topology import recreates deleted rows)</td>
+</tr>
+<tr>
+<td><code>/admin/cloack_sync/slurmqos/</code></td>
+<td>QoS role / affiliation / limits; <code>ensure_in_slurm</code> creates it in Slurm</td>
+</tr>
+<tr>
+<td><code>/admin/cloack_sync/allocationbilling/</code></td>
+<td><code>is_billable</code>, billing type; action Recalculate billing rules</td>
+</tr>
+<tr>
+<td><code>/admin/cloack_sync/slurmaccountusageperiod/</code></td>
+<td>Billing periods: mark Paid / Pending / Overdue</td>
+</tr>
+<tr>
+<td><code>/admin/cloack_sync/siteconfiguration/</code></td>
+<td>Theme, footer links, maintenance mode, overdue pause window, "No charge" mode</td>
+</tr>
+<tr>
+<td><code>/admin/cloack_sync/costcenter/</code></td>
+<td>IO Numbers, pause on a PI's behalf</td>
 </tr>
 <tr>
 <td><code>/admin/user/userprofile/</code></td>
-<td>Edit</td>
-<td>Set <code>is_pi</code>, <code>is_superuser</code>, <code>elevate_to_superuser</code>, <code>can_view_billing_stats</code></td>
+<td><code>is_pi</code>, <code>elevate_to_superuser</code>, primary department, login shell lock</td>
 </tr>
 <tr>
 <td><code>/admin/auth/group/</code> → "Cluster (LDAP admin)"</td>
-<td>Add member</td>
-<td>Publishes to LDAP <code>cn=admin</code> via the <code>m2m_changed</code> signal</td>
+<td><code>cn=admin</code> membership</td>
 </tr>
 <tr>
-<td><code>/admin/django_q/task/</code></td>
-<td>View</td>
-<td>Live scheduled task table</td>
-</tr>
-<tr>
-<td><code>/admin/?app=admin&amp;model=logentry</code></td>
-<td>View</td>
-<td>Audit trail (all qcluster + admin actions)</td>
+<td><code>/admin/django_q/task/</code>, Log entries</td>
+<td>Task table and audit trail</td>
 </tr>
 </tbody>
 </table>
@@ -320,57 +461,74 @@ failure, duration, and result snippet.</p>
 <tbody>
 <tr>
 <td>Allocation approved but Slurm account not created</td>
-<td>ToS not accepted by the PI, OR <code>on_allocation_activated</code> raised silently</td>
-<td>Check the qcluster Log entries; check <code>TOSAcceptance</code> rows; manual fallback: <code>docker exec coldfront python manage.py sync_slurm</code></td>
+<td>ToS not accepted by the PI, no pay IO (account frozen), or <code>on_allocation_activated</code> raised</td>
+<td>Check the Log entries and <code>TOSAcceptance</code>; <code>docker exec coldfront coldfront sync_slurm --dry-run</code> previews what the sync would do</td>
+</tr>
+<tr>
+<td>Approve button disabled on an allocation</td>
+<td>Slurm account-name conflict with another allocation of the project</td>
+<td>Set the SubProject suffix on the scheme card, then approve</td>
+</tr>
+<tr>
+<td>Users on a paid account cannot submit (<code>AssocGrpSubmitJobs</code>)</td>
+<td>Cap unset (0) or every pay IO paused</td>
+<td>Set a cap / No cap; resume the IO (Billing Management → IO Numbers shows all)</td>
 </tr>
 <tr>
 <td><code>/admin/</code> login alert email not received</td>
-<td><code>CLOACK_ADMIN_ALERT_EMAILS</code> not set in <code>.env</code>, OR recipient flagged the SMTP</td>
-<td>Set the env var; check <code>admin_login_alert_task</code> LogEntry for the dispatch result</td>
+<td><code>CLOACK_ADMIN_ALERT_EMAILS</code> not set in <code>.env</code>, or the recipient filtered it</td>
+<td>Set the env var; check the <code>admin_login_alert_task</code> LogEntry</td>
 </tr>
 <tr>
-<td><code>cn=admin</code> membership change not visible on login node</td>
-<td>SSSD cache; <code>sss_cache -E</code> runs at end of every <code>run_ldap_sync</code> but TTL = 60 s</td>
-<td>Wait one minute, or run <code>sss_cache -E</code> manually on the login node</td>
+<td><code>cn=admin</code> membership change not visible on a login node</td>
+<td>SSSD cache; <code>sss_cache -E</code> runs at the end of every sync, TTL 60 s</td>
+<td>Wait a minute, or run <code>sss_cache -E</code> on the node; an already-open shell keeps its old group list until re-login</td>
 </tr>
 <tr>
 <td>New user created but no UserProfile</td>
-<td>The Postgres trigger <code>tr_auth_user_after_insert_fn</code> is missing or out-of-date (e.g. <code>totp_enrolled</code> column added after trigger)</td>
-<td>Re-run <code>coldfront/init/ldap_sync_postgres_run_it_once.py</code>; see iter-4 fix <code>1bffe47</code></td>
+<td>The Postgres trigger <code>tr_auth_user_after_insert_fn</code> lacks a NOT NULL column added later</td>
+<td>Re-run <code>coldfront/init/ldap_sync_postgres_run_it_once.py</code>; ship new NOT NULL columns with the trigger + <code>SET DEFAULT</code> migration</td>
 </tr>
 <tr>
 <td>Scheduled task missing from qcluster</td>
-<td>django-q scheduler did not pick up the new schedule (entry added but qcluster not restarted)</td>
-<td><code>docker restart qcluster</code></td>
+<td>Schedule added but the worker not restarted</td>
+<td><code>docker restart coldfront qcluster</code></td>
 </tr>
 <tr>
 <td>OTP re-enrol flow does not prompt</td>
-<td>User does not have <code>CONFIGURE_TOTP</code> in their <code>requiredActions</code> and <code>defaultAction=true</code> only applies to new users</td>
-<td>Use the <code>kcadm update users</code> snippet from Quick start §3 to add the required action manually</td>
+<td>User has no <code>CONFIGURE_TOTP</code> required action</td>
+<td>Use the <code>kcadm update users</code> snippet from Quick start §4</td>
 </tr>
 <tr>
-<td><code>helpdesk-admin</code> LDAP membership changed but Django group did not</td>
-<td>The signal <code>_sync_helpdesk_ldap_groups</code> only fires on <code>m2m_changed</code> for <code>auth.User_groups</code> — the inverse direction does not auto-sync</td>
-<td>Run <code>coldfront python manage.py sync_ldap</code> to reconcile on the next pass</td>
+<td><code>helpdesk-admin</code> LDAP membership changed but the Django group did not</td>
+<td>LDAP → Django is reconciled by the sync, not by a signal</td>
+<td><code>docker exec coldfront coldfront sync_ldap</code></td>
 </tr>
 <tr>
-<td>Allocation in "Pending review" forever</td>
+<td>Allocation stays New for a staff member</td>
 <td>Staff scope does not include the requesting affiliation</td>
-<td>Add the affiliation to the staff's <code>StaffResourceAssignment.affiliations</code>, OR escalate to a superuser</td>
+<td>Add the affiliation to the staff's <code>StaffResourceAssignment</code>, or escalate to a superuser</td>
+</tr>
+<tr>
+<td>A partition users should not see keeps coming back after deletion</td>
+<td>The 10-minute topology import recreates rows the controller reports</td>
+<td>Uncheck <code>is_available</code> instead of deleting</td>
 </tr>
 </tbody>
 </table>
 <h2>Where to go next</h2>
 <ul>
-<li><code>/admin/</code> — Django Admin (Home → Administration → Log entries for
+<li><code>/admin/</code>: Django Admin (Home → Administration → Log entries for
   the qcluster task audit trail).</li>
-<li><code>docs/break-glass-admin.md</code> — full
+<li><code>docs/admin-guide-cli.md</code>: CLI recipes for
+  users, LDAP, Keycloak, Slurm sync and billing.</li>
+<li><code>docs/break-glass-admin.md</code>: full
   break-glass <code>/admin/</code> rotation runbook (vault, audit log, alerts).</li>
-<li><code>keycloak/README.md</code> — kcadm recipes
+<li><code>keycloak/README.md</code>: kcadm recipes
   (OTP credentials, theme re-apply, realm settings inspection).</li>
-<li><code>/staff/help/</code> — in-app help with operational notes.</li>
-<li><a href="admin.html"><code>admin.md</code></a> — cluster ops side.</li>
-<li><a href="index.html"><code>README.md</code></a> — the role index.</li>
+<li><code>/staff/help/</code>: in-app help with operational notes.</li>
+<li><a href="admin.html"><code>admin.md</code></a>: cluster ops side.</li>
+<li><a href="index.html"><code>README.md</code></a>: the role index.</li>
 </ul></div>
       </main>
     </div>

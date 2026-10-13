@@ -70,19 +70,20 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <p>You are a <strong>Principal Investigator</strong> with a Portal account that has the
 PI flag on your <code>UserProfile</code>. You own one or more <strong>Projects</strong>, request
 <strong>Allocations</strong> against them (default scavenger / paid Pay-Per-Use /
-condo Hardware-Credit), set Weekly Caps, add users to your projects,
-and read the billing report monthly. Authentication-wise you are a
-normal user — read <a href="user.html"><code>user.md</code></a> for the login flow and the
-job-submission basics.</p>
+condo Hardware-Credit), set spend caps, add users to your projects,
+request project storage and class resources, and read the billing report
+monthly. Authentication-wise you are a normal user: read
+<a href="user.html"><code>user.md</code></a> for the login flow and the job-submission basics.</p>
 <p>If you also operate the cluster (deploy services, configure Slurm) you
-are a different role — read <a href="admin.html"><code>admin.md</code></a>. If you handle
-helpdesk tickets you are also Staff — see <a href="staff.html"><code>staff.md</code></a>.</p>
+are a different role: read <a href="admin.html"><code>admin.md</code></a>. If you handle
+helpdesk tickets you are also Staff: see <a href="staff.html"><code>staff.md</code></a>.</p>
 <h2>Quick start</h2>
 <h3>1. Accept the Terms of Service</h3>
 <p>Before you can do anything as a PI you must accept the current ToS.
 You will see a banner at the top of every portal page until you do.
-Click the banner → check the box → submit. ToS acceptance is also
-required for every user you add to your projects.</p>
+Click the banner, check the box, submit. ToS acceptance is also
+required for every user you add to your projects: a member's Slurm
+association and login shell are created only after they accept.</p>
 <p>You can re-read what you agreed to at any time: on <code>/user/user-profile/</code>
 the <strong>Terms of Service</strong> row shows <code>Accepted vX</code> as a link that opens the
 exact version you accepted (read-only, with a Print button).</p>
@@ -92,22 +93,32 @@ exact version you accepted (read-only, with a Print button).</p>
   Click &quot;Request Resource Allocation&quot;  → choose a resource (Cluster)
 </code></pre>
 <p>A project with empty / <code>default</code> abbreviation is the <strong>scavenger-only</strong>
-default project: it cannot host paid allocations. To request a paid
-allocation, give the project a real abbreviation (<code>proj1</code>, <code>alpha</code>,
-etc.) when you create it.</p>
-<p>For paid allocations, fill in:</p>
+default project: it cannot host paid allocations, and the request button
+is replaced by a note. To request a paid allocation, give the project a
+real abbreviation (<code>proj1</code>, <code>alpha</code>, ...) when you create it. The project
+description must have at least 150 words.</p>
+<p>For paid allocations:</p>
 <ul>
-<li><strong>IO Number</strong> — your funding source. Every paid (non-default) project
-  needs one, OrgB included — a project that must not be charged carries a
-  staff-set <strong>no-charge IO</strong> (<code>5555555555</code> OrgA / <code>9999999999</code> OrgB) and
-  reports $0 while staying fully provisioned.</li>
-<li><strong>Project Storage</strong> is requested AFTER creation, from the "Project Storage" card on the project page (Project Storage TB = total capacity, includes the Cache; staff approves in Storage Review).</li>
-<li><strong>Weekly Cap ($)</strong> <strong>or</strong> <strong>Weekly Cap (hours)</strong> to bound spend.</li>
+<li><strong>IO Number</strong>: your funding source. Every non-default allocation
+  needs a pay IO, OrgB included. A project that must not be charged
+  carries a staff-set <strong>no-charge IO</strong> (<code>5555555555</code> OrgA / <code>9999999999</code>
+  OrgB) and reports $0 while staying fully provisioned.</li>
+<li><strong>Project Storage</strong> is requested AFTER creation, from the "Project
+  Storage" card on the project page (Project Storage TB = total capacity,
+  includes the Cache; staff approve in Storage Review).</li>
+<li><strong>Spend cap</strong>: a new paid allocation starts with its cap <strong>not set</strong>,
+  and job submission on that Slurm account is held until you set
+  <code>Weekly Cap ($)</code> / <code>Weekly Cap (SU)</code> or click <strong>No cap</strong> (see §4).
+  Free allocations start with no cap.</li>
 </ul>
 <p>Submitting the request opens a helpdesk ticket in <strong>your</strong> name: you get the
 acknowledgement e-mail with the ticket link, can add information by replying,
-and the ticket resolves itself when staff approves or denies the allocation.
+and the ticket resolves itself when staff approve or deny the allocation.
 The same happens when you create a project or ask to become a PI.</p>
+<p>You may request a <strong>second allocation on the same project</strong>. Until staff
+assign a SubProject suffix during review, both allocations resolve to the
+same Slurm account name and approval is refused, so say in the
+justification what the second allocation is for.</p>
 <p>To retire an allocation you no longer need, open it and click <strong>Request
 Deletion</strong> (a reason is required). Only a ColdFront administrator can delete
 an allocation; your request opens a helpdesk ticket in your name and the
@@ -116,41 +127,83 @@ still <em>New</em> can simply be withdrawn with <strong>Remove Pending Request</
 <h3>3. Add users to a project</h3>
 <pre><code>/project/&lt;id&gt;/ → &quot;Add Users&quot;
 </code></pre>
-<p>Users must already have a Portal account (registered via
-<code>/user/orga/register/</code> or <code>/user/orgb/register/</code>) and they must have
-accepted the current ToS. Once you add them, the Slurm associations
-provision in real time via the post-save signal — they can submit
-jobs against the allocation immediately.</p>
-<h3>4. Set or update a Weekly Cap</h3>
-<pre><code>/allocation/&lt;id&gt;/ → click the Weekly Cap field → edit → save
+<p>Users must already have a Portal account (campus ID users get one at
+first login; others register via <code>/user/orga/register/</code> or
+<code>/user/orgb/register/</code>) and they must have accepted the current ToS.
+Add them to the <strong>allocation</strong>, not only the project: membership of an
+allocation is what creates the Slurm association and grants the cluster
+login shell. Provisioning is immediate once the ToS gate is clear.</p>
+<h3>4. Set or update the spend cap</h3>
+<pre><code>/allocation/&lt;id&gt;/ → &quot;Set Cap&quot; (or &quot;Update Cap&quot;) → amount in $ or SU → save
+                   → or click &quot;No cap&quot;
 </code></pre>
 <ul>
-<li>Dollar cap takes precedence over hours cap if both are set.</li>
-<li>One cap is enforced <strong>per allocation</strong> (so users sharing the
-  allocation share the cap).</li>
-<li>The gauge below the Core Usage gauge shows current spend vs cap.</li>
-<li>The week runs <strong>Sunday 00:00 → Saturday</strong> (cluster time). That is when
-  Slurm clears the usage the cap is checked against, and the gauge follows
-  the same window (<code>sbalance --week</code> on the login node too).</li>
+<li>Values: <strong>0 = not set</strong> (job submission held on that account),
+  <strong>−1 = no cap</strong>, <strong>N = the cap</strong>. The field is seeded 0 on paid
+  allocations and −1 on free ones.</li>
+<li>Unit: <code>$</code> or <strong>SU</strong> (1 SU = $0.001). <code>Weekly Cap (SU)</code> is SU, not
+  core-hours: a core-hour costs the partition's billing weight in SU, so
+  1,000 SU is $1.00 whatever the partition. If both fields are set the
+  dollar cap wins.</li>
+<li>Period: the field is named Weekly, but the window is the cluster's
+  <strong>usage reset period</strong>, when Slurm clears the counter the cap is
+  checked against. The cap card says which one applies ("per month",
+  "per week"), and the gauge, <code>sbalance --week</code> and the Submit Job
+  messages follow the same window.</li>
+<li>Conversion: <code>$X × 1,000 × 60 = GrpTRESMins=billing</code> on the account
+  association, across all partitions at once.</li>
+<li>One cap per allocation; users sharing the allocation share the cap.
+  At the cap, jobs queue with reason <code>AssocGrpBillingMinutes</code> until the
+  period resets; a job whose projected usage would cross the cap waits
+  instead of being killed.</li>
+<li>The <strong>Budget (SU)</strong> card shows the remaining SU, how many hours it
+  buys on each partition, and the SU reserved by running jobs.</li>
 </ul>
 <h3>5. Read the billing report</h3>
-<pre><code>/billing/report/                        → all-PI view (staff-scoped)
-/billing/report-by-pi/                  → per-PI view, your projects only
-/user/user-profile/ → &quot;My Usage &amp; Billing&quot;  → PDF download
+<pre><code>/billing/report-by-pi/                  → your projects, per allocation
+/user/user-profile/ → &quot;My Usage &amp; Billing&quot;  → charges + invoice PDF
+/storage/                               → My Storage (provisioned + pending)
 </code></pre>
-<p>Cache and Project Storage are billed monthly regardless of compute activity;
-the "Project Storage" card shows the monthly estimate at current rates
-(cache × Cache rate + total × Project Storage rate) for both the provisioned
-and any pending values.
-GPU jobs charge GPU only — their CPU hours appear for transparency but
-are excluded from the total due (the GPU-only billing rule, sourced in
-<code>billing_views.calculate_allocation_charges</code>).</p>
+<ul>
+<li><strong>Compute is billed in SU</strong>: the SU Slurm counted for the period,
+  times $0.001. The CPU (est.) and GPU (est.) columns price the hours at
+  the catalogue rate for comparison and are never summed. Periods
+  recorded without SU (older data) fall back to the legacy rule: a period
+  that used GPU is charged on GPU hours only, with CPU hours shown for
+  transparency.</li>
+<li>Cache and Project Storage are billed monthly regardless of compute
+  activity; the "Project Storage" card shows the monthly estimate at
+  current rates (cache × Cache rate + total × Project Storage rate) for
+  the provisioned and any pending values.</li>
+<li>Rows appear only after staff run <strong>Computing Billing</strong> on the Billing
+  Report; the page never gains rows on its own.</li>
+<li>Invoice status per period: Pending, then <strong>Paid</strong>, <strong>Overdue</strong> or
+  <strong>No Charge</strong>. An Overdue invoice pauses every pay IO of the allocation
+  automatically once the grace window passes (by default from the 1st of
+  the third month after the invoiced month). Allocation Detail shows an
+  amber "will be paused from <date>" banner before, red afterwards; the
+  pause lifts when the period is marked Paid or No Charge.</li>
+</ul>
+<h3>6. Class resources</h3>
+<pre><code>Projects → My Classes (/classes/) → &quot;Class Request&quot; (/classes/request/)
+</code></pre>
+<p>Fill in the course code, name, dates, school and department, and the
+roster (<code>Full Name,campus ID,external email</code>; OrgA addresses are refused, the
+link must reach a mailbox the student already owns). On approval staff
+create a class project <code>&lt;pi&gt;_&lt;code&gt;</code> with an allocation that ends with
+the course, one <code>&lt;code&gt;-ext-&lt;campus-id&gt;</code> account per student, and e-mail each
+student a password link at the roster address. From the class page you
+can add <strong>TA managers</strong>, resend password links to selected students, and
+<strong>Request more students</strong> (one open request per class). When the course
+ends the class is marked Ended and a teardown ticket is opened; nothing
+is deleted automatically, and Delete Class removes only the
+<code>&lt;code&gt;-ext-*</code> accounts.</p>
 <h2>Reference matrices</h2>
 <h3>Allocation lifecycle</h3>
 <table>
 <thead>
 <tr>
-<th>State</th>
+<th>Status</th>
 <th>Set by</th>
 <th>What you can do</th>
 </tr>
@@ -159,17 +212,12 @@ are excluded from the total due (the GPU-only billing rule, sourced in
 <tr>
 <td>New</td>
 <td>PI on request</td>
-<td>Edit IO; cancel before review (Project Storage has its own request flow)</td>
-</tr>
-<tr>
-<td>Pending review</td>
-<td>Auto on submit</td>
-<td>Cannot edit; ColdFront staff approve / deny</td>
+<td>Change the pay IO; <strong>Remove Pending Request</strong>; staff approve or deny</td>
 </tr>
 <tr>
 <td>Active</td>
 <td>Staff approval</td>
-<td>Add users, set Weekly Cap, submit jobs</td>
+<td>Add users, set the cap, submit jobs, request changes, request renewal, Request Deletion</td>
 </tr>
 <tr>
 <td>Renewal Requested</td>
@@ -177,9 +225,24 @@ are excluded from the total due (the GPU-only billing rule, sourced in
 <td>Same as Active, with a renewal note for staff</td>
 </tr>
 <tr>
-<td>Expired / Archived</td>
-<td>Auto on end_date</td>
+<td>Denied</td>
+<td>Staff</td>
+<td>Reason in the description; resubmitting puts it back to New</td>
+</tr>
+<tr>
+<td>Expired</td>
+<td>Reached end date</td>
 <td>Read-only; usage history preserved</td>
+</tr>
+<tr>
+<td>Revoked</td>
+<td>Staff</td>
+<td>Read-only</td>
+</tr>
+<tr>
+<td>Payment Pending / Requested / Declined / Paid / Unpaid</td>
+<td>Upstream billing states</td>
+<td>Rarely used here; the invoice status lives on the billing periods instead</td>
 </tr>
 </tbody>
 </table>
@@ -200,22 +263,22 @@ every page asks you to choose one. Nothing is blocked in the meantime.</p>
 <table>
 <thead>
 <tr>
-<th>If…</th>
-<th>…pick</th>
+<th>If...</th>
+<th>...pick</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Default scavenger PI project (no abbreviation, no IO)</td>
-<td><strong>No Charge</strong> — set by the billing rule engine when staff runs Computing Billing</td>
+<td><strong>No Charge</strong>, set by the billing rule engine when staff run Computing Billing</td>
 </tr>
 <tr>
 <td>OrgB PI (<code>orgb-*</code>)</td>
-<td><strong>No Charge</strong> — funded by the OrgB programme; the allocation carries the <code>9999999999</code> no-charge IO</td>
+<td><strong>No Charge</strong>: funded by the OrgB programme; the allocation carries the <code>9999999999</code> no-charge IO</td>
 </tr>
 <tr>
 <td>Paid project that must not be charged (internal / CLOACK)</td>
-<td><strong>No Charge</strong> — staff attach the <code>5555555555</code> no-charge IO; provisioned like any paid project</td>
+<td><strong>No Charge</strong>: staff attach the <code>5555555555</code> no-charge IO; provisioned like any paid project</td>
 </tr>
 <tr>
 <td>Paid project, IO number, no upfront hardware purchase</td>
@@ -223,20 +286,24 @@ every page asks you to choose one. Nothing is blocked in the meantime.</p>
 </tr>
 <tr>
 <td>Paid project, IO number, you bought hardware credit</td>
-<td><strong>Condo</strong> (Hardware-Credit holder; <code>credits_used</code> gated by <code>billing_type=credit_holder</code>)</td>
+<td><strong>Condo</strong> (Hardware-Credit holder; staff tick the condo box at creation)</td>
 </tr>
 </tbody>
 </table>
 <h3>Cost Center setup (multi-IO)</h3>
-<p>You can pool multiple IO numbers under a single project / allocation:</p>
-<pre><code>/billing/cost-centers/                  → manage your Cost Centers
+<p>You can pool several IO Numbers under a single project / allocation:</p>
+<pre><code>/billing/cost-centers/                  → manage your Cost Centers (IO Numbers)
   → &quot;Add Cost Center&quot;
-  → Link Cost Center to a project       → ProjectCostCenter M2M
-  → Assign a Cost Center to an allocation → AllocationCostCenter M2M
+  → Link a Cost Center to a project       → project-level link
+  → Assign a Cost Center to an allocation → allocation-level link (role: pay)
 </code></pre>
-<p>ColdFront enforces the Slurm gate: a paid OrgA allocation without a
-<strong>pay-role</strong> Cost Center linked at the project AND allocation level is
-silently skipped by <code>slurm_sync</code> (no Slurm account created).</p>
+<p>The allocation-level <strong>pay</strong> link is what counts. A paid allocation
+without one is frozen on the Slurm side: its account is neither created
+nor touched, and the allocation page shows the hold. A paid allocation can
+never be saved without a pay IO; paused or inactive IO Numbers are refused
+as new links (existing links are kept). Changing the IO Number on Update
+Project puts the project under <strong>Billing Changes Pending Review</strong> and
+opens a ticket for staff to validate it.</p>
 <h3>Pause billing on an IO Number</h3>
 <p>Register your real IO now and put it on hold until funding is confirmed:</p>
 <pre><code>/billing/cost-centers/  → ⏸ on the IO's row   (or Edit Cost Center → &quot;Pause billing and job submission&quot;)
@@ -244,38 +311,42 @@ silently skipped by <code>slurm_sync</code> (no Slurm account created).</p>
 <p>While paused, the IO is <strong>never charged</strong>, cannot fund new projects or
 allocations, and <strong>job submission is blocked</strong> on the paid allocations it
 funds. Existing links, Project Storage and your free scavenger allocation are
-untouched — you keep computing for free. A helpdesk ticket is opened so staff
+untouched: you keep computing for free. A helpdesk ticket is opened so staff
 know; resuming (▶) is a deliberate action that resolves it.</p>
 <p>The pause is refused when the IO co-funds an allocation with another live IO
 (pause those too, or ask staff to split the allocation) or funds a
 Hardware-Credit (condo) allocation. <em>Active</em> is different: unchecking it hides
-the IO from new pickers but existing links <strong>keep billing</strong> — use Pause to
+the IO from new pickers but existing links <strong>keep billing</strong>; use Pause to
 stop charges.</p>
-<h3>Weekly Cap: dollars vs hours</h3>
+<h3>Spend cap: dollars vs SU</h3>
 <table>
 <thead>
 <tr>
 <th>Cap</th>
-<th>Units</th>
+<th>Stored as</th>
 <th>When to use</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Dollar cap</td>
-<td><code>$</code> (converted to <code>GrpTRESMins=billing=X</code> via <code>$X × 1000 × 60</code>)</td>
-<td>Most allocations. Predictable monthly spend bound.</td>
+<td><code>Weekly Cap ($)</code></td>
+<td><code>$X × 1,000 × 60</code> billing-minutes</td>
+<td>Most allocations. A predictable spend bound per usage period.</td>
 </tr>
 <tr>
-<td>Hours cap</td>
-<td>core-hours</td>
-<td>Hardware-Credit / academic allocations where dollars are not the budget unit.</td>
+<td><code>Weekly Cap (SU)</code></td>
+<td><code>SU × 60</code> billing-minutes</td>
+<td>When you think in Slurm's own units. 1,000 SU = $1.00.</td>
 </tr>
 </tbody>
 </table>
-<p>Per partition the dollar value translates differently because of
-<code>TRESBillingWeights</code>. A <code>med</code> partition with <code>CPU=1.0</code> costs more
-per core-hour than <code>low</code> with <code>CPU=0.5</code>.</p>
+<p>What one SU buys differs per partition because of <code>TRESBillingWeights</code>:
+the rate card on <code>/billing/rates/</code> and the Budget (SU) card translate the
+remaining SU into hours per partition.</p>
+<h3>QoS pins</h3>
+<p><code>QoS</code> and <code>DefaultQoS</code> on Allocation Detail are read-only for PIs. Staff
+use them to pin an account to a QoS class (condo, class, an elevated GPU
+tier); blank means the cluster default for your account class.</p>
 <h2>Troubleshooting</h2>
 <table>
 <thead>
@@ -293,8 +364,8 @@ per core-hour than <code>low</code> with <code>CPU=0.5</code>.</p>
 </tr>
 <tr>
 <td>Adding a user to a project does nothing visible in Slurm</td>
-<td>They have not accepted ToS yet — the post-save signal skips provisioning until they do</td>
-<td>Email the user with the ToS link; once they accept, the immediate-provisioning signal fires</td>
+<td>They have not accepted the ToS yet, or they were added to the project but not to the allocation</td>
+<td>Email the user the ToS link and add them to the allocation; provisioning fires immediately once both hold</td>
 </tr>
 <tr>
 <td>"Request Resource Allocation" button is not shown</td>
@@ -302,34 +373,49 @@ per core-hour than <code>low</code> with <code>CPU=0.5</code>.</p>
 <td>Create a new project with a real abbreviation; default projects are scavenger-only by design</td>
 </tr>
 <tr>
-<td>Allocation is Active but jobs fail with <code>Invalid account</code></td>
-<td>The Slurm account hasn't been provisioned yet, or the user's ToS gate has not cleared</td>
-<td>Wait for the next <code>sync_slurm</code> (every 15 min) or trigger it via Admin actions on the allocation</td>
+<td>My second allocation on a project stays New</td>
+<td>Both allocations resolve to the same Slurm account name until staff set a SubProject suffix</td>
+<td>Reply on the ticket; staff set the suffix and approve</td>
 </tr>
 <tr>
-<td>Cache charge is $0 but I set 0.20 TB</td>
-<td><code>0.20 TB × $0.025 = $0.005</code>, which rounds to $0.00</td>
-<td>This is expected at small sizes; ratio is correct</td>
+<td>Allocation is Active but jobs are rejected with <code>Invalid account</code></td>
+<td>The Slurm account is not provisioned yet, or the user's ToS gate has not cleared</td>
+<td>Wait for the next sync (every 15 minutes) or ask staff to run it</td>
+</tr>
+<tr>
+<td>Jobs on a paid account are held (<code>AssocGrpSubmitJobs</code>)</td>
+<td>The spend cap is not set yet, or every pay IO of the allocation is paused</td>
+<td>Set a cap or click <strong>No cap</strong> on Allocation Detail; resume the IO on My Cost Centers</td>
+</tr>
+<tr>
+<td>Cache charge shows $0.00 for a small share</td>
+<td>TB × rate per TB-month rounds below one cent</td>
+<td>Expected at small sizes; the ratio is correct</td>
 </tr>
 <tr>
 <td>Billing report shows nothing for the past month</td>
-<td>The "Computing Billing" button on <code>/billing/report/</code> was never pressed</td>
-<td>This is by design: <code>SlurmAccountUsagePeriod</code> rows are written only when staff explicitly clicks Compute Billing</td>
+<td>Computing Billing was not run yet</td>
+<td>By design: billing periods are written only when staff press the button</td>
 </tr>
 <tr>
 <td>Hardware Credit pool reports 0 hours despite usage</td>
-<td>The allocation's <code>billing_type</code> is not <code>credit_holder</code></td>
-<td>Set <code>billing_type=credit_holder</code> on the AllocationBilling row via Django Admin, or via the Project Detail page if you have staff scope</td>
+<td>The allocation's billing type is not Hardware Credit Holder</td>
+<td>Ask staff to correct the AllocationBilling row</td>
+</tr>
+<tr>
+<td>Red "Invoice overdue" banner on my allocations</td>
+<td>A billing period of the allocation is Overdue past the grace window, so its pay IOs were paused</td>
+<td>Settle the invoice; when staff mark the period Paid the pause lifts automatically</td>
 </tr>
 </tbody>
 </table>
 <h2>Where to go next</h2>
 <ul>
-<li><code>/user/help/</code> — in-app help with live updates.</li>
-<li><code>coldfront/BILLING_SETUP_GUIDE.md</code>
-  — full billing reference (rates, periods, invoices, Cost Centers).</li>
-<li><a href="user.html"><code>user.md</code></a> — login + day-to-day job submission.</li>
-<li><a href="index.html"><code>README.md</code></a> — the role index.</li>
+<li><code>/user/help/</code>: in-app help with live updates.</li>
+<li><code>coldfront/BILLING_SETUP_GUIDE.md</code>:
+  full billing reference (rates, periods, invoices, Cost Centers).</li>
+<li><a href="user.html"><code>user.md</code></a>: login + day-to-day job submission.</li>
+<li><a href="index.html"><code>README.md</code></a>: the role index.</li>
 </ul></div>
       </main>
     </div>

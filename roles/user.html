@@ -69,11 +69,13 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <h2>Who you are + scope</h2>
 <p>You are a researcher with a Portal account: an OrgA faculty / staff /
 student authenticating with <strong>campus ID</strong>, an <strong>external collaborator</strong> with
-an <code>ext-*</code> username, or a <strong>OrgB Sciences</strong> member with an <code>orgb-*</code>
-username. Your day-to-day is submitting Slurm jobs, checking quotas
-and bills, and managing the data in your own <code>/home/</code> and <code>/scratch/</code>.</p>
+an <code>ext-*</code> username, a <strong>OrgB Sciences</strong> member with an <code>orgb-*</code>
+username, or a student on a <strong>class account</strong> (<code>&lt;course&gt;-ext-&lt;campus-id&gt;</code>,
+created for one course). Your day-to-day is submitting Slurm jobs,
+checking quotas and bills, and managing the data in your own <code>/home/</code>
+and <code>/scratch/</code>.</p>
 <p>If you also <strong>manage allocations</strong> for a project (request a new paid
-allocation, set Weekly Caps, add other users), read <a href="pi.html"><code>pi.md</code></a> too.
+allocation, set spend caps, add other users), read <a href="pi.html"><code>pi.md</code></a> too.
 If you are a member of the helpdesk team handling tickets, see
 <a href="staff.html"><code>staff.md</code></a> instead.</p>
 <h2>Quick start</h2>
@@ -90,7 +92,7 @@ If you are a member of the helpdesk team handling tickets, see
 <tr>
 <td>campus ID (e.g. <code>admin1</code>)</td>
 <td>the OrgA portal card</td>
-<td>Entra Federation → MFA from OrgA (no separate password)</td>
+<td>Entra federation; MFA comes from OrgA, no separate password</td>
 </tr>
 <tr>
 <td><code>ext-jsmith</code></td>
@@ -102,60 +104,105 @@ If you are a member of the helpdesk team handling tickets, see
 <td>the OrgB portal card</td>
 <td>LDAP password (set during registration) + TOTP (Keycloak account console)</td>
 </tr>
+<tr>
+<td><code>en540-ext-jsmith</code> (class account)</td>
+<td>the OrgA portal card</td>
+<td>LDAP password set from the reset link e-mailed to your real address + TOTP</td>
+</tr>
 </tbody>
 </table>
 <p>If you do not have an account yet:</p>
 <ul>
-<li><strong>campus ID users</strong> — no registration form; just sign in via OrgA SSO and
-  the account is created on first login.</li>
-<li><strong><code>ext-*</code> users</strong> — open <code>/user/orga/register/</code> on the portal, fill in
+<li><strong>campus ID users</strong>: no registration form; sign in via OrgA SSO and the
+  account is created on first login.</li>
+<li><strong><code>ext-*</code> users</strong>: open <code>/user/orga/register/</code> on the portal, fill in
   the form (the username <strong>must</strong> start with <code>ext-</code>), then wait for your
   PI to add you to their project / allocation.</li>
-<li><strong><code>orgb-*</code> users</strong> — same flow but on <code>/user/orgb/register/</code>, and
-  the username <strong>must</strong> start with <code>orgb-</code>.</li>
+<li><strong><code>orgb-*</code> users</strong>: same flow on <code>/user/orgb/register/</code>; the
+  username <strong>must</strong> start with <code>orgb-</code>.</li>
+<li><strong>Class accounts</strong>: created by staff when your instructor's class
+  request is approved. You receive a password link at the e-mail address
+  on the class roster. Lost it? Use <code>/user/accounts/password_reset/</code> with
+  your <strong>real</strong> e-mail address; the portal finds the class account by it
+  and mails only that address.</li>
 </ul>
 <p>After your first successful login a banner at the top of every page
-prompts you to <strong>enrol TOTP</strong> in the Keycloak account console. Click
-the banner link, scan the QR code with Google Authenticator / Authy /
-Microsoft Authenticator, and you are done. The banner disappears
-within 30 minutes once the periodic sync picks up the new credential.</p>
+prompts you to <strong>enrol TOTP</strong> in the Keycloak account console (campus ID users
+are exempt). Click the banner link, scan the QR code with Google
+Authenticator / Authy / Microsoft Authenticator, and you are done. The
+banner disappears within 30 minutes, when the periodic enrolment check
+picks up the new credential.</p>
 <h3>2. SSH to a login node</h3>
 <pre><code class="language-bash">ssh &lt;username&gt;@&lt;login-node-host&gt;
 </code></pre>
 <p>Authentication on login nodes uses the same identity as the portal:</p>
 <ul>
-<li><strong>campus ID</strong> — browser-based Device Flow opens automatically; approve
-  in your browser, complete MFA in Entra, the SSH session unblocks.</li>
-<li><strong><code>ext-*</code> / <code>orgb-*</code> / <code>cn=admin</code></strong> — terminal asks for your LDAP
-  password and then a TOTP code (2 PAM prompts via <code>pam_kc_ssh.so</code>).</li>
+<li><strong>campus ID</strong>: browser-based Device Flow opens automatically; approve in
+  your browser, complete MFA in Entra, the SSH session unblocks.</li>
+<li><strong><code>ext-*</code> / <code>orgb-*</code> / class accounts / cluster admins</strong>: the terminal
+  asks for your LDAP password and then a TOTP code (two PAM prompts via
+  <code>pam_kc_ssh.so</code>).</li>
 </ul>
+<p>A login shell is granted only to accounts <strong>sponsored by a PI</strong> (member
+of at least one allocation) <strong>who accepted the current Terms of
+Service</strong>. Until both hold, the account exists but SSH ends with "This
+account is currently not available". The shell is recomputed on every
+directory sync, and accepting the ToS flips it immediately.</p>
 <h3>3. Submit your first job</h3>
+<p>Three doors into the same scheduler:</p>
+<ul>
+<li><strong><code>sbatch</code> / <code>srun</code> / <code>salloc</code> on a login node</strong> (below). On paid
+  partitions the CLI filter prints a <code>[BILLING]</code> estimate and asks
+  <code>Proceed? [y/N]</code>; a $0 estimate (free partition, free account, or
+  rates not set) is admitted without the prompt.</li>
+<li><strong>Portal Submit Job</strong> (<code>/jobs/submit/</code>): paste a batch script, choose
+  partition and account, see the live cost estimate before you submit.
+  <code>?as_of_date=YYYY-MM-DD</code> previews the rates of another day for budget
+  planning; the submission itself always uses today's rates. <code>#SBATCH</code>
+  lines in the script are honoured and the job runs with your login
+  environment.</li>
+<li><strong>Open OnDemand</strong> (<code>https://ood.&lt;your portal domain&gt;</code>): Files (your
+  home, scratch and project spaces), Shell, Job Composer, Active Jobs
+  (with a Grafana job-stats link where enabled) and Interactive Apps.</li>
+</ul>
 <pre><code class="language-bash">sbatch --partition=med --account=&lt;your-account&gt; --time=00:30:00 \
   --wrap='hostname &amp;&amp; date'
 </code></pre>
-<p>The Slurm CLI Lua filter prompts you to confirm the cost estimate
-before the job is admitted. Press <code>y</code> to confirm or <code>n</code> to abort.</p>
 <p>For longer jobs, use a script:</p>
 <pre><code class="language-bash">#!/bin/bash
 #SBATCH --partition=high
-#SBATCH --account=admin1_proj1
+#SBATCH --account=&lt;pi&gt;_&lt;project&gt;
 #SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --job-name=myrun
-#SBATCH --output=/home/orga/admin1/logs/%x-%j.out
+#SBATCH --output=%x-%j.out
 
 module load anaconda
 python my_analysis.py
 </code></pre>
+<p>A job on a <strong>GPU partition must request GPUs</strong> (<code>--gres=gpu:N</code> or
+<code>--gpus=N</code>); without that it is rejected at submit with a message that
+lists the CPU partitions to use instead.</p>
 <h3>4. Check your usage and balance</h3>
-<pre><code class="language-bash">squeue -u $USER          # currently queued or running jobs
+<pre><code class="language-bash">squeue -u $USER          # currently queued or running jobs (or: sqme)
 sacct -u $USER --starttime=now-7days   # last week's accounting
-sbalance                 # core-hours used vs the allocation cap
-sbalance --week          # weekly $ cap remaining (paid allocations)
+sbrief                   # count of your jobs by state
+sbalance                 # SU used vs limit for every account you sit under
+sbalance --week          # spend cap and usage for the current usage period
+sbalance --by-partition  # the same, split by partition
 </code></pre>
-<p><code>sbalance</code> reads from ColdFront's allocation attributes — the same
-numbers the portal's Allocation Detail page shows.</p>
+<p><code>sbalance</code> reads Slurm itself (<code>sacctmgr</code>, <code>sreport</code>, <code>scontrol</code>): the
+counter it prints is the one the scheduler enforces. The portal's
+Allocation Detail gauges show the same numbers, fetched live from
+<code>slurmrestd</code>.</p>
+<p>Units: <strong>1 SU = $0.001</strong>, one unit-hour of Slurm's <code>billing</code> TRES. A
+core-hour or a GPU-hour costs as many SU as the partition's billing
+weight says (see <em>Cost model</em> below), so SU is never "a core-hour".</p>
+<p>The window is the cluster's <strong>usage reset period</strong>, the point at which
+Slurm clears the counter every budget and cap is checked against. The cap
+card on Allocation Detail and <code>sbalance --week</code> print which period the
+cluster runs (per month, per week, ...).</p>
 <h3>5. Manage data</h3>
 <table>
 <thead>
@@ -175,13 +222,13 @@ numbers the portal's Allocation Detail page shows.</p>
 </tr>
 <tr>
 <td><code>/home/&lt;aff&gt;/&lt;username&gt;/scratch_&lt;pi&gt;</code></td>
-<td>Symlink into PI's scratch — same quota as <code>/scratch</code></td>
+<td>Symlink into the PI's scratch; same quota as <code>/scratch</code></td>
 <td>No</td>
 <td>Included</td>
 </tr>
 <tr>
 <td><code>/home/&lt;aff&gt;/&lt;username&gt;/projects_&lt;pi&gt;</code></td>
-<td>Symlink into PI's project storage — same quota as <code>/projects</code></td>
+<td>Symlink into the PI's project storage; same quota as <code>/projects</code></td>
 <td>Per plan</td>
 <td>Billed to the PI</td>
 </tr>
@@ -189,13 +236,7 @@ numbers the portal's Allocation Detail page shows.</p>
 <td><code>/scratch/&lt;aff&gt;/&lt;pi&gt;</code></td>
 <td>Per-PI scratch storage</td>
 <td>No</td>
-<td>Included (scratch storage is separate from project storage)</td>
-</tr>
-<tr>
-<td><code>/scratch/&lt;aff&gt;/&lt;pi&gt;/&lt;project&gt;</code></td>
-<td>Same quota as parent</td>
-<td>Inherits parent</td>
-<td>Same</td>
+<td>Included (scratch is separate from project storage)</td>
 </tr>
 <tr>
 <td><code>/projects/&lt;pi&gt;</code></td>
@@ -205,202 +246,102 @@ numbers the portal's Allocation Detail page shows.</p>
 </tr>
 </tbody>
 </table>
-<p>Project storage (the per-PI Weka filesystem mounted at <code>/projects/&lt;pi&gt;</code>) is
-billed per-month regardless of whether you run jobs: <strong>Cache</strong>
-(<code>$0.025 / TB / month</code>) and <strong>Project Storage</strong> total (<code>$0.015 / TB / month</code>).
-Charges show up on your PI's billing report under "Cache" / "Project Storage"
-lines. When your PI has provisioned project storage, a <code>projects_&lt;pi&gt;</code> symlink
-appears in your home automatically (created by the daily directory sync, like
-<code>scratch_&lt;pi&gt;</code>).</p>
+<p>Project storage (the per-PI filesystem mounted at <code>/projects/&lt;pi&gt;</code>) is
+billed per TB-month whether or not anyone runs jobs: <strong>Cache</strong> (the
+flash share) and <strong>Project Storage</strong> (the total capacity, which includes
+the cache). Current rates: <code>/billing/rates/</code>. The charges show up on your
+PI's billing report under "Cache" / "Project Storage". When your PI has
+provisioned project storage, a <code>projects_&lt;pi&gt;</code> symlink appears in your
+home automatically (created by the directory sync, like <code>scratch_&lt;pi&gt;</code>).</p>
 <h2>Reference matrices</h2>
-<h3>Slurm partitions</h3>
+<h3>Slurm partitions (naming convention)</h3>
+<p>Partitions are per cluster; <code>sinfo</code> and <code>sfeatures</code> list the live set.
+The portal's Submit Job dropdown hides partitions staff marked
+unavailable. Names follow one convention everywhere:</p>
 <table>
 <thead>
 <tr>
-<th>Partition</th>
-<th>Nodes</th>
-<th>Max wall</th>
-<th>Default?</th>
-<th>When to use</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>scavenger</code></td>
-<td><code>cn-01</code></td>
-<td>3 days</td>
-<td><strong>Yes</strong></td>
-<td>Free, preemptible. Default partition. Anything you can re-run if killed.</td>
-</tr>
-<tr>
-<td><code>low</code></td>
-<td><code>cn-01</code></td>
-<td>3 days</td>
-<td>No</td>
-<td>Paid, lowest CPU price. Single-node jobs that tolerate slower scheduling.</td>
-</tr>
-<tr>
-<td><code>med</code></td>
-<td><code>cn-01</code>, <code>cn-02</code></td>
-<td>3 days</td>
-<td>No</td>
-<td>Paid, mid-tier CPU price. 2-node jobs.</td>
-</tr>
-<tr>
-<td><code>high</code></td>
-<td><code>cn-02</code>, <code>cn-03</code></td>
-<td>3 days</td>
-<td>No</td>
-<td>Paid, highest CPU price. Fast scheduling, larger memory nodes.</td>
-</tr>
-<tr>
-<td><code>premium</code></td>
-<td><code>cn-01</code>, <code>cn-02</code>, <code>cn-03</code></td>
-<td>7 days</td>
-<td>No</td>
-<td>Paid, 7-day wall, all CPU nodes. No <code>interactive</code> QoS.</td>
-</tr>
-<tr>
-<td><code>a100</code></td>
-<td><code>gpu-01</code></td>
-<td>1 day</td>
-<td>No</td>
-<td>Paid GPU partition (NVIDIA A100).</td>
-</tr>
-<tr>
-<td><code>l40s</code>, <code>h100</code>, <code>h200</code></td>
-<td>varies</td>
-<td>varies</td>
-<td>No</td>
-<td>Paid GPU partitions per hardware generation.</td>
-</tr>
-</tbody>
-</table>
-<h3>QoS (job class)</h3>
-<table>
-<thead>
-<tr>
-<th>QoS</th>
-<th>Priority</th>
-<th>Max wall</th>
+<th>Kind</th>
+<th>Names</th>
 <th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>CPU partitions, by billing tier</td>
+<td><code>low</code>, <code>med</code>, <code>high</code>, <code>premium</code></td>
+<td>Same hardware class, different <code>TRESBillingWeights</code> (SU per core-hour); <code>premium</code> has the longest wall time.</td>
+</tr>
+<tr>
+<td>GPU partitions, by hardware</td>
+<td><code>a100</code>, <code>l40s</code>, <code>h100</code>, <code>h200</code>, <code>b200</code>, <code>b300</code></td>
+<td>Submit to the partition matching the GPU you need. Some are reserved to one organisation's accounts (<code>AllowAccounts</code>). A job with no <code>--gres</code>/<code>--gpus</code> is rejected.</td>
+</tr>
+<tr>
+<td>Free</td>
 <td><code>scavenger</code></td>
-<td>low</td>
-<td>3 days</td>
-<td>Free. Job is preempted if a paid job needs the resource.</td>
+<td>Preemptible, never billed. On some clusters scavenger is a QoS rather than a partition; <code>sassoc</code> shows what your accounts can use.</td>
+</tr>
+</tbody>
+</table>
+<h3>QoS (account class)</h3>
+<p>Your QoS is decided by the account you submit under: it marks the
+account class and is not a priority dial you turn. Your allocation
+already carries the right default, so most jobs never pass <code>--qos</code>.</p>
+<table>
+<thead>
+<tr>
+<th>QoS</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scavenger</code></td>
+<td>Free, preemptible. Your job may be killed if a paid job needs the resources. Free work is still metered against your allocation's budget.</td>
+</tr>
+<tr>
+<td><code>orga</code> / <code>orgb</code></td>
+<td>Paid work on an OrgA / OrgB account, where your allocation enables it. <code>orgb</code> accounts are funded by the OrgB programme and never billed.</td>
 </tr>
 <tr>
 <td><code>interactive</code></td>
-<td>1000</td>
-<td>4 hours</td>
-<td>Higher priority, capped 4 h. Excluded from <code>premium</code>.</td>
+<td>Priority 1000, 4-hour wall cap, for <code>interact</code> / <code>srun --pty</code> sessions. Not offered on <code>premium</code>.</td>
 </tr>
 <tr>
-<td><code>normal</code></td>
-<td>normal</td>
-<td>per partition</td>
-<td>Default for paid allocations.</td>
+<td><code>condo</code>, <code>class</code></td>
+<td>Hardware-credit (condo) accounts and course accounts. Pinned to the allocation by staff.</td>
 </tr>
 <tr>
-<td><code>premium</code></td>
-<td>high</td>
-<td>per partition</td>
-<td>Higher priority on <code>premium</code> partition.</td>
-</tr>
-<tr>
-<td><code>orgb</code></td>
-<td>normal</td>
-<td>per partition</td>
-<td>Free QoS for <code>orgb-*</code> accounts on paid partitions (OrgB Sciences funded).</td>
+<td><code>orga2</code>, <code>orga4</code></td>
+<td>Elevated GPU tiers (2x / 4x the standard per-account GPU limit). Pinned per allocation by staff; you never pass them by hand.</td>
 </tr>
 </tbody>
 </table>
-<h3>Cost (per the live <code>rates.lua</code> shipped in the cluster)</h3>
-<p>Cost is partition-specific, not global. The numbers below match the
-Service Center 2026-2034 rate schedule loaded on the dev cluster (see
-<a href="../../slurm/conf/rates.lua"><code>slurm/conf/rates.lua</code></a> for the source of
-truth; it is auto-generated by <code>coldfront export_rates_lua</code> from the
-<code>BillingRate</code> table).</p>
-<table>
-<thead>
-<tr>
-<th>Partition</th>
-<th>CPU rate (per SU = core-hour)</th>
-<th>GPU rate (per GPU-hour)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>scavenger</code></td>
-<td><strong>free</strong> ($0)</td>
-<td>n/a</td>
-</tr>
-<tr>
-<td><code>low</code></td>
-<td><strong>$0.0056</strong></td>
-<td>n/a</td>
-</tr>
-<tr>
-<td><code>med</code></td>
-<td><strong>$0.0062</strong></td>
-<td>n/a</td>
-</tr>
-<tr>
-<td><code>high</code></td>
-<td><strong>$0.0107</strong></td>
-<td>n/a</td>
-</tr>
-<tr>
-<td><code>premium</code></td>
-<td><strong>$0.0107</strong></td>
-<td>n/a</td>
-</tr>
-<tr>
-<td><code>a100</code></td>
-<td>$0 (GPU billing only)</td>
-<td><strong>$0.5550</strong></td>
-</tr>
-<tr>
-<td><code>l40s</code>, <code>h100</code>, <code>h200</code></td>
-<td>not yet listed in <code>rates.lua</code> — check with staff before submitting</td>
-<td>varies</td>
-</tr>
-</tbody>
-</table>
-<p>Cache and Project Storage are flat, per-TB-per-month:</p>
-<table>
-<thead>
-<tr>
-<th>Item</th>
-<th>Rate</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Cache</td>
-<td><strong>$0.025 / TB / month</strong></td>
-</tr>
-<tr>
-<td>Project Storage</td>
-<td><strong>$0.015 / TB / month</strong></td>
-</tr>
-</tbody>
-</table>
-<p>Cache and Project Storage are billed every month regardless of whether you
-run any jobs.</p>
-<p><strong>GPU-only billing rule</strong> — when a job uses any GPU, only its GPU
-charges go into the bill total; the CPU hours of that job are reported
-for transparency but <strong>excluded</strong> from the amount due. Pure-CPU jobs
-charge CPU as expected.</p>
-<p><strong>Practical sense check</strong> — a typical 8-core, 24 h job on <code>med</code>
-costs <code>8 cores * 24 h * $0.0062 = $1.19</code>. A 24 h <code>a100</code> job (1 GPU)
-costs <code>24 * $0.5550 = $13.32</code>. Numbers are intentionally small in
-<code>Service Center</code> mode — your PI's Weekly Cap protects you from
-runaways well before the bill bites.</p>
+<p><code>sqos</code> prints the limits behind each QoS; <code>sassoc</code> prints the
+<code>account x partition x QoS</code> combinations you can submit to.</p>
+<h3>Cost model</h3>
+<p>Cost is partition-specific, and the numbers live on <code>/billing/rates/</code>
+and in the Submit Job preview, not here.</p>
+<ul>
+<li><strong>1 SU = $0.001.</strong></li>
+<li>Per job, Slurm bills the largest weighted resource
+  (<code>PriorityFlags=MAX_TRES</code>):
+  <code>billing = max(cpus x W_cpu, mem_GiB x W_mem, gpus x W_gpu)</code>, with the
+  <code>W_*</code> weights from the partition's <code>TRESBillingWeights</code>;
+  <code>SU = billing x hours</code>; <code>$ = SU x 0.001</code>. The <code>[BILLING]</code> block of the
+  CLI filter marks the winning line with <code>&lt;- billed (max)</code>.</li>
+<li>The invoice charges the SU Slurm counted, the same number <code>sbalance</code>
+  and the spend cap use. CPU-hour and GPU-hour figures priced from the
+  rate catalogue appear beside it as estimates only.</li>
+<li>Cache and Project Storage are flat per TB-month, charged every month
+  regardless of jobs.</li>
+<li>Never charged: <code>scavenger</code>, <code>orgb-*</code> accounts, default allocations,
+  and allocations staff marked no-charge.</li>
+</ul>
+<p>Sense check: on a partition whose CPU weight is 6.2 SU per core-hour, an
+8-core, 24-hour job is <code>8 x 24 x 6.2 = 1,190 SU = $1.19</code>. Your PI's spend
+cap stops a runaway long before the bill does.</p>
 <h3>CLI cheat-sheet</h3>
 <table>
 <thead>
@@ -412,19 +353,31 @@ runaways well before the bill bites.</p>
 <tbody>
 <tr>
 <td><code>sinfo</code></td>
-<td>Show partition / node status.</td>
+<td>Partition / node status.</td>
 </tr>
 <tr>
-<td><code>squeue</code></td>
-<td>List queued + running jobs (use <code>-u $USER</code> to filter).</td>
+<td><code>sfeatures</code></td>
+<td>Node features, GRES and partition summary.</td>
+</tr>
+<tr>
+<td><code>squeue -u $USER</code>, <code>sqme</code></td>
+<td>Your queued and running jobs.</td>
+</tr>
+<tr>
+<td><code>sbrief</code></td>
+<td>Count of jobs by state.</td>
 </tr>
 <tr>
 <td><code>sbatch &lt;script&gt;</code></td>
 <td>Submit a batch job.</td>
 </tr>
 <tr>
+<td><code>interact -a &lt;account&gt; -p &lt;partition&gt; -n 4 -t 2:00:00</code></td>
+<td>Interactive session on a compute node, charged to <code>&lt;account&gt;</code> (required; <code>interact -l</code> lists yours). <code>interact -h</code> for options, including <code>-g</code> for GPUs.</td>
+</tr>
+<tr>
 <td><code>srun --pty bash</code></td>
-<td>Interactive shell on a compute node.</td>
+<td>Interactive shell on a compute node (lower level than <code>interact</code>).</td>
 </tr>
 <tr>
 <td><code>scancel &lt;jobid&gt;</code></td>
@@ -435,24 +388,24 @@ runaways well before the bill bites.</p>
 <td>Past job accounting (state, exit code, hours).</td>
 </tr>
 <tr>
-<td><code>sbalance</code></td>
-<td>ColdFront-side usage vs allocation cap.</td>
-</tr>
-<tr>
-<td><code>sbalance --week</code></td>
-<td>Weekly $ cap remaining for paid allocations.</td>
-</tr>
-<tr>
 <td><code>seff &lt;jobid&gt;</code></td>
 <td>Efficiency report after a job finishes.</td>
 </tr>
 <tr>
-<td><code>stree --full</code></td>
-<td>Visualise the Slurm account hierarchy you sit under.</td>
+<td><code>sbalance</code>, <code>sbalance --week</code>, <code>sbalance --by-partition</code></td>
+<td>SU used vs limit, spend cap for the current period, per-partition split. <code>--held</code> and <code>-M</code> are for administrators.</td>
 </tr>
 <tr>
-<td><code>sqos</code>, <code>sassoc</code>, <code>sfeatures</code></td>
-<td>CLOACK-specific helpers (QoS overview, your associations, partition features).</td>
+<td><code>sassoc</code></td>
+<td>Your account / partition / QoS associations.</td>
+</tr>
+<tr>
+<td><code>sqos</code></td>
+<td>QoS definitions and limits.</td>
+</tr>
+<tr>
+<td><code>stree --full</code></td>
+<td>The Slurm account hierarchy you sit under.</td>
 </tr>
 </tbody>
 </table>
@@ -467,47 +420,47 @@ runaways well before the bill bites.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>Permission denied (publickey)</code> on SSH</td>
-<td>Public-key auth disabled by default; you must complete the OTP flow</td>
-<td>Re-SSH and follow the terminal prompts (password + TOTP, or browser Device Flow) — see <code>docs/break-glass-admin.md</code> for the model</td>
+<td>SSH ends with "This account is currently not available" or <code>Permission denied</code></td>
+<td>No login shell yet: you are not on any PI's allocation, or you have not accepted the current Terms of Service</td>
+<td>Ask your PI to add you; accept the ToS on <code>/user/user-profile/</code>; then re-SSH and follow the prompts (password + TOTP, or the browser Device Flow)</td>
 </tr>
 <tr>
 <td>Banner says "Activate TOTP" but I already enrolled</td>
-<td>Cache up to 30 min — the <code>sync_totp_status</code> task polls Keycloak periodically</td>
-<td>Wait 30 min, or hit <code>/user/user-profile/</code> to trigger a refresh; if it persists open a helpdesk ticket</td>
+<td>The enrolment check runs every 30 minutes</td>
+<td>Wait, or open <code>/user/user-profile/</code>; if it persists open a helpdesk ticket</td>
 </tr>
 <tr>
-<td><code>srun: error: AssocMaxCpuMinutesPerJobLimit</code></td>
-<td>Your weekly $ cap or core-hour cap is exhausted on that allocation</td>
-<td><code>sbalance --week</code> to confirm; switch to <code>scavenger</code> (free), or ask your PI to raise the Weekly Cap</td>
+<td>Job pending with reason <code>AssocGrpBillingMinutes</code></td>
+<td>The account's spend cap or budget for the current usage period is used up</td>
+<td><code>sbalance --week</code> to confirm; switch to <code>scavenger</code> (free); or ask your PI to raise the cap. The counter clears at the period boundary</td>
+</tr>
+<tr>
+<td>Job pending with reason <code>AssocGrpSubmitJobs</code> (submission held)</td>
+<td>The allocation has no spend cap set yet, or the IO Number paying for it is paused</td>
+<td>Ask your PI to set a cap (or choose <strong>No cap</strong>) on Allocation Detail, or to resume the IO Number. Your free default account is never held</td>
 </tr>
 <tr>
 <td><code>sbatch: error: Invalid account or account/partition combination</code></td>
-<td>The account you passed (e.g. <code>admin1_proj1</code>) has no QoS that admits jobs on that partition</td>
-<td>Use <code>sassoc</code> to see which <code>account × partition</code> pairs you can submit to</td>
+<td>Generic rejection: you are not a member yet, your ToS is pending, the account is not provisioned, the partition is reserved to another organisation, or the QoS is not allowed there</td>
+<td><code>sassoc</code> to see your valid combinations; if the pair looks right, open a ticket so staff can read the controller log</td>
 </tr>
 <tr>
-<td>Job stuck in PD with reason <code>QOSGrpBillingMinutes</code></td>
-<td>Your account's Weekly Cap on <code>billing</code> TRES was reached</td>
-<td><code>sbalance --week</code> to confirm; switch partitions / wait for Sunday 00:00 (cluster time), when the weekly window resets / ask the PI to raise the cap</td>
+<td>GPU job rejected: "GPU partition requires a GPU request"</td>
+<td>No <code>--gres=gpu:N</code> / <code>--gpus=N</code> on a GPU partition</td>
+<td>Add the GPU request, or use a CPU partition</td>
 </tr>
 <tr>
-<td><code>cli_filter</code> aborted my job with "accept_cost not set"</td>
-<td>A non-CLI submission path (e.g. OnDemand custom app, slurmrestd direct) did not inject <code>comment=accept_cost</code></td>
-<td>Re-submit via <code>sbatch</code> / <code>srun</code> from the login node, or set <code>--comment=accept_cost</code> explicitly</td>
+<td>Job refused with "accept_cost not set"</td>
+<td>A non-CLI path (slurmrestd direct, a custom OnDemand app) did not inject <code>comment=accept_cost</code></td>
+<td>Re-submit via <code>sbatch</code> / <code>srun</code> on the login node, or set <code>--comment=accept_cost</code> explicitly</td>
 </tr>
 <tr>
-<td>Storage charge appears on bill with 0 hours run</td>
-<td>Cache and Project Storage are charged monthly regardless of compute activity</td>
-<td>This is by design; see the storage billing note above</td>
+<td>Storage charge appears on the bill with 0 hours run</td>
+<td>Cache and Project Storage are charged monthly regardless of compute</td>
+<td>By design; see the storage note above</td>
 </tr>
 <tr>
-<td>GPU job's CPU hours appear in the report but not in the total</td>
-<td>GPU-only billing rule (this page's Cost table)</td>
-<td>This is by design — GPU jobs charge GPU only; CPU hours are shown for transparency</td>
-</tr>
-<tr>
-<td><code>Permission denied</code> editing <code>/scratch/orga/myproject</code></td>
+<td><code>Permission denied</code> editing <code>/scratch/&lt;aff&gt;/&lt;pi&gt;</code></td>
 <td>The directory belongs to the PI, not you</td>
 <td>Ask your PI to add you to the project / allocation in ColdFront</td>
 </tr>
@@ -515,11 +468,11 @@ runaways well before the bill bites.</p>
 </table>
 <h2>Where to go next</h2>
 <ul>
-<li><code>/user/help/</code> — in-app help with live updates.</li>
-<li><code>slurm/README.md</code> — full Slurm reference
-  (cost enforcement, hierarchy, weekly cap details, daemons in depth).</li>
-<li><a href="pi.html"><code>pi.md</code></a> — if you also manage a project.</li>
-<li><a href="index.html"><code>README.md</code></a> — the role index.</li>
+<li><code>/user/help/</code>: in-app help with live updates.</li>
+<li><code>slurm/README.md</code>: full Slurm reference
+  (cost enforcement, hierarchy, spend cap details, daemons in depth).</li>
+<li><a href="pi.html"><code>pi.md</code></a>: if you also manage a project.</li>
+<li><a href="index.html"><code>README.md</code></a>: the role index.</li>
 </ul></div>
       </main>
     </div>

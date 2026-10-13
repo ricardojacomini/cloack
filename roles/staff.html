@@ -71,10 +71,10 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 on your account (or, for team leads, <code>helpdesk-admin</code>). You triage the
 queue, work tickets through the skill-based assignment matrix, escalate
 on FQR / SLA breaches, and read the analytics dashboards. You authenticate
-the same way every other user does — see <a href="user.html"><code>user.md</code></a> for the
+the same way every other user does: see <a href="user.html"><code>user.md</code></a> for the
 login flow.</p>
 <p>If you also approve allocations or run cluster ops, you are also a
-<strong>Superuser</strong> — read <a href="superuser.html"><code>superuser.md</code></a>. If you author or
+<strong>Superuser</strong>: read <a href="superuser.html"><code>superuser.md</code></a>. If you author or
 read tickets without working them, you are a regular <a href="user.html"><code>user.md</code></a>.</p>
 <h2>Quick start</h2>
 <h3>1. Triage a new ticket</h3>
@@ -88,6 +88,13 @@ The right-hand context sidebar shows the submitter's past tickets,
 their PI / project / department, GPU / partition references found in
 the title / description, similar open tickets, and suggested
 collaborators ranked by skill match.</p>
+<p>Every new ticket is also <strong>triaged by the AI engine</strong>: a badge shows the
+suggested category and confidence, with a staff-only <strong>Apply</strong> button.
+Suggestions are never applied automatically; the confidence figure is
+not calibrated, so read the ticket before applying. The engine runs
+inside the stack and user data never leaves it. <code>/extensions/ai/</code>
+(sidebar Staff → AI Engine) shows engine status, the low-confidence
+queue awaiting human triage, and the audit trail.</p>
 <h3>2. Respond + classify</h3>
 <pre><code>&quot;Send email as &lt;ResponseTemplate&gt;&quot;      → picks a template
   → {name}/{your_name}/{issue}/{ticket_number}/{survey_url}/{signature}
@@ -95,6 +102,17 @@ collaborators ranked by skill match.</p>
   → choose the email class (FQR / strike 1-3 / LQR)
   → server-side scrub catches any token you didn't fill in
 </code></pre>
+<p>The <strong>Status</strong> combo in the header saves on change (status flow is
+validated server-side; every option carries a tooltip with its meaning),
+so a quick status change does not need a follow-up form.</p>
+<p>Attachments: a public (keyed) reply accepts files up to 500 KB each,
+staff replies up to 50 MB; rejected files are named with the reason and
+the rest of the reply still goes through. Outgoing e-mail carries the
+files of that reply under 500 KB and links the larger ones.</p>
+<p>Your reply draft is kept in the browser per ticket until the reply is
+sent. If the portal session expires while a ticket tab is open, a sticky
+banner locks the Respond form instead of silently discarding the POST;
+sign in again and the draft is still there.</p>
 <h3>2b. Start a conversation yourself (ticket on behalf of a user)</h3>
 <p>Some messages are staff-initiated: a storage-requirement clarification, or
 "we noticed VS Code Server on the login node and terminated your processes".
@@ -111,32 +129,45 @@ stays internal and the user gets just the courtesy notice). <code>{your_name}</c
 <code>{name}</code> is filled from the submitter address when the ticket is created.
 Templates are offered here only when flagged <strong>Submit a Ticket</strong> in
 Admin › Response templates (a template can be on both surfaces).</p>
+<p>Non-staff users see only the queues of their own organisation on the
+public submit form (queue slug / title carry a <code>orga</code> or <code>orgb</code>
+marker; unmarked queues are shown to everyone). The staff form is
+unfiltered.</p>
 <p>The classification advances the <code>TicketFollowUpTracker</code> and feeds the
 analytics dashboard. Internal notes use <code>public=False</code>; customer
-emails use <code>public=True</code> — collaborators are forced to internal-only.</p>
+emails use <code>public=True</code>; collaborators are forced to internal-only.</p>
 <h3>3. Escalate</h3>
-<pre><code>ticket → &quot;Escalate&quot; action               → applies the StaffMember.policy
-                                           (3-strike, FQR / SLA breach)
-                                          → reassigns to the next staff in
-                                            the routing matrix
-                                          → logs the routing decision
-                                            for audit
-</code></pre>
+<p>The <strong>Escalation</strong> row in the Properties sidebar offers the eligible
+targets for this ticket, by team tree: an <code>sse</code>-owned or unassigned ticket
+escalates to <code>sse_sr</code>, then <code>se</code>, then <code>se_sr</code>, then the admins; a senior
+owner skips the tiers below. Least-loaded engineer first within a tier,
+the suggestion pre-selected. Submit applies the reassignment through the
+normal update path (follow-up + notifications) and records the routing
+decision. The row turns red when the SLA / FQR state calls for it.</p>
 <p><code>/extensions/analytics/routing/</code> shows the live decision audit trail.</p>
+<h3>3b. Transfer requests</h3>
+<p>The hand icon on a ticket asks its owner to hand it over. The owner
+approves or rejects from the ticket page (Transfer row under Assignee) or
+from <code>/extensions/transfers/</code>; the requester can withdraw; superusers can
+decide any pending request from the oversight table. A request resolves
+itself when the ticket is finished (Resolved / Closed / Duplicate /
+Archived → cancelled with a note), when it is assigned to the requester by
+any other path (→ approved) or to a third person (→ cancelled naming the
+new owner). Mitigated and Staged keep the request open.</p>
 <h3>4. Read the analytics</h3>
-<pre><code>/dashboard/                              → 3 tabs:
-                                            • Department / Project
-                                            • PI
-                                            • Resource (GPU / CPU / Cache / Project Storage)
+<pre><code>/dashboard/                              → ticket analytics by
+                                            department / project, PI and
+                                            resource (GPU / CPU / storage)
 /reports/                                → 8 stock helpdesk reports rendered
                                             inline as Chart.js bar / line charts
 </code></pre>
-<p>Every ticket table on <code>/dashboard/</code> sorts by column header — including
-<strong>Unanswered user replies</strong> and <strong>All tickets</strong> — and those two also carry a
-Queue + Status filter bar (sort links keep the filter, the filter keeps the
-sort, "Clear" resets). Inbound mail without a parseable <code>From:</code> is rejected at
-intake and never becomes a ticket, so you will not see <code>Unknown Sender</code> rows
-any more; the rejection is logged in the container cron log.</p>
+<p>Every ticket table on the helpdesk dashboard sorts by column header,
+including <strong>Unanswered user replies</strong> and <strong>All tickets</strong>, and those two
+also carry a Queue + Status filter bar (sort links keep the filter, the
+filter keeps the sort, "Clear" resets). Inbound mail without a parseable
+<code>From:</code> is rejected at intake and never becomes a ticket, so you will not
+see <code>Unknown Sender</code> rows; the rejection is logged in the container cron
+log.</p>
 <p>The dashboard layout is yours to arrange: each section header has move up,
 move down and hide controls, saved per user. Hidden sections stay listed, with
 their counts, in a <strong>Hidden sections</strong> strip at the top (click <strong>Show</strong> to bring
@@ -153,9 +184,10 @@ or Staged does not count, since work is still pending).</p>
 </code></pre>
 <h3>5. Run a public feedback ticket through the Feedback queue</h3>
 <p>Tickets created via the <strong>public</strong> submit form with a category whose
-<code>show_on_submit=True</code> are auto-routed to the <strong>Feedback &amp; Suggestions</strong>
-queue (slug <code>feedback</code>, owner = <code>CLOACK_SUPERUSERS[0]</code>). They do not
-pollute General Support — review them on a separate cadence.</p>
+<code>show_on_submit=True</code> are auto-routed to the queue set on the category
+(<code>default_queue</code>, e.g. <strong>Feedback &amp; Suggestions</strong>) or straight to its
+<code>default_assignee</code>. They do not pollute General Support; review them on a
+separate cadence.</p>
 <h2>Reference matrices</h2>
 <h3>Ticket statuses</h3>
 <table>
@@ -263,45 +295,34 @@ and the dashboard's <strong>Unanswered user replies</strong> section show it). N
 a Resolved ticket on its own either, so if you use Resolved, come back to it.
 SME points and Slack/Teams notifications fire on both Resolved and Closed, so
 going straight to Closed costs nothing.</p>
-<h3>Priority + SLA windows</h3>
+<h3>FQR + SLA windows</h3>
+<p>Deadlines come from <strong>SLA policies</strong> (Django Admin › SLA policies), each
+scoped to a queue, a category and/or a priority (blank = all), with two
+numbers:</p>
 <table>
 <thead>
 <tr>
-<th>Priority</th>
-<th>First Quality Response (FQR)</th>
-<th>SLA</th>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>1 — Critical</td>
-<td>30 minutes</td>
-<td>4 hours</td>
+<td><code>first_response_minutes</code></td>
+<td>180</td>
+<td>First Quality Response deadline, always in business minutes (short windows must not elapse overnight)</td>
 </tr>
 <tr>
-<td>2 — High</td>
-<td>2 hours</td>
-<td>1 business day</td>
-</tr>
-<tr>
-<td>3 — Normal</td>
-<td>1 business day</td>
-<td>3 business days</td>
-</tr>
-<tr>
-<td>4 — Low</td>
-<td>2 business days</td>
-<td>5 business days</td>
-</tr>
-<tr>
-<td>5 — Very Low</td>
-<td>best-effort</td>
-<td>best-effort</td>
+<td><code>resolution_minutes</code></td>
+<td>1440</td>
+<td>Overall SLA (<code>ticket.due_date</code>); calendar or business minutes depending on <code>business_hours_only</code></td>
 </tr>
 </tbody>
 </table>
-<p>Breaches trigger escalation per <code>StaffMember.policy</code> (3-strike rule
-shipped by default).</p>
+<p>Both are stamped once, when the ticket is created; assigning or
+unassigning never resets them. Breaches trigger escalation per
+<code>StaffMember.policy</code> (3-strike rule shipped by default).</p>
 <h3>Skill matrix routing</h3>
 <table>
 <thead>
@@ -337,6 +358,10 @@ shipped by default).</p>
 </tr>
 </tbody>
 </table>
+<p>Auto-assignment respects the work window (<code>AssignmentPolicy.work_start</code>
+/ <code>work_end</code>, per-engineer overrides) and skips weekends unless an
+on-call block covers the moment; <code>on_call</code> blocks also mark an engineer
+available outside work hours.</p>
 <h3>Helpdesk extensions</h3>
 <table>
 <thead>
@@ -371,8 +396,16 @@ shipped by default).</p>
 <td>Admin reviews + approves / denies requests</td>
 </tr>
 <tr>
+<td><code>/extensions/transfers/</code></td>
+<td>Pending ticket transfer requests (yours to decide, yours pending, superuser oversight)</td>
+</tr>
+<tr>
 <td><code>/extensions/deletion-requests/</code></td>
 <td>Superuser queue for justified ticket deletions</td>
+</tr>
+<tr>
+<td><code>/extensions/ai/</code></td>
+<td>AI engine status, human-triage queue, audit trail</td>
 </tr>
 <tr>
 <td><code>/extensions/trello/</code></td>
@@ -386,7 +419,7 @@ shipped by default).</p>
 </table>
 <h3>ColdFront request tickets (auto-opened, auto-resolved)</h3>
 <p>Requests that need a ColdFront decision arrive as tickets with the <strong>requester
-as submitter</strong>, opened by ColdFront through the helpdesk internal API — not as
+as submitter</strong>, opened by ColdFront through the helpdesk internal API, not as
 e-mail from the shared mailbox. Decide in ColdFront; the ticket follows.</p>
 <table>
 <thead>
@@ -398,22 +431,22 @@ e-mail from the shared mailbox. Decide in ColdFront; the ticket follows.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>[OrgA] Coldfront New Allocation Request: …</code></td>
+<td><code>[OrgA] Coldfront New Allocation Request: ...</code></td>
 <td>PI/manager requests an allocation</td>
 <td>you approve or deny it (Reopened if resubmitted, Closed if withdrawn)</td>
 </tr>
 <tr>
-<td><code>… New Allocation Change Request</code> / <code>… Allocation Renewed</code></td>
+<td><code>... New Allocation Change Request</code> / <code>... Allocation Renewed</code></td>
 <td>change request / renewal submitted</td>
 <td>change request or renewal approved / denied</td>
 </tr>
 <tr>
-<td><code>… Upgrade Account Request: …</code></td>
+<td><code>... Upgrade Account Request: ...</code></td>
 <td>a user asks to become a PI (the ticket and the Promote Users row show the primary department they chose; promotion creates the default project there)</td>
 <td>you promote them or clear the request on Promote Users</td>
 </tr>
 <tr>
-<td><code>… New Project Request: …</code></td>
+<td><code>... New Project Request: ...</code></td>
 <td>a new non-default project is created (IO validation text included)</td>
 <td>you activate or deny it; "Request changes" only adds a comment</td>
 </tr>
@@ -423,15 +456,38 @@ e-mail from the shared mailbox. Decide in ColdFront; the ticket follows.</p>
 <td>Storage Review decision / billing review cleared</td>
 </tr>
 <tr>
-<td><code>… Allocation Deletion Request: …</code></td>
+<td><code>Billing paused on IO Number ...</code></td>
+<td>a PI (or staff) pauses billing on an IO Number, or an Overdue invoice pauses it automatically</td>
+<td>the IO is resumed (one open ticket per IO)</td>
+</tr>
+<tr>
+<td><code>... Allocation Deletion Request: ...</code></td>
 <td>a PI, manager or staff member clicks <strong>Request Deletion</strong> on Allocation Detail (reason required)</td>
 <td>a <strong>superuser</strong> deletes the allocation (Resolved). Only superusers can delete; the default project's allocation is never deletable</td>
+</tr>
+<tr>
+<td><code>Class resources request ...</code> / <code>Class ended (teardown due)</code></td>
+<td>a PI submits a Class Request or Request more students / a class reaches its end date</td>
+<td>staff approve or deny on Class Requests; the teardown ticket is closed by hand after Delete Class</td>
 </tr>
 </tbody>
 </table>
 <p>Audit: ColdFront Admin → <em>Helpdesk ticket links</em>. A ticket of this kind whose
 submitter is the shared mailbox means the API path failed and ColdFront fell
 back to e-mail.</p>
+<h3>Mail intake rules</h3>
+<ul>
+<li>A message with no parseable <code>From:</code> is rejected at intake (logged,
+  deleted from the mailbox); nothing legitimate is lost since RFC 5322
+  requires <code>From:</code>.</li>
+<li>A quarantine digest from the mail filter means a message to the shared
+  mailbox was <strong>held and never reached the intake</strong>: no ticket exists.
+  Sweep the quarantine (external collaborators writing from free-mail
+  addresses are the usual victims) and never silence the digest sender
+  with an <code>IgnoreEmail</code> rule, since the digest is the only evidence.</li>
+<li>An <code>IgnoreEmail</code> entry works on a full address, a bare domain
+  (<code>*@domain</code>) or a bare word (literal match on the sender string).</li>
+</ul>
 <h2>Troubleshooting</h2>
 <table>
 <thead>
@@ -445,7 +501,7 @@ back to e-mail.</p>
 <tr>
 <td>New status 6 (Archived) does not show on a tab I expected</td>
 <td>Archived is not in <code>OPEN_STATUSES = (1, 2)</code></td>
-<td>Archived is a closed status by design — it shows on the All / Closed tabs only</td>
+<td>Archived is a closed status by design; it shows on the All / Closed tabs only</td>
 </tr>
 <tr>
 <td>Skill matrix shows 0 mentors despite recent edits</td>
@@ -465,7 +521,22 @@ back to e-mail.</p>
 <tr>
 <td>Collaborator cannot add a comment</td>
 <td>Server-side guard: collaborator can only add <code>public=False</code> notes</td>
-<td>This is by design; only the owner sends customer emails</td>
+<td>By design; only the owner sends customer emails</td>
+</tr>
+<tr>
+<td>My reply vanished and the page just reloaded</td>
+<td>The portal session had expired; the POST was answered with a login redirect</td>
+<td>The draft is still in the Respond box after you sign in; the banner now warns before you type</td>
+</tr>
+<tr>
+<td>A file I attached is missing from the follow-up</td>
+<td>Over the size cap (500 KB on public replies, 50 MB for staff) or a disallowed extension</td>
+<td>The rejection is flashed on the page with the reason; resend the file within the cap, or attach it to the e-mail thread</td>
+</tr>
+<tr>
+<td>Transfer request stays pending after the ticket closed</td>
+<td>Only tickets saved after the auto-resolve rule landed are reconciled on save</td>
+<td>Decide it from <code>/extensions/transfers/</code>; closing or reassigning the ticket again also resolves it</td>
 </tr>
 <tr>
 <td>Reports page is slow</td>
@@ -476,12 +547,12 @@ back to e-mail.</p>
 </table>
 <h2>Where to go next</h2>
 <ul>
-<li><code>/staff/help/</code> — in-app help (Staff Help Page).</li>
-<li><code>/extensions/</code> — admin UI for skill matrix, schedule grid,
-  analytics, deletion-request queue.</li>
-<li><a href="superuser.html"><code>superuser.md</code></a> — if you also approve allocations
-  or run cluster ops.</li>
-<li><a href="index.html"><code>README.md</code></a> — the role index.</li>
+<li><code>/staff/help/</code>: in-app help (Staff Help Page).</li>
+<li><code>/extensions/</code>: admin UI for skill matrix, schedule grid, analytics,
+  transfer and deletion-request queues, AI engine.</li>
+<li><a href="superuser.html"><code>superuser.md</code></a>: if you also approve allocations or run
+  cluster ops.</li>
+<li><a href="index.html"><code>README.md</code></a>: the role index.</li>
 </ul></div>
       </main>
     </div>

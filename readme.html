@@ -1923,15 +1923,20 @@ Use stree --full to include users
 <pre><code class="language-bash"># List available partitions + your accounts &amp; QOS
 interact -l
 
-# Start a session (1 core, 1 hour, scavenger)
-interact -p scavenger -n 1
+# Start a session (1 core, 1 hour, the cluster's default partition)
+interact -a &lt;account&gt; -n 1
 
-# 4 cores, 16GB, premium with specific account
-interact -p premium -n 4 -m 16G -a mypi_proj1
+# 4 cores, 16GB on a CPU partition
+interact -a &lt;account&gt; -p &lt;cpu-partition&gt; -n 4 -m 16G
 
 # GPU session
-interact -p gpu -g 1 -n 4 -m 32G -t 2:00:00
+interact -a &lt;account&gt; -p &lt;gpu-partition&gt; -g 1 -n 4 -m 32G -t 2:00:00
 </code></pre>
+<p><strong><code>-a &lt;account&gt;</code> is required.</strong> <code>interact</code> never picks the account to charge:
+the old auto-detect took the first of the user's associations, not the Slurm
+default account, so a member of another PI's allocation was silently billed on
+that PI's account. An account that is not one of the user's associations is
+refused before <code>salloc</code>, with the list.</p>
 <p><strong>Built-in checks:</strong> validates walltime against partition limit, auto-detects GPU partitions, shows weekly cap budget remaining before submitting.</p>
 <h3>sbalance — Usage Report</h3>
 <pre><code class="language-bash"># Show usage for all your accounts
