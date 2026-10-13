@@ -60,7 +60,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
         <aside class="site-sidebar">
           <div class="sidebar-brand">CLOACK Stack</div>
           <div class="sidebar-links">
-            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html" class="active">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a>
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html" class="active">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a><a href="su-budgets.html">SU budgets</a>
           </div>
         </aside>
         
@@ -154,10 +154,16 @@ login shell. Provisioning is immediate once the ToS gate is clear.</p>
   association, across all partitions at once.</li>
 <li>One cap per allocation; users sharing the allocation share the cap.
   At the cap, jobs queue with reason <code>AssocGrpBillingMinutes</code> until the
-  period resets; a job whose projected usage would cross the cap waits
-  instead of being killed.</li>
-<li>The <strong>Budget (SU)</strong> card shows the remaining SU, how many hours it
-  buys on each partition, and the SU reserved by running jobs.</li>
+  period resets. A job whose projected usage would cross the cap waits
+  instead of being killed when the cluster enables <code>safe</code> in
+  <code>AccountingStorageEnforce</code>; ask staff if a job of yours was killed at
+  the cap.</li>
+<li>The <strong>Budget (SU)</strong> card shows what is still available this period
+  (what Slurm will still accept), what was used (the accounting total),
+  how many hours the available SU buy on each partition, and the SU
+  reserved by running jobs. The two figures differ on purpose: Slurm gives
+  older usage less weight as the period goes on, so the budget is enforced
+  with a tolerance; the accounting total is what a bill is based on.</li>
 </ul>
 <h3>5. Read the billing report</h3>
 <pre><code>/billing/report-by-pi/                  → your projects, per allocation
@@ -415,6 +421,8 @@ tier); blank means the cluster default for your account class.</p>
 <li><code>coldfront/BILLING_SETUP_GUIDE.md</code>:
   full billing reference (rates, periods, invoices, Cost Centers).</li>
 <li><a href="user.html"><code>user.md</code></a>: login + day-to-day job submission.</li>
+<li><a href="su-budgets.html"><code>su-budgets.md</code></a>: how the SU budget is enforced, why
+  "used" and "available" differ, and what staff can change.</li>
 <li><a href="index.html"><code>README.md</code></a>: the role index.</li>
 </ul></div>
       </main>

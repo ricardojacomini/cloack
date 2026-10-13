@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLOACK — SU budgets (staff and admins)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-shell { display: flex; min-height: 100vh; }
+.site-sidebar { width: 260px; background: linear-gradient(180deg, #0c111b 0%, #141a25 100%);
+               border-right: 1px solid #1f2b42; padding: 24px 0; display: flex; flex-direction: column; }
+.sidebar-brand { font-weight: 700; font-size: 1.1rem; color: #e0efff; text-align: center;
+                 margin-bottom: 24px; letter-spacing: 2px; }
+.sidebar-links { display: flex; flex-direction: column; gap: 4px; padding: 0 16px; }
+.sidebar-links a { color: #b3c7dd; text-decoration: none; padding: 10px 14px;
+                  border-radius: 6px; font-size: 0.95rem; display: block; transition: all 0.15s; }
+.sidebar-links a:hover { background: rgba(74, 158, 255, 0.14); color: #fff; }
+.sidebar-links a.active { background: rgba(74, 158, 255, 0.22); color: #fff; border-left: 4px solid #4a9eff; padding-left: 10px; }
+.page-content { flex: 1; max-width: 1200px; margin: 0 auto; padding: 36px 32px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+/* index landing */
+.index-page { text-align: center; padding: 34px 12px 44px; }
+.index-hero { max-width: 768px; margin: 0 auto; }
+.index-hero svg { width: 100%; height: auto; border-radius: 14px; display: block;
+                  box-shadow: 0 10px 40px rgba(0,0,0,0.45); }
+.index-tagline { color: #8fb8ff; font-size: 1.15rem; margin: 28px auto 0; letter-spacing: 0.5px; }
+.index-blurb { color: #8a9bb0; font-size: 1rem; max-width: 800px; margin: 14px auto 0;
+               text-align: center; line-height: 1.7; }
+.index-cards { margin: 34px auto 0; display: flex; gap: 14px; justify-content: center;
+               flex-wrap: wrap; max-width: 1080px; }
+.index-card { flex: 0 1 192px; background: #111c30; border: 1px solid #2d4a6f; border-radius: 10px;
+              padding: 18px 20px; text-decoration: none; font-size: 1rem; display: block;
+              transition: all 0.15s; }
+.index-card:hover { transform: translateY(-2px); border-color: #4a9eff; background: #152441;
+                    text-decoration: none; }
+.index-card small { color: #5a6d7f; display: block; margin-top: 4px; }
+</style>
+</head>
+  <body>
+    <div class="site-shell">
+      
+        <aside class="site-sidebar">
+          <div class="sidebar-brand">CLOACK Stack</div>
+          <div class="sidebar-links">
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a><a href="su-budgets.html" class="active">SU budgets</a>
+          </div>
+        </aside>
+        
+      <main class="page-content">
+        <div class="md-content"><h1>SU budgets: for helpdesk staff and ColdFront admins</h1>
+<h2>Who you are + scope</h2>
+<p>You answer the questions a budget raises: "why is my job pending", "the
+Portal says I still have SU but sbalance says I am over", "why was I charged
+more than my cap". You may also be the person who changes a budget: a
+<strong>ColdFront staff member or superuser</strong> who approves allocations, raises
+<code>Extra Budget (SU)</code>, sets or clears a spend cap, or asks a cluster admin to
+reset usage. The PI's own view of the cap is in <a href="pi.html"><code>pi.md</code></a> §4; the
+user's view of <code>sbalance</code> is in <a href="user.html"><code>user.md</code></a> §4. This guide is the
+layer underneath both: where each number comes from, what Slurm actually
+enforces, and what you can change.</p>
+<p>Everything here describes the <strong>pooled SU model</strong>: one budget per
+allocation, in service units (SU), where <code>1 SU = 1 billing-hour = $0.001</code>
+and a job's <code>billing</code> is <code>max(cpus x W_cpu, mem x W_mem, gpus x W_gpu)</code> from
+the partition's <code>TRESBillingWeights</code>. The per-cluster values this guide
+refers to (reset period, decay, whether <code>safe</code> is set) come from
+<code>scontrol show config</code>, never from memory.</p>
+<h2>Quick start</h2>
+<h3>1. Know the three numbers before you answer</h3>
+<p>The same account in the same month has three correct figures. Say which one
+you mean.</p>
+<table>
+<thead>
+<tr>
+<th>Figure</th>
+<th>What it is</th>
+<th>How to read it</th>
+<th>Who shows it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Slurm counter</strong></td>
+<td>What slurmctld has counted against the budget. Debited every <code>PriorityCalcPeriod</code> while a job runs; <strong>decays</strong> with <code>PriorityDecayHalfLife</code>; zeroed by <code>PriorityUsageResetPeriod</code>. This is the number that decides whether a new job is accepted.</td>
+<td><code>scontrol show assoc_mgr accounts=&lt;acct&gt; flags=assoc</code> → account row, <code>GrpTRESMins=...billing=LIMIT(USED)</code>; <code>GrpTRESRunMins=...billing=N(RESERVED)</code> is what running jobs still hold</td>
+<td>Portal bar and "available" on Allocation Detail, <code>interact</code>, <code>cli_filter</code> at submit, <code>sbalance --detail</code> ("Slurm count"), the sbatch gate itself</td>
+</tr>
+<tr>
+<td><strong>Accounting total</strong></td>
+<td>TRES-minutes the slurmdbd rollup credited to the account in the period. No decay, clipped to the window, includes every run of a requeued job. The figure a bill is based on.</td>
+<td><code>sreport -T billing cluster AccountUtilizationByUser account=&lt;acct&gt; start=&lt;period start&gt; end=now -P</code> (row with an empty Login = the account)</td>
+<td><code>sbalance</code> "Used", Portal "N SU used this period", <code>Budget (SU)</code> usage on Project Detail and Submit Job (via the 15-min sync)</td>
+</tr>
+<tr>
+<td><strong>Per-job sum</strong></td>
+<td><code>AllocTRES billing x elapsed / 3600</code> per job record.</td>
+<td><code>sacct -X -D -A &lt;acct&gt; -S &lt;period start&gt; --format=JobID,Elapsed,AllocTRES -P</code> (<code>-X</code> drops steps, <code>-D</code> keeps the earlier runs of requeued jobs; without <code>-D</code> the sum is low)</td>
+<td>Job Metrics, the invoice (<code>SlurmJob.billing_su</code>), ad-hoc scripts</td>
+</tr>
+</tbody>
+</table>
+<p>Rule of thumb: <strong>Used = accounting total, Available = limit minus the
+Slurm counter minus the SU held by running jobs.</strong> Both appear together on
+purpose; neither is wrong.</p>
+<h3>2. Explain why Available is not Limit minus Used</h3>
+<p>With a non-zero <code>PriorityDecayHalfLife</code>, the Slurm counter gives older usage
+less weight (<code>weight = 2^(-age / half-life)</code>), while the accounting total
+does not. So an account can show <code>182,000 SU used</code> against a 180,000 budget
+and still have <code>36,000 SU available</code>: the usage from early in the period
+has already lost part of its weight. The tolerance depends on when the
+usage happened. With a 30-day half-life over a 30-day period:</p>
+<table>
+<thead>
+<tr>
+<th>Usage pattern in the period</th>
+<th>Weight left at period end</th>
+<th>Accounting total when Slurm starts holding jobs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All in the last few days</td>
+<td>~0.95</td>
+<td>~1.0 x limit</td>
+</tr>
+<tr>
+<td>Spread evenly</td>
+<td>0.72</td>
+<td>~1.39 x limit</td>
+</tr>
+<tr>
+<td>Account kept at the limit from day 1</td>
+<td>the decay frees ~2.3% of the limit per day</td>
+<td>~1.69 x limit</td>
+</tr>
+</tbody>
+</table>
+<p>These are derived from the documented half-life; Slurm's manual only
+states that half the usage is cleared at that age. Read the live values:</p>
+<pre><code>scontrol show config | grep -E 'PriorityDecayHalfLife|PriorityUsageResetPeriod|PriorityCalcPeriod|AccountingStorageEnforce'
+</code></pre>
+<p>With <code>PriorityDecayHalfLife=0</code> the two figures coincide and a budget is
+exact; the trade-off (fair-share, utilisation, user experience) is a
+site decision, not something to change for one ticket.</p>
+<h3>3. Find out why a job is pending or refused</h3>
+<pre><code>squeue -j &lt;jobid&gt; -o '%i %a %q %P %r'        # account, QOS, partition, reason
+scontrol show job &lt;jobid&gt; | grep -E 'Reason|Account|QOS|Partition|TimeLimit'
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>What the user sees</th>
+<th>Cause</th>
+<th>Check</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending, reason <code>AssocGrpBillingMinutes</code></td>
+<td>The account's SU budget (or cap) is reached: Slurm counter + held + this job's projection &gt; <code>GrpTRESMins=billing</code></td>
+<td><code>sbalance -p &lt;pi&gt; --detail</code>; admins: <code>sbalance --held</code> lists every account in this state</td>
+<td>Wait for the reset, raise <code>Extra Budget (SU)</code>, or the PI raises the cap (§4)</td>
+</tr>
+<tr>
+<td><code>sbatch: error: ... Job violates accounting/QOS policy (job submit limit, ...)</code></td>
+<td><code>GrpSubmitJobs=0</code> on the account: the cap is <strong>not set</strong> (value 0) or the IO Number is paused. Already-queued jobs may still start.</td>
+<td>Allocation Detail banner; <code>sacctmgr show assoc where account=&lt;acct&gt; format=Account,User,GrpSubmitJobs</code></td>
+<td>PI sets a cap or clicks <strong>No cap</strong>; IO pause is lifted by the PI or by paying the overdue invoice</td>
+</tr>
+<tr>
+<td><code>Invalid account or account/partition combination specified</code></td>
+<td>Generic Slurm fallback. Usually the partition's <code>AllowAccounts</code> (org-split GPU partitions), a missing user association, or a <code>job_submit.lua</code> rejection</td>
+<td><code>scontrol show partition &lt;p&gt;</code> (the <code>Allow*</code> lines); <code>sacctmgr show assoc where user=&lt;u&gt; account=&lt;acct&gt;</code>; slurmctld log for the lua message</td>
+<td>Use a partition the account may reach; add the user to the allocation; read the lua reason</td>
+</tr>
+<tr>
+<td>Pending, reason starting with <code>QOSMax...</code> or <code>QOSGrp...</code></td>
+<td>A tier QOS limit (e.g. GPUs per user), not the budget</td>
+<td><code>sacctmgr show qos &lt;q&gt; format=Name,MaxTRESPU,MaxTRESPA</code></td>
+<td>Not a budget matter; see the QOS policy in Staff Help</td>
+</tr>
+<tr>
+<td>Job <strong>killed</strong> at the budget</td>
+<td><code>AccountingStorageEnforce</code> lacks <code>safe</code>: when the limit is reached running jobs are killed instead of new ones being held</td>
+<td><code>scontrol show config</code> (<code>AccountingStorageEnforce</code>)</td>
+<td>Cluster admin adds <code>safe</code>; until then warn PIs near their limit</td>
+</tr>
+<tr>
+<td>Pending, <code>Priority</code> / <code>Resources</code> / <code>ReqNodeNotAvail</code></td>
+<td>Normal queueing, not a budget hold</td>
+<td><code>squeue -p &lt;partition&gt; --start</code></td>
+<td>Nothing to do on the budget side</td>
+</tr>
+</tbody>
+</table>
+<h3>4. Give a lab more room this period</h3>
+<p>Everything the Portal writes reaches Slurm through the sync (every 15 min,
+and immediately on an allocation change). Check the result with
+<code>sbalance -p &lt;pi&gt;</code> or <code>scontrol show assoc_mgr accounts=&lt;acct&gt; flags=assoc</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Lever</th>
+<th>Who</th>
+<th>Where</th>
+<th>Effect in Slurm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Spend cap</strong> (<code>Weekly Cap ($)</code> / <code>Weekly Cap (SU)</code>)</td>
+<td>PI or staff</td>
+<td>Allocation Detail → Set Cap / Update Cap / No cap</td>
+<td><code>GrpTRESMins=billing = min(budget + extra, cap) x 60</code>. <code>0</code> = not set (submission held), <code>-1</code> = no cap</td>
+</tr>
+<tr>
+<td><strong>Extra Budget (SU)</strong></td>
+<td>staff</td>
+<td>Allocation Detail → Allocation Attributes</td>
+<td>Added to the budget for this period only in the sense that the counter resets with the period; the attribute itself stays until you clear it</td>
+</tr>
+<tr>
+<td><strong>Budget (SU)</strong></td>
+<td>staff</td>
+<td>Allocation Attributes</td>
+<td>The granted budget. <code>0</code> on a <strong>paid</strong> allocation means unlimited (the cap is then the only ceiling); on a default allocation the cluster seed applies</td>
+</tr>
+<tr>
+<td><strong>Reset the counter</strong></td>
+<td>cluster admin, by agreement</td>
+<td><code>sacctmgr modify account where name=&lt;acct&gt; set RawUsage=0</code></td>
+<td>Zeroes the Slurm counter for the account (budget <strong>and</strong> fair-share history). Never for one job; only when a budget was set wrong and the PI should not pay for it</td>
+</tr>
+<tr>
+<td><strong>Hold / release submission</strong></td>
+<td>ColdFront only</td>
+<td>automatic (cap unset, IO paused)</td>
+<td><code>GrpSubmitJobs=0</code> / <code>-1</code>. Do not set it by hand: the sync owns that zero and will undo a manual value</td>
+</tr>
+</tbody>
+</table>
+<p>Do <strong>not</strong> edit <code>GrpTRESMins</code> with <code>sacctmgr</code> by hand: the next sync
+rewrites it from the attributes. Do not tick <code>is_billable</code> to make
+something free: use a no-charge IO or an IO pause (see <a href="pi.html"><code>pi.md</code></a>).</p>
+<h3>5. Answer the PI (ready to paste)</h3>
+<p><strong>"The Portal says 36,000 SU available but sbalance says I used 182,000."</strong>
+Both are right. "Used" is the accounting total for the period (what a bill
+would be based on). "Available" is what Slurm will still accept: Slurm gives
+older usage less weight as the period goes on, so it can still admit work
+after the accounting total has passed the budget. The budget resets on
+<code>&lt;reset date&gt;</code>.</p>
+<p><strong>"My jobs have been pending since yesterday with AssocGrpBillingMinutes."</strong>
+Your allocation reached its SU limit for this period (the smaller of the
+budget and your spend cap). Jobs start again on <code>&lt;reset date&gt;</code>, when the
+counter clears, or sooner if you raise the cap on the allocation page
+(<code>Update Cap</code>) or ask us for extra budget. Running jobs are not affected.</p>
+<p><strong>"My job was killed with 'group max TRES(billing) minutes'."</strong>
+The allocation reached its SU limit while the job was running and the
+cluster is configured to stop running work at the limit. We are sorry about
+the lost run. To avoid it, set a cap with headroom or ask for extra budget
+before a large campaign; <code>sbalance -p &lt;pi&gt; --detail</code> shows how much is left
+and how much running jobs still hold.</p>
+<h3>6. Check the billing side</h3>
+<ul>
+<li>The invoice sums <code>SlurmJob.billing_su</code> per allocation and month (Compute
+  Billing on the Billing Report; <code>NODE_FAIL</code> / <code>BOOT_FAIL</code> excluded). It
+  follows the accounting total, not the Slurm counter, so with decay an
+  invoice can exceed the cap the PI set. Whether invoices are capped at
+  <code>min(usage, cap)</code> is a billing policy; check the Billing Report before
+  promising either.</li>
+<li><code>SlurmJob</code> keeps one row per job. If a preemptible (scavenger) job was
+  requeued, only its last run is in that row while <code>sreport</code> counts every
+  run. Compare <code>sacct -X -D</code> with <code>sreport -T billing</code> for the month before
+  trusting a per-job sum in a dispute.</li>
+<li><code>Weekly Cap Usage ($)</code> on the allocation is the accounting total in
+  dollars, refreshed when someone opens the gauge; it is not a ledger.</li>
+</ul>
+<h2>Reference matrices</h2>
+<h3>Allocation attributes that reach Slurm</h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Values</th>
+<th>Slurm field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Budget (SU)</code></td>
+<td>SU; <code>0</code> = unlimited on paid, cluster seed on default</td>
+<td><code>GrpTRESMins=billing</code> (with Extra and the cap)</td>
+</tr>
+<tr>
+<td><code>Extra Budget (SU)</code></td>
+<td>SU, default 0</td>
+<td>added to the above</td>
+</tr>
+<tr>
+<td><code>Weekly Cap ($)</code> / <code>Weekly Cap (SU)</code></td>
+<td><code>0</code> not set (held), <code>-1</code> no cap, <code>N</code> cap; <code>$</code> wins when both set</td>
+<td><code>min(budget + extra, cap) x 60</code>; <code>GrpSubmitJobs=0</code> while 0</td>
+</tr>
+<tr>
+<td><code>QoS</code> / <code>DefaultQoS</code></td>
+<td>QOS names of the cluster</td>
+<td>account QOS list and default</td>
+</tr>
+<tr>
+<td><code>slurm_account_name</code></td>
+<td>read-only</td>
+<td>the account itself</td>
+</tr>
+</tbody>
+</table>
+<h3>Where each tool reads</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Used</th>
+<th>Available / Left</th>
+<th>Window</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sbalance</code></td>
+<td>accounting total (sreport)</td>
+<td>limit − Slurm counter − held; <code>--detail</code> shows the counter and the held SU</td>
+<td>the cluster's reset period</td>
+</tr>
+<tr>
+<td><code>sbalance --week</code></td>
+<td>same, one line per account</td>
+<td>same</td>
+<td>same</td>
+</tr>
+<tr>
+<td><code>sbalance --held</code> (admins)</td>
+<td>n/a</td>
+<td>limit, counter, held, left for every account with jobs on <code>AssocGrpBillingMinutes</code></td>
+<td>now</td>
+</tr>
+<tr>
+<td>Allocation Detail (Portal)</td>
+<td>accounting total (live)</td>
+<td>limit − Slurm counter − held (live)</td>
+<td>the cluster's reset period</td>
+</tr>
+<tr>
+<td>Project Detail, Submit Job</td>
+<td><code>Budget (SU)</code> usage (sync, ≤15 min old)</td>
+<td>limit − that figure</td>
+<td>same</td>
+</tr>
+<tr>
+<td><code>interact</code>, <code>cli_filter</code></td>
+<td>n/a</td>
+<td>limit − Slurm counter − held</td>
+<td>now</td>
+</tr>
+<tr>
+<td>Invoice</td>
+<td>per-job SU (<code>SlurmJob</code>)</td>
+<td>n/a</td>
+<td>calendar month</td>
+</tr>
+</tbody>
+</table>
+<h2>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sbalance</code> on the management host shows a quarterly window and "core-hours" columns</td>
+<td>An old copy of the script on that host's PATH</td>
+<td>Use the copy on the shared helpers path, or reinstall it from the repo</td>
+</tr>
+<tr>
+<td>Portal shows "Budget: 101%" on Project Detail but jobs run</td>
+<td>That figure is the accounting total written by the sync; Slurm admits by its decayed counter</td>
+<td>Expected; point the PI to the Allocation Detail gauge ("available")</td>
+</tr>
+<tr>
+<td>Allocation Detail gauge empty or "live" missing</td>
+<td>The weekly-usage API could not reach slurmrestd or <code>scontrol</code></td>
+<td>Check the controller and <code>SlurmCluster.jwt_token</code>; the server-rendered bar still shows the sync figure</td>
+</tr>
+<tr>
+<td>Numbers in the Portal lag what <code>sbalance</code> shows</td>
+<td>Sync every 15 min; <code>collect_sacct</code> every 15 min for the last day</td>
+<td>Wait one cycle, or run <code>coldfront sync_slurm --pi &lt;pi&gt;</code></td>
+</tr>
+<tr>
+<td>Submission refused although the budget has room</td>
+<td>Cap not set (<code>0</code>) or IO paused: <code>GrpSubmitJobs=0</code></td>
+<td>Allocation Detail banner says which; PI sets the cap or lifts the pause</td>
+</tr>
+<tr>
+<td>PI reports a job killed at the limit</td>
+<td>No <code>safe</code> in <code>AccountingStorageEnforce</code></td>
+<td>Cluster admin adds it; it does not need a restart</td>
+</tr>
+</tbody>
+</table>
+<h2>Where to go next</h2>
+<ul>
+<li><a href="pi.html"><code>pi.md</code></a> §4 (the cap from the PI's side), <a href="user.html"><code>user.md</code></a> §4
+  (<code>sbalance</code> for users), <a href="superuser.html"><code>superuser.md</code></a> (approving
+  allocations).</li>
+<li>In-app <strong>Staff Help</strong> (<code>/staff/help/</code>): pooled budget, QOS policy,
+  partition and QOS conventions; <strong>User Help</strong> "Default vs Paid".</li>
+<li><code>slurm/README.md</code> (cost enforcement, <code>job_submit.lua</code>, <code>cli_filter.lua</code>,
+  troubleshooting) and <code>coldfront/BILLING_SETUP_GUIDE.md</code> (rates, invoices).</li>
+<li>Slurm manuals: <code>slurm.conf(5)</code> (PriorityDecayHalfLife,
+  PriorityUsageResetPeriod, AccountingStorageEnforce), <code>sacctmgr(1)</code>
+  (GrpTRESMins, GrpTRESRunMins, RawUsage), <code>resource_limits.html</code>.</li>
+</ul></div>
+      </main>
+    </div>
+  </body>
+</html>

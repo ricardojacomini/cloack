@@ -60,7 +60,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
         <aside class="site-sidebar">
           <div class="sidebar-brand">CLOACK Stack</div>
           <div class="sidebar-links">
-            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html" class="active">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a>
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html" class="active">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a><a href="su-budgets.html">SU budgets</a>
           </div>
         </aside>
         
@@ -192,10 +192,14 @@ sbalance                 # SU used vs limit for every account you sit under
 sbalance --week          # spend cap and usage for the current usage period
 sbalance --by-partition  # the same, split by partition
 </code></pre>
-<p><code>sbalance</code> reads Slurm itself (<code>sacctmgr</code>, <code>sreport</code>, <code>scontrol</code>): the
-counter it prints is the one the scheduler enforces. The portal's
-Allocation Detail gauges show the same numbers, fetched live from
-<code>slurmrestd</code>.</p>
+<p><code>sbalance</code> reads Slurm itself (<code>sacctmgr</code>, <code>sreport</code>, <code>scontrol</code>) and
+prints two numbers. <strong>Used</strong> is the accounting total for the period (what
+the invoice is based on). <strong>Available</strong> is what Slurm will still accept:
+the limit minus the usage Slurm counts minus the SU held by running jobs.
+Slurm gives older usage less weight as the period goes on, so Available
+can be more than the limit minus Used. <code>sbalance --detail</code> shows the
+breakdown. The portal's Allocation Detail gauge shows the same two
+numbers, fetched live.</p>
 <p>Units: <strong>1 SU = $0.001</strong>, one unit-hour of Slurm's <code>billing</code> TRES. A
 core-hour or a GPU-hour costs as many SU as the partition's billing
 weight says (see <em>Cost model</em> below), so SU is never "a core-hour".</p>
@@ -331,9 +335,10 @@ and in the Submit Job preview, not here.</p>
   <code>W_*</code> weights from the partition's <code>TRESBillingWeights</code>;
   <code>SU = billing x hours</code>; <code>$ = SU x 0.001</code>. The <code>[BILLING]</code> block of the
   CLI filter marks the winning line with <code>&lt;- billed (max)</code>.</li>
-<li>The invoice charges the SU Slurm counted, the same number <code>sbalance</code>
-  and the spend cap use. CPU-hour and GPU-hour figures priced from the
-  rate catalogue appear beside it as estimates only.</li>
+<li>The invoice charges the accounting total in SU, the "Used" figure of
+  <code>sbalance</code>. The spend cap is checked against Slurm's own counter, which
+  weighs older usage less (see §4). CPU-hour and GPU-hour figures priced
+  from the rate catalogue appear beside it as estimates only.</li>
 <li>Cache and Project Storage are flat per TB-month, charged every month
   regardless of jobs.</li>
 <li>Never charged: <code>scavenger</code>, <code>orgb-*</code> accounts, default allocations,
@@ -472,6 +477,8 @@ cap stops a runaway long before the bill does.</p>
 <li><code>slurm/README.md</code>: full Slurm reference
   (cost enforcement, hierarchy, spend cap details, daemons in depth).</li>
 <li><a href="pi.html"><code>pi.md</code></a>: if you also manage a project.</li>
+<li><a href="su-budgets.html"><code>su-budgets.md</code></a>: why "used" and "available" differ,
+  what Slurm enforces, and what staff can change.</li>
 <li><a href="index.html"><code>README.md</code></a>: the role index.</li>
 </ul></div>
       </main>
