@@ -352,7 +352,7 @@ them never changes LDAP.</p>
 <tr>
 <td>Affiliation Scope</td>
 <td><code>Affiliation</code></td>
-<td>Visibility into users, PIs, projects, allocations of those affiliations only (Manage Users page, Promote PI, scoped list views). Also drives the Create Project <strong>Affiliation</strong> radio: both organizations are always shown, but only the user's own affiliation plus the affiliations in scope stay enabled; the rest are greyed out, and with a single enabled option it comes pre-selected (superusers see everything enabled)</td>
+<td>Visibility into users, PIs, projects, allocations of those affiliations only (Manage Users page, Promote PI, scoped list views). Does not affect project creation: the Create Project <strong>Affiliation</strong> radio follows the user's profile (own affiliation plus any additional affiliation staff granted); the other affiliation is shown greyed out, a single enabled option comes pre-selected (superusers see everything enabled)</td>
 </tr>
 <tr>
 <td><code>elevate_to_superuser</code></td>
@@ -361,6 +361,46 @@ them never changes LDAP.</p>
 </tr>
 </tbody>
 </table>
+<h3>Additional affiliations (per PI and per project)</h3>
+<p>A user's own affiliation (OrgA or ORGB) drives their identity: LDAP OU and UID range, home directory,
+login realm and the default project. Staff can grant a PI <strong>additional affiliations</strong> so they may also
+create projects under them:</p>
+<table>
+<thead>
+<tr>
+<th>Where</th>
+<th>Who</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Manage Users → pencil next to the <strong>Affiliation</strong> badge (also in the username dropdown)</td>
+<td>superuser, or staff with <code>elevate_to_superuser</code></td>
+<td>"Additional Affiliations" page: tick the other affiliation(s), Save. Never grants staff access; logged in Admin → Log entries</td>
+</tr>
+<tr>
+<td>Admin → User additional affiliations</td>
+<td>superuser</td>
+<td>Same grants as rows (user, affiliation, granted by, when); backstop</td>
+</tr>
+</tbody>
+</table>
+<p>What changes for such a PI:</p>
+<ul>
+<li><strong>Create Project</strong> offers both affiliations in the Affiliation radio (a plain PI sees only their own, the
+  other greyed out). The department list follows the chosen affiliation; the chosen value is stored on the
+  project (<code>Project.affiliation</code>) and shown on Project Detail, with an "additional affiliation" badge when it
+  differs from the PI's.</li>
+<li><strong>The project's affiliation decides the rest.</strong> An ORGB project is built under the <code>orgb</code> Slurm root
+  (<code>orgb → school → department → pi-&lt;user&gt;-orgb → &lt;user&gt;_&lt;abbr&gt;</code>), is <code>no_charge</code> and gets the OrgB
+  no-charge sentinel IO automatically; an OrgA project of a OrgB PI is built under <code>orga</code>, is <code>pay_per_use</code>
+  and needs a real IO. The PI's own node (<code>pi-&lt;user&gt;</code>) and default project never move.</li>
+<li>Manage Users shows the extra affiliation as a <code>+ORGB</code>-style badge; the Aff. Scope column is unrelated
+  (it is the staff visibility scope and does not affect project creation).</li>
+<li>Grant pages warn when an affiliation has no active department yet: import departments first, or the PI's
+  department list on Create Project is empty.</li>
+</ul>
 <h3>Per-allocation controls on Allocation Detail</h3>
 <table>
 <thead>

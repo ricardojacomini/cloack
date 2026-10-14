@@ -1882,6 +1882,7 @@ stree -r root --full
 <blockquote>
 <p><strong>Note:</strong> Regular users can only view accounts they belong to. <code>stree -r root</code> requires admin privileges (root/slurm/admin group). Old name <code>slurmtree</code> still works as a symlink.</p>
 </blockquote>
+<p>The root a project is built under is the <strong>project's affiliation</strong> (<code>Project.affiliation</code>; normally the PI's own, an additional one when staff granted it). A PI with projects in both affiliations has one structural node per root: <code>pi-&lt;user&gt;</code> under their own and <code>pi-&lt;user&gt;-&lt;affiliation code&gt;</code> (e.g. <code>pi-admin1-orgb</code>) under the other, each placed under the school/department of the PI's first project in that affiliation.</p>
 <p>Run <code>stree -r root</code> on a login node to see the live hierarchy. Example output:</p>
 <pre><code>root
 |-- orga   [Fairshare=20]
@@ -2336,11 +2337,14 @@ OK
 </tr>
 <tr>
 <td><strong>Affiliation Scope</strong></td>
-<td>See/manage users, PIs, projects, allocations of assigned affiliations. Also drives the Create Project <strong>Affiliation</strong> radio: both organizations are shown, but only the user's own affiliation plus the affiliations in scope stay enabled (the rest are greyed out; a single enabled option comes pre-selected; superusers see everything enabled)</td>
+<td>See/manage users, PIs, projects, allocations of assigned affiliations. Does not affect project creation: the Create Project <strong>Affiliation</strong> radio follows the user's profile (own affiliation, plus any additional affiliation staff granted); the other affiliation is shown greyed out, a single enabled option comes pre-selected, superusers see everything enabled</td>
 </tr>
 </tbody>
 </table>
 <p>Multiple clusters and affiliations can be assigned (checkboxes). Superusers always see everything. Scoped staff see a simplified Manage Users page with only their affiliation's users. Deploy/stop/restart operations remain superuser-only.</p>
+<h4>Additional affiliations (per PI and per project)</h4>
+<p>A user's own affiliation (OrgA or ORGB) drives identity: LDAP OU and UID range, home directory, login realm and the default project. Staff can grant a PI <strong>additional affiliations</strong> so they may also create projects under them: Manage Users → pencil next to the <strong>Affiliation</strong> badge (superuser, or staff with <code>elevate_to_superuser</code>; never grants staff access; logged), or Admin → User additional affiliations (<code>cloack_sync.UserAdditionalAffiliation</code>, records who granted it and when; the <code>user</code> app has no migration for this). Manage Users shows them as <code>+ORGB</code>-style badges.</p>
+<p>The Create Project <strong>Affiliation</strong> radio then offers own + additional (a plain PI sees only their own, the other greyed out), the department list follows the chosen affiliation, and the choice is stored on the project (<code>Project.affiliation</code>, shown on Project Detail with an "additional affiliation" badge when it differs from the PI's). <strong>The project's affiliation decides the rest:</strong> an ORGB project of an OrgA PI is built under the <code>orgb</code> Slurm root (<code>orgb → school → department → pi-&lt;user&gt;-orgb → &lt;user&gt;_&lt;abbr&gt;</code>), is <code>no_charge</code> and receives the OrgB no-charge sentinel IO; an OrgA project of a OrgB PI is built under <code>orga</code>, is <code>pay_per_use</code> and needs a real IO. The PI's own node (<code>pi-&lt;user&gt;</code>), default project and class projects never move.</p>
 <h3>Best Practices</h3>
 <ul>
 <li>Keep projects tidy — archive inactive projects</li>

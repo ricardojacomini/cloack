@@ -993,7 +993,10 @@ root
             with <code>coldfront sync_slurm --dry-run</code> (zero mutations, <code>[DRY-RUN]</code> log lines);
             parented account creates and reparents are CLI-by-design, because slurmrestd v0.0.42 corrupts
             <code>parent_acct</code>. After a reparent, audit the children for an empty
-            <code>parent_acct</code> or a stale lineage prefix.</div>
+            <code>parent_acct</code> or a stale lineage prefix.
+<h5 data-help="additional-affiliations">One structural node per affiliation root</h5>
+<p>The tree root is chosen by the <strong>project&rsquo;s affiliation</strong>. A PI whose projects span two affiliations has one structural node under each root: the unchanged <code>pi-&lt;user&gt;</code> under their own affiliation, and <code>pi-&lt;user&gt;-&lt;affiliation code&gt;</code> (for example <code>pi-jdoe1-orgb</code>) under the other, because Slurm account names are cluster-global. Each node sits under the school/department of the PI&rsquo;s first project in that affiliation; a department of another affiliation never places a node (that would move the other root&rsquo;s school account). The default project always stays under the PI&rsquo;s own affiliation. Preview any move with <code>coldfront sync_slurm --dry-run</code>.</p>
+</div>
                   </div>
                 </div>
                 
@@ -1294,61 +1297,6 @@ request whose project is archived.</p>
                 
 
                 <div class="card">
-                  <div class="card-header" id="h10">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c10"
-                              aria-expanded="false">Project Storage — WekaFS integration</button>
-                    </h5>
-                  </div>
-                  <div id="c10" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
-one filesystem per PI, one directory per project. Its value is the
-<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
-(the flash/SSD share). The split is invisible in the filesystem; PIs never see
-the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
-<code>/scratch</code>)
-is a separate thing and is not part of Project Storage.</p>
-<p><strong>How PIs request it:</strong> the Create/Update Project forms no
-longer carry storage fields. PIs use the <em>Project Storage</em> card on the
-Project Detail page (<em>Request Storage Change</em>) to submit a change
-request (Project Storage TB + Cache TB + justification, which is required
-above the Cache cap). The request is <em>pending</em> until staff approves or
-denies it — values only land on the project at approval, and a "Project
-Storage under review" banner plus a <em>Pending review</em> badge sit on the
-project page meanwhile. One pending request per project: cancel it to submit
-different values. The card is not offered on default or archived projects, and
-condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
-team instead of submitting.</p>
-<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
-Cache &le; Project Storage; the PI's total Cache across all projects must fit
-the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
-staff). Requests above the cap require a justification and an explicit staff
-override at approval. The re-check uses live sums, so another of the PI's
-projects growing in the meantime can make a pending request fail review.</p>
-<p><strong>Billing:</strong> the Cache and the Project Storage total are each
-billed per TB-month from the rate catalog. The charge does not depend on jobs
-— a billable allocation with provisioned storage gets a monthly usage period,
-so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
-lines even in a month with zero compute.</p>
-<p><strong>Field mapping (legacy names kept):</strong>
-<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
-<code>backup_tb</code> = Project Storage total &rarr; Weka
-<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
-Cache, <code>backup</code> bills the Project Storage total.</p>
-<p><strong>Where to see it:</strong> <em>Projects &rarr; My Storage</em> lists every
-project you lead or belong to that has Project Storage or a pending request: the
-Project Storage and Cache sizes, the pending change, a monthly estimate at today's
-rates and the project directory path. Its <em>Request Storage</em> button lists the
-projects you can request storage on and opens the request form on that project's
-page.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h33">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1439,6 +1387,61 @@ lifecycle overview</a>.</p>
                 
 
                 <div class="card">
+                  <div class="card-header" id="h10">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c10"
+                              aria-expanded="false">Project Storage — WekaFS integration</button>
+                    </h5>
+                  </div>
+                  <div id="c10" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
+one filesystem per PI, one directory per project. Its value is the
+<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
+(the flash/SSD share). The split is invisible in the filesystem; PIs never see
+the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
+<code>/scratch</code>)
+is a separate thing and is not part of Project Storage.</p>
+<p><strong>How PIs request it:</strong> the Create/Update Project forms no
+longer carry storage fields. PIs use the <em>Project Storage</em> card on the
+Project Detail page (<em>Request Storage Change</em>) to submit a change
+request (Project Storage TB + Cache TB + justification, which is required
+above the Cache cap). The request is <em>pending</em> until staff approves or
+denies it — values only land on the project at approval, and a "Project
+Storage under review" banner plus a <em>Pending review</em> badge sit on the
+project page meanwhile. One pending request per project: cancel it to submit
+different values. The card is not offered on default or archived projects, and
+condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
+team instead of submitting.</p>
+<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
+Cache &le; Project Storage; the PI's total Cache across all projects must fit
+the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
+staff). Requests above the cap require a justification and an explicit staff
+override at approval. The re-check uses live sums, so another of the PI's
+projects growing in the meantime can make a pending request fail review.</p>
+<p><strong>Billing:</strong> the Cache and the Project Storage total are each
+billed per TB-month from the rate catalog. The charge does not depend on jobs
+— a billable allocation with provisioned storage gets a monthly usage period,
+so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
+lines even in a month with zero compute.</p>
+<p><strong>Field mapping (legacy names kept):</strong>
+<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
+<code>backup_tb</code> = Project Storage total &rarr; Weka
+<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
+Cache, <code>backup</code> bills the Project Storage total.</p>
+<p><strong>Where to see it:</strong> <em>Projects &rarr; My Storage</em> lists every
+project you lead or belong to that has Project Storage or a pending request: the
+Project Storage and Cache sizes, the pending change, a monthly estimate at today's
+rates and the project directory path. Its <em>Request Storage</em> button lists the
+projects you can request storage on and opens the request form on that project's
+page.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h11">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1523,6 +1526,8 @@ lifecycle overview</a>.</p>
             prefix &mdash; a corrupted lineage makes <code>sreport</code> return EMPTY for the whole
             subtree.
           </p>
+<h5 data-help="additional-affiliations">Departments of a project under an additional affiliation</h5>
+<p>Granting an additional affiliation carries no department: the department and school are chosen <strong>per project</strong> on Create Project, from the departments that belong to the chosen affiliation (each <em>Department</em> carries its affiliation and school), exactly as for any project of that affiliation. The PI&rsquo;s profile picks the department up through the usual allocation-billing propagation; the primary department (default project) stays in the PI&rsquo;s own affiliation. If an affiliation has no active department yet, the grant page shows a warning: import the departments first.</p>
 </div>
                   </div>
                 </div>
@@ -1564,87 +1569,6 @@ lifecycle overview</a>.</p>
             <li>PI promotion &mdash; the seed script forces
               <code>exclude_from_staff_views=True</code> and never lets a system account be a PI</li>
           </ul></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h36">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c36"
-                              aria-expanded="false">Helpdesk Tickets — ColdFront request bridge</button>
-                    </h5>
-                  </div>
-                  <div id="c36" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p>Requests that need a staff decision &mdash; plus the PI billing hold, which is a
-notification rather than a request &mdash; open a <strong>helpdesk ticket
-automatically</strong>, through the helpdesk internal API, with the
-<strong>requester as the ticket submitter</strong> (the PI or manager who
-clicked — never the shared <code>Arch@alt.example.edu</code> mailbox). The ticket title
-is the same text the old admin e-mail carried
-(<code>[OrgA] Coldfront New Allocation Request: Pat Ng (pi9) - cluster-x</code>);
-the description names the PI, project, resource, justification, pay IO(s) and
-carries direct links to the review pages. When staff decides in ColdFront, the
-ticket receives a public follow-up and is <em>resolved</em> (or reopened /
-closed) by itself — nothing to do on the helpdesk side.</p>
-<table class="table table-sm table-bordered">
-  <thead>
-    <tr><th>ColdFront event</th><th>Ticket opened</th><th>Resolves when…</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Request Resource Allocation</td><td>New Allocation Request</td>
-        <td>allocation approved or denied (<em>Resolved</em>); PI resubmits a denied request (<em>Reopened</em>); PI withdraws it (<em>Closed</em>)</td></tr>
-    <tr><td>Allocation change request</td><td>New Allocation Change Request</td>
-        <td>change request approved or denied</td></tr>
-    <tr><td>Allocation renewal</td><td>Allocation Renewed</td>
-        <td>renewal activated or denied</td></tr>
-    <tr><td>User asks to become a PI</td><td>Upgrade Account Request</td>
-        <td>user promoted to PI, or request cleared on Promote Users</td></tr>
-    <tr><td>New non-default project</td><td>New Project Request (IO validation folded in)</td>
-        <td>project activated or denied; "Request changes" posts a comment and keeps it open; reopen after denial reopens it</td></tr>
-    <tr><td>Project Storage request</td><td><code>[Storage/&lt;org&gt;]</code></td>
-        <td>approved or denied in Storage Review; cancelled by the PI (<em>Closed</em>)</td></tr>
-    <tr><td>IO Number change on Update Project</td><td><code>[IO/&lt;org&gt;]</code> &mdash; or a single <code>[Storage+IO/&lt;org&gt;]</code> ticket when Project Storage and the IO change in the same save</td>
-        <td>staff clears the billing review on Project Reviews</td></tr>
-    <tr><td>PI (or staff) pauses billing on an IO Number</td><td><code>Billing paused on IO Number</code></td>
-        <td>the same IO is resumed (<em>Resolved</em>). This is the only ticket opened straight from a model receiver &mdash; <code>CostCenter.billing_paused</code> has three writers (quick toggle, Edit form, Django Admin) and they all funnel through it. One open ticket per IO; re-pausing after a resume opens a fresh one.</td></tr>
-    <tr><td>Request deletion of an allocation (Allocation Detail)</td><td>Allocation deletion request</td>
-        <td>a superuser deletes the allocation (<em>Resolved</em>). PIs, managers and staff can only
-        <strong>request</strong> deletion; the hard delete (confirmation page, admin log entry) is
-        superuser-only and never offered on the default project's allocation</td></tr>
-    <tr><td>Class Request or Request more students (My Classes)</td><td>Class resources request</td>
-        <td>staff approves (<em>Resolved</em>, accounts created) or denies (<em>Resolved</em>, with the
-        reason); "request changes" posts a comment and keeps it open; withdrawn by the PI closes it.
-        When the course ends a separate "Class ended (teardown due)" ticket is opened</td></tr>
-  </tbody>
-</table>
-<p><strong>Queue:</strong> <code>CLUSTER-X - OrgA</code> or
-<code>CLUSTER-X - ORGB</code> by the requester's affiliation — the same queues
-the <code>Arch@alt.example.edu</code> / <code>ORGB@alt.example.edu</code> mailboxes feed. The
-submitter gets the helpdesk acknowledgement e-mail and can reply on the ticket;
-the queue's <em>new ticket CC</em> list is notified as for any web-form
-ticket.</p>
-<p><strong>Audit trail:</strong> Django Admin &rarr; CLOACK Stack &rarr;
-<em>Helpdesk ticket links</em> lists every ticket ColdFront opened (event,
-target object, ticket number, submitter, <code>resolved_at</code>, and
-<code>last_error</code> when a decision follow-up could not be posted — the row
-stays open and retries on the next matching transition). On the helpdesk,
-Django Admin &rarr; <em>ColdFront ticket references</em> maps the idempotency
-key of each request to its ticket.</p>
-<p><strong>Fallback and switches:</strong> whenever the bridge is off, the
-helpdesk is unreachable, or the requester has no e-mail, ColdFront sends the
-legacy admin e-mail to <code>EMAIL_TICKET_SYSTEM_ADDRESS</code> exactly as
-before — a ticket whose submitter is the shared mailbox therefore means the API
-path failed (check <code>docker logs coldfront | grep "helpdesk bridge"</code>
-and that <code>HELPDESK_INTERNAL_TOKEN</code> is present in both the
-<code>coldfront</code> and <code>helpdesk</code> containers).
-<code>HELPDESK_TICKET_BRIDGE_ENABLED=False</code> in <code>coldfront.env</code>
-reverts to e-mail without a code change;
-<code>HELPDESK_TICKET_BRIDGE_PUBLIC_FOLLOWUPS=False</code> makes the decision
-follow-ups internal notes.</p>
-</div>
                   </div>
                 </div>
                 
@@ -1738,6 +1662,87 @@ docker exec coldfront coldfront sync_job_usage              # &rarr; SlurmAccoun
 
 # Diagnostic side-by-side sreport vs slurmrestd:
 docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0</pre></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h36">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c36"
+                              aria-expanded="false">Helpdesk Tickets — ColdFront request bridge</button>
+                    </h5>
+                  </div>
+                  <div id="c36" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Requests that need a staff decision &mdash; plus the PI billing hold, which is a
+notification rather than a request &mdash; open a <strong>helpdesk ticket
+automatically</strong>, through the helpdesk internal API, with the
+<strong>requester as the ticket submitter</strong> (the PI or manager who
+clicked — never the shared <code>Arch@alt.example.edu</code> mailbox). The ticket title
+is the same text the old admin e-mail carried
+(<code>[OrgA] Coldfront New Allocation Request: Pat Ng (pi9) - cluster-x</code>);
+the description names the PI, project, resource, justification, pay IO(s) and
+carries direct links to the review pages. When staff decides in ColdFront, the
+ticket receives a public follow-up and is <em>resolved</em> (or reopened /
+closed) by itself — nothing to do on the helpdesk side.</p>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr><th>ColdFront event</th><th>Ticket opened</th><th>Resolves when…</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Request Resource Allocation</td><td>New Allocation Request</td>
+        <td>allocation approved or denied (<em>Resolved</em>); PI resubmits a denied request (<em>Reopened</em>); PI withdraws it (<em>Closed</em>)</td></tr>
+    <tr><td>Allocation change request</td><td>New Allocation Change Request</td>
+        <td>change request approved or denied</td></tr>
+    <tr><td>Allocation renewal</td><td>Allocation Renewed</td>
+        <td>renewal activated or denied</td></tr>
+    <tr><td>User asks to become a PI</td><td>Upgrade Account Request</td>
+        <td>user promoted to PI, or request cleared on Promote Users</td></tr>
+    <tr><td>New non-default project</td><td>New Project Request (IO validation folded in)</td>
+        <td>project activated or denied; "Request changes" posts a comment and keeps it open; reopen after denial reopens it</td></tr>
+    <tr><td>Project Storage request</td><td><code>[Storage/&lt;org&gt;]</code></td>
+        <td>approved or denied in Storage Review; cancelled by the PI (<em>Closed</em>)</td></tr>
+    <tr><td>IO Number change on Update Project</td><td><code>[IO/&lt;org&gt;]</code> &mdash; or a single <code>[Storage+IO/&lt;org&gt;]</code> ticket when Project Storage and the IO change in the same save</td>
+        <td>staff clears the billing review on Project Reviews</td></tr>
+    <tr><td>PI (or staff) pauses billing on an IO Number</td><td><code>Billing paused on IO Number</code></td>
+        <td>the same IO is resumed (<em>Resolved</em>). This is the only ticket opened straight from a model receiver &mdash; <code>CostCenter.billing_paused</code> has three writers (quick toggle, Edit form, Django Admin) and they all funnel through it. One open ticket per IO; re-pausing after a resume opens a fresh one.</td></tr>
+    <tr><td>Request deletion of an allocation (Allocation Detail)</td><td>Allocation deletion request</td>
+        <td>a superuser deletes the allocation (<em>Resolved</em>). PIs, managers and staff can only
+        <strong>request</strong> deletion; the hard delete (confirmation page, admin log entry) is
+        superuser-only and never offered on the default project's allocation</td></tr>
+    <tr><td>Class Request or Request more students (My Classes)</td><td>Class resources request</td>
+        <td>staff approves (<em>Resolved</em>, accounts created) or denies (<em>Resolved</em>, with the
+        reason); "request changes" posts a comment and keeps it open; withdrawn by the PI closes it.
+        When the course ends a separate "Class ended (teardown due)" ticket is opened</td></tr>
+  </tbody>
+</table>
+<p><strong>Queue:</strong> <code>CLUSTER-X - OrgA</code> or
+<code>CLUSTER-X - ORGB</code> by the requester's affiliation — the same queues
+the <code>Arch@alt.example.edu</code> / <code>ORGB@alt.example.edu</code> mailboxes feed. The
+submitter gets the helpdesk acknowledgement e-mail and can reply on the ticket;
+the queue's <em>new ticket CC</em> list is notified as for any web-form
+ticket.</p>
+<p><strong>Audit trail:</strong> Django Admin &rarr; CLOACK Stack &rarr;
+<em>Helpdesk ticket links</em> lists every ticket ColdFront opened (event,
+target object, ticket number, submitter, <code>resolved_at</code>, and
+<code>last_error</code> when a decision follow-up could not be posted — the row
+stays open and retries on the next matching transition). On the helpdesk,
+Django Admin &rarr; <em>ColdFront ticket references</em> maps the idempotency
+key of each request to its ticket.</p>
+<p><strong>Fallback and switches:</strong> whenever the bridge is off, the
+helpdesk is unreachable, or the requester has no e-mail, ColdFront sends the
+legacy admin e-mail to <code>EMAIL_TICKET_SYSTEM_ADDRESS</code> exactly as
+before — a ticket whose submitter is the shared mailbox therefore means the API
+path failed (check <code>docker logs coldfront | grep "helpdesk bridge"</code>
+and that <code>HELPDESK_INTERNAL_TOKEN</code> is present in both the
+<code>coldfront</code> and <code>helpdesk</code> containers).
+<code>HELPDESK_TICKET_BRIDGE_ENABLED=False</code> in <code>coldfront.env</code>
+reverts to e-mail without a code change;
+<code>HELPDESK_TICKET_BRIDGE_PUBLIC_FOLLOWUPS=False</code> makes the decision
+follow-ups internal notes.</p>
+</div>
                   </div>
                 </div>
                 
