@@ -678,7 +678,10 @@ docker exec coldfront coldfront sync_job_usage              # usage periods</pre
           <p><strong>Why manual:</strong> staff asked for a predictable,
           explicit compute step so the report never grows new rows on its
           own. Prevents accidental double-counting mid-month and makes the
-          ledger reproducible.</p></div>
+          ledger reproducible.</p>
+<h5 data-help="additional-affiliations">Projects under an additional affiliation</h5>
+<p>Billing follows the <strong>project&rsquo;s affiliation</strong>, not the PI&rsquo;s. Staff may grant a PI an <em>additional affiliation</em> (Manage Users &rarr; pencil next to the Affiliation badge, or Admin &rarr; User additional affiliations); the Create Project radio then offers it, the department list follows the chosen affiliation, and the project is stored with that affiliation. A project created under ORGB is <code>no_charge</code> (its allocation gets the OrgB no-charge sentinel IO automatically) even when the PI is OrgA; a project created under OrgA by a OrgB PI is <code>pay_per_use</code> and needs a real IO like any OrgA project. Project Detail shows the project&rsquo;s affiliation with an &ldquo;additional affiliation&rdquo; badge when it differs from the PI&rsquo;s.</p>
+</div>
                   </div>
                 </div>
                 
