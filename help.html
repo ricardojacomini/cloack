@@ -3204,9 +3204,11 @@ label or Active flag never opens a ticket &mdash; only the pause flag flipping d
 <!-- no-charge-mode -->
 <h6>"No charge" box (Billing Report)</h6>
 <p>
-  While billing is dormant, staff tick <strong>No charge</strong> at the top of the
-  <em>Compute Billing</em> card (Site Configuration &rarr; "No charge (billing dormant)" in the
-  admin is the same flag). Ticking it sets every open period (Pending / Overdue) to
+  While billing is dormant, staff open <strong>Billing settings</strong> (the gear at the top
+  right of the <em>Compute Billing</em> card) and tick <strong>No charge (billing dormant)</strong>
+  (Site Configuration &rarr; "No charge (billing dormant)" in the admin is the same flag). The
+  same window shows <strong>Overdue invoice: pause after</strong>, which only a superuser can
+  change; a change is applied by the daily overdue pass, not on save. Ticking it sets every open period (Pending / Overdue) to
   <em>No Charge</em>, creates every new period as <em>No Charge</em>, lifts the automatic
   overdue pauses and keeps the rule inert, and stops a Weekly Cap of 0 from holding job
   submission. Unticking changes no existing status; the gates arm again from that moment.
@@ -3323,33 +3325,6 @@ so the messages name which one applies.</p>
                 
 
                 <div class="card">
-                  <div class="card-header" id="h42">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c42"
-                              aria-expanded="false">Requesting class resources</button>
-                    </h5>
-                  </div>
-                  <div id="c42" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>PIs can request temporary accounts for a class from <strong>Projects &rarr; My
-Classes &rarr; Class Request</strong>. Fill in the course, its dates, school and
-department, and paste the roster, one student or TA per line:</p>
-<pre>Full Name,campus ID-ID,external e-mail</pre>
-<p>Use each student's <strong>external</strong> e-mail (not @example.edu, @alt.example.edu or
-@med.example.edu): the password-reset link for the course account goes there. If your school or
-department is not listed, choose <em>Other</em> and type it; staff adds it while reviewing
-your request.</p>
-<p>Once staff approves, every student gets an account named
-<code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code> and an e-mail to set its password. Students sign in with that username, the password and a TOTP code from an authenticator app (not with campus ID). From the
-class page you (and the TAs you add as managers) can resend that link to selected students
-and request more students, which staff approves the same way.</p>
-<p><strong>All course accounts and their files are deleted at the end of the course.</strong>
-Ask students to copy anything they need before the end date.</p></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h41">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -3413,6 +3388,33 @@ course codes <code>ext</code> and <code>orgb</code> are refused, because they ar
 prefixes of permanent accounts; the class Slurm account goes at the next full sync. To
 remove only the accounts, use <strong>Import Users &rarr; Delete Course Accounts</strong>
 with the course code.</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h42">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c42"
+                              aria-expanded="false">Requesting class resources</button>
+                    </h5>
+                  </div>
+                  <div id="c42" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>PIs can request temporary accounts for a class from <strong>Projects &rarr; My
+Classes &rarr; Class Request</strong>. Fill in the course, its dates, school and
+department, and paste the roster, one student or TA per line:</p>
+<pre>Full Name,campus ID-ID,external e-mail</pre>
+<p>Use each student's <strong>external</strong> e-mail (not @example.edu, @alt.example.edu or
+@med.example.edu): the password-reset link for the course account goes there. If your school or
+department is not listed, choose <em>Other</em> and type it; staff adds it while reviewing
+your request.</p>
+<p>Once staff approves, every student gets an account named
+<code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code> and an e-mail to set its password. Students sign in with that username, the password and a TOTP code from an authenticator app (not with campus ID). From the
+class page you (and the TAs you add as managers) can resend that link to selected students
+and request more students, which staff approves the same way.</p>
+<p><strong>All course accounts and their files are deleted at the end of the course.</strong>
+Ask students to copy anything they need before the end date.</p></div>
                   </div>
                 </div>
                 
