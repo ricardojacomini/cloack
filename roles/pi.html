@@ -115,6 +115,17 @@ description must have at least 150 words.</p>
 acknowledgement e-mail with the ticket link, can add information by replying,
 and the ticket resolves itself when staff approve or deny the allocation.
 The same happens when you create a project or ask to become a PI.</p>
+<p>Until a new project can run jobs, the project list (<code>/project/</code>) shows it in
+<strong>Projects in setup</strong>, a card above the table with four steps: <em>Created</em>
+(immediate), <em>Review</em> by CLOACK staff (usually 2–5 business days), <em>Allocation &amp;
+storage</em> (usually 3–5 business days) and <em>Ready</em>. Click a step, or use the
+arrows, to see what it checks and what is left. A step that needs you
+(changes requested, an allocation to request, a spending cap to choose) is
+amber and carries the button that does it; the table's Status column shows
+the same dots. The card leaves the list 7 days after the project is ready, a
+denied project stays 30 days so you can reopen it, and a project that has not
+requested an allocation leaves 30 days after it was activated. Project
+managers see the card too; other members do not.</p>
 <p>You may request a <strong>second allocation on the same project</strong>. Until staff
 assign a SubProject suffix during review, both allocations resolve to the
 same Slurm account name and approval is refused, so say in the
@@ -376,6 +387,11 @@ tier); blank means the cluster default for your account class.</p>
 <td>Adding a user to a project does nothing visible in Slurm</td>
 <td>They have not accepted the ToS yet, or they were added to the project but not to the allocation</td>
 <td>Email the user the ToS link and add them to the allocation; provisioning fires immediately once both hold</td>
+</tr>
+<tr>
+<td>My new project cannot run jobs yet</td>
+<td>One of its setup steps is still open</td>
+<td>Open <strong>Projects in setup</strong> on <code>/project/</code>: the pink or amber step says what is left (staff review, allocation approval, spending cap)</td>
 </tr>
 <tr>
 <td>"Request Resource Allocation" button is not shown</td>

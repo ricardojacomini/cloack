@@ -290,8 +290,9 @@ and how much running jobs still hold.</p>
   requeued, only its last run is in that row while <code>sreport</code> counts every
   run. Compare <code>sacct -X -D</code> with <code>sreport -T billing</code> for the month before
   trusting a per-job sum in a dispute.</li>
-<li><code>Weekly Cap Usage ($)</code> on the allocation is the accounting total in
-  dollars, refreshed when someone opens the gauge; it is not a ledger.</li>
+<li>The spend cap card reads the accounting total live from Slurm each time
+  the page opens; nothing is stored on the allocation, so it is not a
+  ledger.</li>
 </ul>
 <h2>Reference matrices</h2>
 <h3>Allocation attributes that reach Slurm</h3>

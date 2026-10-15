@@ -352,12 +352,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
                 <td><code>slurm2coldfront()</code> &rarr; SlurmJob</td>
                 <td>Paid core-hours used (<code>orga</code> / <code>orgb</code> QOS)</td>
               </tr>
-              <tr>
-                <td>Weekly Cap Usage ($)</td>
-                <td>Paid with cap set</td>
-                <td><code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code> &rarr; slurmrestd (live)</td>
-                <td>Dollar spend vs cap for the current usage period &mdash; <strong>monthly</strong> on cluster-x</td>
-              </tr>
+              <tr> <td>Weekly Spend Cap gauge</td> <td>Paid with cap set</td> <td><code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code> &rarr; slurmrestd (live)</td> <td>SU spend vs cap over the cluster&rsquo;s current usage period</td> </tr>
             </tbody>
           </table>
           <ul>
@@ -756,11 +751,10 @@ elif weekly_cap_hours:
             Slurm. 
           </div>
 
-          <h6>Weekly Cap Usage (live)</h6>
+          <h6>Spend cap usage (live)</h6>
           <p>The gauge renders two figures from the live payload: &ldquo;N SU available until the &lt;date&gt; reset&rdquo; (limit minus Slurm&rsquo;s weighted count minus SU held by running jobs, the number that decides whether a new job is accepted) and &ldquo;N SU used this period&rdquo; (the accounting total, the figure billed); the bar segment is <em>Used</em>, and the (i) / <em>details</em> link shows limit, Slurm count and held. The cap card says &ldquo;available&rdquo; for the same reason. Period name and reset date come from the payload, so they follow the cluster&rsquo;s usage reset period.</p>
           <p>
-            Served on demand by <code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code>: slurmrestd jobs in the cluster's current usage reset period (<code>?week_start=YYYY-MM-DD</code> selects the period containing that date, 00:00 cluster-local). Current-week hits UPSERT the
-            <code>Weekly Cap Usage ($)</code> attribute with a 5-minute debounce.
+            Served on demand by <code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code>: slurmrestd jobs in the cluster's current usage reset period (<code>?week_start=YYYY-MM-DD</code> selects the period containing that date, 00:00 cluster-local). Nothing is cached in the database: every page reads this live figure.
           </p>
           <div class="alert alert-info">
             On <strong>cluster-x</strong> the controller resets usage <strong>monthly</strong>, so this gauge sums the calendar month: the same span the cap is enforced over (until 2026-10-02 it showed one week of the month).
@@ -998,78 +992,6 @@ root
                 
 
                 <div class="card">
-                  <div class="card-header" id="h34">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c34"
-                              aria-expanded="false">Per-allocation QoS / DefaultQoS Override</button>
-                    </h5>
-                  </div>
-                  <div id="c34" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p>Two attributes on every allocation &mdash; <strong>QoS</strong>
-(the allowed QOS list) and <strong>DefaultQoS</strong> (the single default)
-&mdash; let you pin exactly which Slurm QOS an account may use: to keep a
-group off partitions they shouldn't reach, to grant an elevated GPU tier
-(<code>orga2</code>&nbsp;/&nbsp;<code>orga4</code>), to attach a course account to
-<code>class</code>, or to bind a condo account to its <code>condo_*</code> QOS.
-They live in the <em>Allocation Attributes</em> table on the Allocation Detail
-page and are edited inline by staff as a <strong>select of that cluster's QOS
-names</strong> (blank = &ldquo;&mdash; cluster default &mdash;&rdquo;); PIs see
-them read-only.</p>
-<p><strong>Why this exists:</strong> ColdFront is the source of truth and the
-<code>sync_slurm</code> task re-asserts each account's QOS every 15 minutes, so a
-manual <code>sacctmgr modify ... set defaultqos=</code> is reverted on the next
-pass. Filling these attributes makes the sync <em>enforce</em> your restriction
-instead of reverting it.</p>
-<table class="table table-sm table-bordered">
-  <thead><tr><th>QoS</th><th>DefaultQoS</th><th>Result on the account</th></tr></thead>
-  <tbody>
-    <tr><td><code>orga,scavenger</code></td><td><code>scavenger</code></td>
-        <td>QOS list = orga,scavenger; DefaultQOS = scavenger</td></tr>
-    <tr><td><code>orga,scavenger</code></td><td><em>(blank)</em></td>
-        <td>Default = first of the list (orga)</td></tr>
-    <tr><td><code>orga2</code></td><td><code>orga2</code></td>
-        <td>Elevated tier: the account leaves <code>orga</code> entirely (pins never stack limits across QOS)</td></tr>
-    <tr><td><em>(blank)</em></td><td><code>scavenger</code></td>
-        <td>List locked to [scavenger]</td></tr>
-    <tr><td><em>(both blank)</em></td><td><em>(both blank)</em></td>
-        <td>No override &mdash; the computed cluster default. On a role-driven cluster (cluster-x) that is
-        the account class: <code>scavenger</code> for a default allocation, <code>orga</code>/<code>orgb</code>
-        for a paid one, <code>condo</code> for a credit holder. On a cluster whose QOS rows all have a blank
-        role it is the legacy free/paid list.</td></tr>
-  </tbody>
-</table>
-<p><strong>Rules:</strong> a QOS name must exist on the allocation's cluster.
-The editor is a select of that cluster's <code>SlurmQOS</code> names and the server
-re-validates on save, rejecting any name the cluster does not define (free text is
-offered only as a fallback when no rows resolve; multi-QOS lists are entered through
-Django Admin). DefaultQoS should be one of the QoS values; if it isn't, the sync
-appends it automatically (Slurm requires <code>DefaultQOS &isin; QOS</code>). Saving
-either attribute immediately queues a per-allocation sync &mdash; no manual step. To
-lift the restriction, blank both fields and the account returns to the computed
-cluster default.</p>
-<div class="alert alert-warning">
-  <strong>Retiring a QOS? Migrate the pins first.</strong> A pin is absolute: the sync
-  forces exactly that list onto the account and strips everything else, so deleting or
-  renaming a QOS that is still pinned somewhere leaves those accounts with an
-  <code>InvalidQOS</code> association and every submit rejected. Sweep the
-  <code>QoS</code>/<code>DefaultQoS</code> attributes (and any pending jobs) BEFORE you
-  touch the associations.
-</div>
-<p>A <code>credit_holder</code> allocation with NO pin is the one case that hits the
-role branch's failsafe &mdash; no <code>condo</code> row matches its organization, so
-the sync leaves the account's QOS untouched and logs a WARNING instead of guessing.
-Condo accounts are expected to be pinned.</p>
-<p>Verify on the controller (no <code>-M</code> flag):
-<code>sacctmgr show assoc where account=&lt;acct&gt;
-format=Account,User,QOS,DefaultQOS -P</code>.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h7">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1152,6 +1074,78 @@ PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=Or
                 
 
                 <div class="card">
+                  <div class="card-header" id="h34">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c34"
+                              aria-expanded="false">Per-allocation QoS / DefaultQoS Override</button>
+                    </h5>
+                  </div>
+                  <div id="c34" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Two attributes on every allocation &mdash; <strong>QoS</strong>
+(the allowed QOS list) and <strong>DefaultQoS</strong> (the single default)
+&mdash; let you pin exactly which Slurm QOS an account may use: to keep a
+group off partitions they shouldn't reach, to grant an elevated GPU tier
+(<code>orga2</code>&nbsp;/&nbsp;<code>orga4</code>), to attach a course account to
+<code>class</code>, or to bind a condo account to its <code>condo_*</code> QOS.
+They live in the <em>Allocation Attributes</em> table on the Allocation Detail
+page and are edited inline by staff as a <strong>select of that cluster's QOS
+names</strong> (blank = &ldquo;&mdash; cluster default &mdash;&rdquo;); PIs see
+them read-only.</p>
+<p><strong>Why this exists:</strong> ColdFront is the source of truth and the
+<code>sync_slurm</code> task re-asserts each account's QOS every 15 minutes, so a
+manual <code>sacctmgr modify ... set defaultqos=</code> is reverted on the next
+pass. Filling these attributes makes the sync <em>enforce</em> your restriction
+instead of reverting it.</p>
+<table class="table table-sm table-bordered">
+  <thead><tr><th>QoS</th><th>DefaultQoS</th><th>Result on the account</th></tr></thead>
+  <tbody>
+    <tr><td><code>orga,scavenger</code></td><td><code>scavenger</code></td>
+        <td>QOS list = orga,scavenger; DefaultQOS = scavenger</td></tr>
+    <tr><td><code>orga,scavenger</code></td><td><em>(blank)</em></td>
+        <td>Default = first of the list (orga)</td></tr>
+    <tr><td><code>orga2</code></td><td><code>orga2</code></td>
+        <td>Elevated tier: the account leaves <code>orga</code> entirely (pins never stack limits across QOS)</td></tr>
+    <tr><td><em>(blank)</em></td><td><code>scavenger</code></td>
+        <td>List locked to [scavenger]</td></tr>
+    <tr><td><em>(both blank)</em></td><td><em>(both blank)</em></td>
+        <td>No override &mdash; the computed cluster default. On a role-driven cluster (cluster-x) that is
+        the account class: <code>scavenger</code> for a default allocation, <code>orga</code>/<code>orgb</code>
+        for a paid one, <code>condo</code> for a credit holder. On a cluster whose QOS rows all have a blank
+        role it is the legacy free/paid list.</td></tr>
+  </tbody>
+</table>
+<p><strong>Rules:</strong> a QOS name must exist on the allocation's cluster.
+The editor is a select of that cluster's <code>SlurmQOS</code> names and the server
+re-validates on save, rejecting any name the cluster does not define (free text is
+offered only as a fallback when no rows resolve; multi-QOS lists are entered through
+Django Admin). DefaultQoS should be one of the QoS values; if it isn't, the sync
+appends it automatically (Slurm requires <code>DefaultQOS &isin; QOS</code>). Saving
+either attribute immediately queues a per-allocation sync &mdash; no manual step. To
+lift the restriction, blank both fields and the account returns to the computed
+cluster default.</p>
+<div class="alert alert-warning">
+  <strong>Retiring a QOS? Migrate the pins first.</strong> A pin is absolute: the sync
+  forces exactly that list onto the account and strips everything else, so deleting or
+  renaming a QOS that is still pinned somewhere leaves those accounts with an
+  <code>InvalidQOS</code> association and every submit rejected. Sweep the
+  <code>QoS</code>/<code>DefaultQoS</code> attributes (and any pending jobs) BEFORE you
+  touch the associations.
+</div>
+<p>A <code>credit_holder</code> allocation with NO pin is the one case that hits the
+role branch's failsafe &mdash; no <code>condo</code> row matches its organization, so
+the sync leaves the account's QOS untouched and logs a WARNING instead of guessing.
+Condo accounts are expected to be pinned.</p>
+<p>Verify on the controller (no <code>-M</code> flag):
+<code>sacctmgr show assoc where account=&lt;acct&gt;
+format=Account,User,QOS,DefaultQOS -P</code>.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h9">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1207,61 +1201,6 @@ PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=Or
                 by <code>PriorityUsageResetPeriod</code> (monthly on cluster-x) or by a deliberate
                 staff action</li>
           </ul></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h10">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c10"
-                              aria-expanded="false">Project Storage — WekaFS integration</button>
-                    </h5>
-                  </div>
-                  <div id="c10" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
-one filesystem per PI, one directory per project. Its value is the
-<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
-(the flash/SSD share). The split is invisible in the filesystem; PIs never see
-the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
-<code>/scratch</code>)
-is a separate thing and is not part of Project Storage.</p>
-<p><strong>How PIs request it:</strong> the Create/Update Project forms no
-longer carry storage fields. PIs use the <em>Project Storage</em> card on the
-Project Detail page (<em>Request Storage Change</em>) to submit a change
-request (Project Storage TB + Cache TB + justification, which is required
-above the Cache cap). The request is <em>pending</em> until staff approves or
-denies it — values only land on the project at approval, and a "Project
-Storage under review" banner plus a <em>Pending review</em> badge sit on the
-project page meanwhile. One pending request per project: cancel it to submit
-different values. The card is not offered on default or archived projects, and
-condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
-team instead of submitting.</p>
-<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
-Cache &le; Project Storage; the PI's total Cache across all projects must fit
-the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
-staff). Requests above the cap require a justification and an explicit staff
-override at approval. The re-check uses live sums, so another of the PI's
-projects growing in the meantime can make a pending request fail review.</p>
-<p><strong>Billing:</strong> the Cache and the Project Storage total are each
-billed per TB-month from the rate catalog. The charge does not depend on jobs
-— a billable allocation with provisioned storage gets a monthly usage period,
-so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
-lines even in a month with zero compute.</p>
-<p><strong>Field mapping (legacy names kept):</strong>
-<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
-<code>backup_tb</code> = Project Storage total &rarr; Weka
-<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
-Cache, <code>backup</code> bills the Project Storage total.</p>
-<p><strong>Where to see it:</strong> <em>Projects &rarr; My Storage</em> lists every
-project you lead or belong to that has Project Storage or a pending request: the
-Project Storage and Cache sizes, the pending change, a monthly estimate at today's
-rates and the project directory path. Its <em>Request Storage</em> button lists the
-projects you can request storage on and opens the request form on that project's
-page.</p>
-</div>
                   </div>
                 </div>
                 
@@ -1435,6 +1374,61 @@ lifecycle overview</a>.</p>
                 
 
                 <div class="card">
+                  <div class="card-header" id="h10">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c10"
+                              aria-expanded="false">Project Storage — WekaFS integration</button>
+                    </h5>
+                  </div>
+                  <div id="c10" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
+one filesystem per PI, one directory per project. Its value is the
+<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
+(the flash/SSD share). The split is invisible in the filesystem; PIs never see
+the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
+<code>/scratch</code>)
+is a separate thing and is not part of Project Storage.</p>
+<p><strong>How PIs request it:</strong> the Create/Update Project forms no
+longer carry storage fields. PIs use the <em>Project Storage</em> card on the
+Project Detail page (<em>Request Storage Change</em>) to submit a change
+request (Project Storage TB + Cache TB + justification, which is required
+above the Cache cap). The request is <em>pending</em> until staff approves or
+denies it — values only land on the project at approval, and a "Project
+Storage under review" banner plus a <em>Pending review</em> badge sit on the
+project page meanwhile. One pending request per project: cancel it to submit
+different values. The card is not offered on default or archived projects, and
+condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
+team instead of submitting.</p>
+<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
+Cache &le; Project Storage; the PI's total Cache across all projects must fit
+the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
+staff). Requests above the cap require a justification and an explicit staff
+override at approval. The re-check uses live sums, so another of the PI's
+projects growing in the meantime can make a pending request fail review.</p>
+<p><strong>Billing:</strong> the Cache and the Project Storage total are each
+billed per TB-month from the rate catalog. The charge does not depend on jobs
+— a billable allocation with provisioned storage gets a monthly usage period,
+so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
+lines even in a month with zero compute.</p>
+<p><strong>Field mapping (legacy names kept):</strong>
+<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
+<code>backup_tb</code> = Project Storage total &rarr; Weka
+<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
+Cache, <code>backup</code> bills the Project Storage total.</p>
+<p><strong>Where to see it:</strong> <em>Projects &rarr; My Storage</em> lists every
+project you lead or belong to that has Project Storage or a pending request: the
+Project Storage and Cache sizes, the pending change, a monthly estimate at today's
+rates and the project directory path. Its <em>Request Storage</em> button lists the
+projects you can request storage on and opens the request form on that project's
+page.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h11">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1567,6 +1561,97 @@ lifecycle overview</a>.</p>
                 
 
                 <div class="card">
+                  <div class="card-header" id="h13">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c13"
+                              aria-expanded="false">Scheduled Tasks (django-q)</button>
+                    </h5>
+                  </div>
+                  <div id="c13" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><table class="table table-sm table-bordered">
+            <thead class="thead-light">
+              <tr><th>Task</th><th>Schedule</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>sync_ldap_all</code></td><td>Daily 2 AM</td><td>ColdFront &rarr; LDAP (users, groups, home dirs, scratch symlinks)</td></tr>
+              <tr><td><code>sync_slurm_all</code></td><td>Every 15 min</td><td>ColdFront &rarr; Slurm (accounts, users, QOS, hierarchy). Safety net behind real-time signals. REST-first via slurmrestd; CLI fallback only on docker clusters / <code>REQUIRE_SLURM_CLI=True</code>.</td></tr>
+              <tr><td><code>collect_sacct_task</code> (shallow)</td><td>Every 15 min</td><td>Slurm &rarr; <code>SlurmJob</code> table, <strong>1-day</strong> lookback, <code>use_cli=True</code> <em>by design</em>: <code>sacct</code> streams from slurmdbd instead of building the huge REST response that cgroup-killed slurmrestd on whale days.</td></tr>
+              <tr><td><code>collect_sacct_task</code> (deep)</td><td>Daily 02:45</td><td>Same import over a <strong>7-day</strong> window via REST <code>/slurmdb/{v}/jobs</code> (chunked per day) &mdash; heals late accounting updates that the shallow pass has already aged out.</td></tr>
+              <tr><td><code>check_and_run_core_hours_reset</code></td><td>Daily 1 AM</td><td>Zeroes the <strong>ColdFront</strong> Core / Accelerator Usage gauges and <code>SlurmUserUsageSnapshot</code> rows when the scheduled date is reached (global <code>CoreHoursResetSettings</code> plus per-allocation <code>Next Reset</code> overrides). It <strong>never touches Slurm</strong> &mdash; association <code>RawUsage</code> is cleared by the controller's own <code>PriorityUsageResetPeriod</code>, which is <code>MONTHLY</code> on cluster-x since 2026-09-21. Keep the reset period on <strong>Monthly</strong> or the gauge and the enforcement drift apart.</td></tr>
+
+              <tr><td><code>sync_bare_metal_topology</code></td><td>Every 10 min</td><td>Reverse import: nodes / partitions / QOS from each <strong>bare-metal</strong> cluster's slurmrestd into ColdFront (<code>import_slurm_cluster --update</code>). Container clusters are skipped &mdash; their topology flows the other way (ColdFront &rarr; <code>slurm.conf</code>).</td></tr>
+              <tr><td><code>sync_totp_status_task</code></td><td>Every 30 min</td><td>Refresh <code>UserProfile.totp_enrolled</code> from the Keycloak admin REST API &mdash; drives the enrolment banner for OrgB / <code>ext-*</code> users. campus ID users are skipped (MFA comes from Entra).</td></tr>
+              <tr><td><code>refresh_slurm_jwt_task</code></td><td>Every 6 h (:17)</td><td>Regenerate the slurmrestd JWT (30-day lifespan) into <code>/etc/slurm/slurm_jwt.token</code>. Without it every REST write silently degrades to the <code>sacctmgr</code> CLI and trips the fallback WARN threshold.</td></tr>
+              <tr><td><code>renew_service_api_tokens</code></td><td>Daily 3 AM</td><td>Slide the <code>created</code> date of the service DRF tokens in <code>API_TOKEN_SERVICE_USERS</code> (default <code>coldfront</code> &mdash; the account the helpdesk authenticates as) so the 30-day <code>API_TOKEN_TTL_DAYS</code> never expires the SAME key.</td></tr>
+              <tr><td><code>converge_keycloak_federation_task</code></td><td>Hourly</td><td>Convert broker-local campus ID Keycloak rows (realm <code>orga</code>) onto LDAP federation. <strong>Always scheduled, inert by default</strong>: returns <code>SKIP</code> unless <code>KEYCLOAK_FEDERATION_CONVERGE_ENABLED=True</code> in the host-local <code>coldfront.env</code> (env_file &rArr; qcluster <em>recreate</em>, not restart).</td></tr>
+              <tr><td><code>reconcile_overdue_io_pauses</code></td><td>Daily 04:15</td><td>Applies the overdue-invoice rule once the grace window has elapsed (<code>SiteConfiguration.overdue_pause_window</code>: quarterly by default, monthly, or none): every Pay IO of an allocation with an <em>Overdue</em> billing period is paused with <code>pause_reason='overdue'</code>, and the pause is lifted when no period the IO funds is still Overdue. A status change on a period reconciles at once; this task only applies the date crossing.</td></tr>
+              <tr><td><code>flag_ended_classes</code></td><td>Daily 04:30</td><td>Marks class requests whose course end date has passed as <em>Ended</em> and opens one teardown ticket per class. Never deletes anything: student accounts go only through <strong>Delete Class</strong> on the class page.</td></tr>
+              <tr><td><code>rotate_admin_log_task</code></td><td>Monthly</td><td>Archive-then-purge <code>django_admin_log</code>: rows older than <code>CLOACK_AUDIT_RETENTION_MONTHS</code> (default 12) are exported as gzip JSONL under <code>CLOACK_AUDIT_ARCHIVE_DIR</code>, then deleted.</td></tr>
+            </tbody>
+          </table>
+
+          <div class="alert alert-info">
+            <strong>Removed Phase 2:</strong> the 5-minute
+            <code>sync_weekly_cap_usage</code> poll is gone. Weekly-cap
+            spend is now served live by
+            <code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code>
+            and rendered client-side on the allocation detail page.
+            Nothing is cached in the database (the old <code>Weekly Cap Usage ($)</code> attribute was removed).
+          </div>
+
+          <div class="alert alert-warning">
+            <strong>&ldquo;Weekly&rdquo; is the field name, not the window.</strong>
+            The spend cap and the per-allocation core / GPU-hour budgets are all
+            checked against the ONE association usage counter that slurmctld
+            clears on <code>PriorityUsageResetPeriod</code>. cluster-x runs
+            <code>MONTHLY</code> (since 2026-09-21, matching the one-month
+            billing period), so a <code>Weekly Cap ($)</code> value is enforced
+            <strong>per month</strong> there and the hour budgets are monthly
+            quotas &mdash; Slurm has no per-TRES reset period. The
+            Sunday&nbsp;00:00 week boundary in
+            <code>billing_queries.week_start_date</code> only matches a cluster
+            still configured <code>WEEKLY</code>.
+          </div>
+
+          <div class="alert alert-warning">
+            <strong>NOT on the schedule:</strong> Billing computation
+            (<code>AllocationBilling</code> and <code>SlurmAccountUsagePeriod</code>
+            rows) is <strong>manual only</strong>. New billing rows appear only
+            when staff presses <strong>Compute Billing</strong> on
+            <code>/billing/report/</code>, or via the CLI below. The 15-min
+            <code>sync_slurm_all</code> task never writes to the billing ledger.
+            Rationale: staff asked for a predictable, explicit compute action so
+            the report never gains new rows on its own.
+          </div>
+
+          <div class="alert alert-info">
+            <strong>Audit Trail:</strong> Every task uses <code>hook=TASK_HOOK</code>
+            which creates a Django Admin <code>LogEntry</code> on completion.
+            View in <strong>Admin &gt; Administration &gt; Log entries</strong>.
+            REST vs CLI counters per operation live in
+            <strong>Admin &gt; Slurm Sync Metrics</strong>.
+          </div>
+
+          <h6>Manual Task Execution</h6>
+          <pre class="bg-light p-3 rounded">
+# Inside the coldfront container (note: use `coldfront`, not manage.py):
+docker exec coldfront coldfront sync_ldap             # LDAP sync
+docker exec coldfront coldfront sync_slurm            # Slurm sync (REST-first)
+docker exec coldfront coldfront collect_sacct         # Import jobs from slurmrestd
+docker exec coldfront coldfront collect_sacct --use-cli  # Force sacct CLI
+
+# Billing computation (manual only, matches UI button):
+docker exec coldfront coldfront recalculate_billing --all   # &rarr; AllocationBilling rows
+docker exec coldfront coldfront sync_job_usage              # &rarr; SlurmAccountUsagePeriod rows
+
+# Diagnostic side-by-side sreport vs slurmrestd:
+docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0</pre></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h36">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1643,99 +1728,6 @@ reverts to e-mail without a code change;
 <code>HELPDESK_TICKET_BRIDGE_PUBLIC_FOLLOWUPS=False</code> makes the decision
 follow-ups internal notes.</p>
 </div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h13">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c13"
-                              aria-expanded="false">Scheduled Tasks (django-q)</button>
-                    </h5>
-                  </div>
-                  <div id="c13" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><table class="table table-sm table-bordered">
-            <thead class="thead-light">
-              <tr><th>Task</th><th>Schedule</th><th>Purpose</th></tr>
-            </thead>
-            <tbody>
-              <tr><td><code>sync_ldap_all</code></td><td>Daily 2 AM</td><td>ColdFront &rarr; LDAP (users, groups, home dirs, scratch symlinks)</td></tr>
-              <tr><td><code>sync_slurm_all</code></td><td>Every 15 min</td><td>ColdFront &rarr; Slurm (accounts, users, QOS, hierarchy). Safety net behind real-time signals. REST-first via slurmrestd; CLI fallback only on docker clusters / <code>REQUIRE_SLURM_CLI=True</code>.</td></tr>
-              <tr><td><code>collect_sacct_task</code> (shallow)</td><td>Every 15 min</td><td>Slurm &rarr; <code>SlurmJob</code> table, <strong>1-day</strong> lookback, <code>use_cli=True</code> <em>by design</em>: <code>sacct</code> streams from slurmdbd instead of building the huge REST response that cgroup-killed slurmrestd on whale days.</td></tr>
-              <tr><td><code>collect_sacct_task</code> (deep)</td><td>Daily 02:45</td><td>Same import over a <strong>7-day</strong> window via REST <code>/slurmdb/{v}/jobs</code> (chunked per day) &mdash; heals late accounting updates that the shallow pass has already aged out.</td></tr>
-              <tr><td><code>check_and_run_core_hours_reset</code></td><td>Daily 1 AM</td><td>Zeroes the <strong>ColdFront</strong> Core / Accelerator Usage gauges and <code>SlurmUserUsageSnapshot</code> rows when the scheduled date is reached (global <code>CoreHoursResetSettings</code> plus per-allocation <code>Next Reset</code> overrides). It <strong>never touches Slurm</strong> &mdash; association <code>RawUsage</code> is cleared by the controller's own <code>PriorityUsageResetPeriod</code>, which is <code>MONTHLY</code> on cluster-x since 2026-09-21. Keep the reset period on <strong>Monthly</strong> or the gauge and the enforcement drift apart.</td></tr>
-
-              <tr><td><code>sync_bare_metal_topology</code></td><td>Every 10 min</td><td>Reverse import: nodes / partitions / QOS from each <strong>bare-metal</strong> cluster's slurmrestd into ColdFront (<code>import_slurm_cluster --update</code>). Container clusters are skipped &mdash; their topology flows the other way (ColdFront &rarr; <code>slurm.conf</code>).</td></tr>
-              <tr><td><code>sync_totp_status_task</code></td><td>Every 30 min</td><td>Refresh <code>UserProfile.totp_enrolled</code> from the Keycloak admin REST API &mdash; drives the enrolment banner for OrgB / <code>ext-*</code> users. campus ID users are skipped (MFA comes from Entra).</td></tr>
-              <tr><td><code>refresh_slurm_jwt_task</code></td><td>Every 6 h (:17)</td><td>Regenerate the slurmrestd JWT (30-day lifespan) into <code>/etc/slurm/slurm_jwt.token</code>. Without it every REST write silently degrades to the <code>sacctmgr</code> CLI and trips the fallback WARN threshold.</td></tr>
-              <tr><td><code>renew_service_api_tokens</code></td><td>Daily 3 AM</td><td>Slide the <code>created</code> date of the service DRF tokens in <code>API_TOKEN_SERVICE_USERS</code> (default <code>coldfront</code> &mdash; the account the helpdesk authenticates as) so the 30-day <code>API_TOKEN_TTL_DAYS</code> never expires the SAME key.</td></tr>
-              <tr><td><code>converge_keycloak_federation_task</code></td><td>Hourly</td><td>Convert broker-local campus ID Keycloak rows (realm <code>orga</code>) onto LDAP federation. <strong>Always scheduled, inert by default</strong>: returns <code>SKIP</code> unless <code>KEYCLOAK_FEDERATION_CONVERGE_ENABLED=True</code> in the host-local <code>coldfront.env</code> (env_file &rArr; qcluster <em>recreate</em>, not restart).</td></tr>
-              <tr><td><code>reconcile_overdue_io_pauses</code></td><td>Daily 04:15</td><td>Applies the overdue-invoice rule once the grace window has elapsed (<code>SiteConfiguration.overdue_pause_window</code>: quarterly by default, monthly, or none): every Pay IO of an allocation with an <em>Overdue</em> billing period is paused with <code>pause_reason='overdue'</code>, and the pause is lifted when no period the IO funds is still Overdue. A status change on a period reconciles at once; this task only applies the date crossing.</td></tr>
-              <tr><td><code>flag_ended_classes</code></td><td>Daily 04:30</td><td>Marks class requests whose course end date has passed as <em>Ended</em> and opens one teardown ticket per class. Never deletes anything: student accounts go only through <strong>Delete Class</strong> on the class page.</td></tr>
-              <tr><td><code>rotate_admin_log_task</code></td><td>Monthly</td><td>Archive-then-purge <code>django_admin_log</code>: rows older than <code>CLOACK_AUDIT_RETENTION_MONTHS</code> (default 12) are exported as gzip JSONL under <code>CLOACK_AUDIT_ARCHIVE_DIR</code>, then deleted.</td></tr>
-            </tbody>
-          </table>
-
-          <div class="alert alert-info">
-            <strong>Removed Phase 2:</strong> the 5-minute
-            <code>sync_weekly_cap_usage</code> poll is gone. Weekly-cap
-            spend is now served live by
-            <code>GET /api/v1/allocations/&lt;pk&gt;/weekly-usage/</code>
-            and rendered client-side on the allocation detail page.
-            The <code>Weekly Cap Usage ($)</code> AllocationAttribute is
-            still warmed as a side-effect of each endpoint hit, debounced
-            to one DB write per allocation per 5 minutes.
-          </div>
-
-          <div class="alert alert-warning">
-            <strong>&ldquo;Weekly&rdquo; is the field name, not the window.</strong>
-            The spend cap and the per-allocation core / GPU-hour budgets are all
-            checked against the ONE association usage counter that slurmctld
-            clears on <code>PriorityUsageResetPeriod</code>. cluster-x runs
-            <code>MONTHLY</code> (since 2026-09-21, matching the one-month
-            billing period), so a <code>Weekly Cap ($)</code> value is enforced
-            <strong>per month</strong> there and the hour budgets are monthly
-            quotas &mdash; Slurm has no per-TRES reset period. The
-            Sunday&nbsp;00:00 week boundary in
-            <code>billing_queries.week_start_date</code> only matches a cluster
-            still configured <code>WEEKLY</code>.
-          </div>
-
-          <div class="alert alert-warning">
-            <strong>NOT on the schedule:</strong> Billing computation
-            (<code>AllocationBilling</code> and <code>SlurmAccountUsagePeriod</code>
-            rows) is <strong>manual only</strong>. New billing rows appear only
-            when staff presses <strong>Compute Billing</strong> on
-            <code>/billing/report/</code>, or via the CLI below. The 15-min
-            <code>sync_slurm_all</code> task never writes to the billing ledger.
-            Rationale: staff asked for a predictable, explicit compute action so
-            the report never gains new rows on its own.
-          </div>
-
-          <div class="alert alert-info">
-            <strong>Audit Trail:</strong> Every task uses <code>hook=TASK_HOOK</code>
-            which creates a Django Admin <code>LogEntry</code> on completion.
-            View in <strong>Admin &gt; Administration &gt; Log entries</strong>.
-            REST vs CLI counters per operation live in
-            <strong>Admin &gt; Slurm Sync Metrics</strong>.
-          </div>
-
-          <h6>Manual Task Execution</h6>
-          <pre class="bg-light p-3 rounded">
-# Inside the coldfront container (note: use `coldfront`, not manage.py):
-docker exec coldfront coldfront sync_ldap             # LDAP sync
-docker exec coldfront coldfront sync_slurm            # Slurm sync (REST-first)
-docker exec coldfront coldfront collect_sacct         # Import jobs from slurmrestd
-docker exec coldfront coldfront collect_sacct --use-cli  # Force sacct CLI
-
-# Billing computation (manual only, matches UI button):
-docker exec coldfront coldfront recalculate_billing --all   # &rarr; AllocationBilling rows
-docker exec coldfront coldfront sync_job_usage              # &rarr; SlurmAccountUsagePeriod rows
-
-# Diagnostic side-by-side sreport vs slurmrestd:
-docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0</pre></div>
                   </div>
                 </div>
                 
