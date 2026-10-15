@@ -532,7 +532,7 @@ class. Course accounts are removed at the end of the course.</p>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>plus-addressed <code>&lt;local&gt;+&lt;code&gt;@&lt;domain&gt;</code>: unique for Keycloak, delivered to the student's own inbox (portal, helpdesk and Slurm mail reach them); older <code>&lt;code&gt;-&lt;local&gt;@&lt;domain&gt;</code> accounts convert with <code>coldfront convert_course_emails</code> (dry run first)</td>
+<td>plus-addressed <code>&lt;local&gt;+&lt;code&gt;@&lt;domain&gt;</code>: unique for Keycloak, delivered to the student's own inbox (portal, helpdesk and Slurm mail reach them); older <code>&lt;code&gt;-&lt;local&gt;@&lt;domain&gt;</code> accounts convert with <code>coldfront convert_course_emails</code> (dry run first); accounts imported before <code>course_code</code> existed are listed as SKIP and convert with <code>--course &lt;code&gt;</code> when username and e-mail both start with <code>&lt;code&gt;-</code></td>
 </tr>
 <tr>
 <td>Self-service password reset</td>
@@ -1207,6 +1207,27 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
 <td>Upstream opens a ticket with submitter <code>Unknown Sender</code> for any message without a parseable <code>From:</code> (Exchange system items — 71 junk tickets on prod). <code>upstream_patches.patch_extract_email_metadata</code> rejects them on every intake path with one WARNING (subject / Message-ID / Date); <code>HELPDESK_SENDERLESS_MAIL_ACTION</code> = <code>delete</code> (default) / <code>keep</code> / <code>ticket</code></td>
+</tr>
+<tr>
+<td>One bad e-mail cannot freeze intake</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Upstream aborts a whole mailbox run on any per-message error other than <code>TypeError</code>, so one message froze a queue for eight days. <code>upstream_patches.patch_intake_hardening</code>: UTF-8 fallback for nested messages, a non-accepted attachment becomes a <code>not-stored</code> note, each message in a transaction and skipped on error, a file lock against overlapping <code>get_email</code> runs. Health: <code>email_box_last_check</code> age; read-only probe <code>scripts/helpdesk_intake_probe.py</code></td>
+</tr>
+<tr>
+<td>Bounces filed on their ticket, never answered</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>patch_bounce_handling</code> extends upstream <code>is_autoreply</code> (delivery reports, null <code>Return-Path</code>, daemon / no-reply senders, <code>X-Failed-Recipients</code>, <code>Precedence: bulk</code>) so no courtesy e-mail goes back to a robot (ended a MAILER-DAEMON mail loop), and files a delivery report on the ticket named in the returned message's subject</td>
+</tr>
+<tr>
+<td>Owner closes tickets</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Upstream's <strong>Accept and Close</strong> is removed from both ticket pages: the staff handler never set Closed and overwrote the resolution with its own comment (and failed with a 500 here); the owner closes with the Status combo. Shadows of <code>helpdesk:view</code> and <code>helpdesk:public_view</code> refuse a stale <code>?close</code> / <code>&amp;close</code> link</td>
 </tr>
 <tr>
 <td>Public feedback categories + dedicated queue</td>

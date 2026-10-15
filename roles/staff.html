@@ -487,6 +487,18 @@ back to e-mail.</p>
   with an <code>IgnoreEmail</code> rule, since the digest is the only evidence.</li>
 <li>An <code>IgnoreEmail</code> entry works on a full address, a bare domain
   (<code>*@domain</code>) or a bare word (literal match on the sender string).</li>
+<li>A delivery failure report (a bounce) is filed as a follow-up on the
+  ticket whose e-mail bounced; when that ticket cannot be found, it opens a
+  ticket from the mail system. The helpdesk never sends an automatic e-mail
+  back to such senders. Close those tickets with the Status combo or the
+  list's <strong>Close (Don't Send E-Mail)</strong>, never with an e-mail reply.</li>
+<li>An attachment of a type the helpdesk does not accept is replaced by a
+  short <code>not-stored</code> note; the rest of the e-mail still arrives. A plain-text
+  file (for example a <code>.log</code>) attached next to a plain-text message is not
+  kept at all: ask the user to attach it on the ticket page instead.</li>
+<li>One unreadable e-mail no longer stops the others: it stays in the mailbox
+  and is logged, and every other message is processed. If replies seem to
+  stop arriving, ask an admin to run the intake probe.</li>
 </ul>
 <h2>Troubleshooting</h2>
 <table>
