@@ -129,7 +129,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
             partitions named after the hardware &mdash; <code>a100</code>, <code>l40s</code>,
             <code>h100</code>, <code>h200</code> (OrgA) and <code>b200</code>, <code>b300</code>
             (OrgB). Set <code>AllowQos</code> and <code>TRESBillingWeights</code> as needed.
-            <code>premium</code> is not a partition on cluster-x &mdash; do not use it in examples.
+            
           </p>
           <p>
             On an externally-managed cluster (<code>manage_config=False</code>, e.g. cluster-x) do
@@ -145,22 +145,20 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
           <p>
             Go to <strong>Django Admin &rarr; Slurm QOS</strong>. A dev Docker cluster is seeded
             automatically with <code>scavenger</code>, <code>interactive</code> and
-            <code>orgb</code> (plus the legacy <code>normal</code> / <code>premium</code>, kept only
-            for backward compatibility). <strong><code>ensure_in_slurm=True</code> is the only
+            <code>orgb</code>. <strong><code>ensure_in_slurm=True</code> is the only
             trigger</strong> for the sync to create a QOS in Slurm or assign it to an account &mdash;
             there is no hardcoded fallback, so a cluster with no flagged rows keeps whatever policy
             its own <code>slurm.conf</code>/<code>sacctmgr</code> already has. Mark
             <code>scavenger</code> as <code>is_free=True</code> so it is never billed.
           </p>
           <p>
-            Production (cluster-x) uses the <strong>role taxonomy</strong> instead
+            A cluster can use the <strong>role taxonomy</strong> instead
             (<code>SlurmQOS.role</code> + <code>affiliation</code>):
             <code>scavenger</code> (free, DefaultQOS), <code>orga</code> (paid OrgA),
             <code>orgb</code> (paid OrgB), <code>condo</code> and <code>class</code>, with the
             elevated tiers <code>orga2</code> / <code>orga4</code> pinned per account through the
             <code>QoS</code> / <code>DefaultQoS</code> allocation attributes.
-            <code>normal</code> and <code>premium</code> are <strong>retired</strong> there &mdash;
-            never document <code>--qos=normal</code> or call "normal, premium" the paid QOS.
+            Which QOS a cluster actually runs is listed in <strong>Admin &rarr; Slurm QOS</strong> for that cluster.
           </p>
 
           <h6>Step 5 &mdash; Set Billing Rates</h6>
@@ -285,11 +283,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 
 <div class="alert alert-info">
   <strong>Tip:</strong> Use the "Sync Now" button on any allocation detail page to trigger an immediate Slurm sync.<p class="text-muted">
-  On the production cluster (<strong>cluster-x</strong>) the elevated tiers <code>orga2</code> /
-  <code>orga4</code> are pinned per account by staff; <code>normal</code> and <code>premium</code>
-  are retired there. Usage resets <strong>monthly</strong>, so the core-hour / GPU-hour budgets
-  and any spend cap are per-month quotas, and the free default (scavenger) allocation is seeded
-  at 180,000 core-hours per month.
+  The elevated GPU tiers <code>orga2</code> / <code>orga4</code> are granted per account by staff. Budgets and any spend cap count over the cluster&rsquo;s usage period, shown on the allocation&rsquo;s Spend Cap card; the free default (scavenger) allocation starts with the cluster&rsquo;s default budget, shown on its Allocation Detail page.
 </p>
 
 <div class="alert alert-info">
@@ -368,7 +362,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
           </table>
           <ul>
             <li><strong>Default allocations</strong> (project = PI username, no abbreviation) get scavenger QOS and are never billed.</li>
-            <li><strong>Paid allocations</strong> (custom project with abbreviation) get the paid QOS of their affiliation &mdash; <code>orga</code> (OrgA) or <code>orgb</code> (OrgB) &mdash; and are billed. <code>normal</code> / <code>premium</code> no longer exist on cluster-x.</li>
+            <li><strong>Paid allocations</strong> (custom project with abbreviation) get the paid QOS of their affiliation &mdash; <code>orga</code> (OrgA) or <code>orgb</code> (OrgB) &mdash; and are billed.</li>
             <li>Each allocation has its own Slurm account (<code>pi_username</code> vs <code>pi_username_proj1</code>), so jobs never mix between gauges.</li>
             <li>The Weekly Cap gauge only appears when <code>Weekly Cap ($)</code> or <code>Weekly Cap (SU)</code> is set on the allocation.</li>
           </ul>
@@ -592,13 +586,12 @@ sacctmgr modify account where name=jsmith set qos=scavenger defaultqos=scavenger
 # Custom project &rarr; paid QOS (OrgA; a OrgB account gets orgb)
 sacctmgr modify account where name=jsmith_proj1 set qos=orga defaultqos=orga</pre>
           <p>
-            <strong>Live QOS set on cluster-x</strong> (role taxonomy, since 2026-09-08):
+            <strong>QOS set under the role taxonomy</strong> (since 2026-09-08):
             <code>scavenger</code> (free, default) &middot; <code>orga</code> (paid, OrgA accounts) &middot;
             <code>orgb</code> (paid, OrgB) &middot; <code>condo</code> (hardware credit) &middot;
             <code>class</code> (course accounts), plus the elevated OrgA tiers
             <code>orga2</code> / <code>orga4</code> pinned per account.
-            <code>normal</code> and <code>premium</code> are <strong>retired</strong> &mdash; they no
-            longer exist on production.
+            A cluster&rsquo;s live set is listed in <strong>Admin &rarr; Slurm QOS Definitions</strong>.
           </p>
 
           <h6>4. Enforcement at Job Submit</h6>
@@ -1005,91 +998,6 @@ root
                 
 
                 <div class="card">
-                  <div class="card-header" id="h7">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c7"
-                              aria-expanded="false">QOS Management</button>
-                    </h5>
-                  </div>
-                  <div id="c7" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>
-            QOS definitions live in the <code>SlurmQOS</code> model (Admin &gt; Slurm QOS Definitions), one set
-            per cluster. <strong><code>ensure_in_slurm=True</code> is the ONLY trigger</strong> for
-            <code>slurm_sync</code> to create a QOS in Slurm &mdash; there is no hardcoded
-            <code>normal</code>/<code>premium</code>/<code>scavenger</code> bootstrap any more, and the queryset is
-            cluster-scoped so one cluster's rows are never planted on another. A row left unflagged (or deleted)
-            stays out of Slurm; <code>import_slurm_cluster</code> also skips QOS unless you pass
-            <code>--with-qos</code>, so a reverse-import can no longer resurrect junk rows.
-          </p>
-          <p>
-            Since the <strong>role taxonomy</strong> (2026-09-08) a QOS marks the <em>account class</em>;
-            organization access lives on the partition's <code>AllowAccounts</code>, never on the QOS. The live
-            set on <code>cluster-x</code> (production):
-          </p>
-          <table class="table table-sm table-bordered">
-            <thead class="thead-light">
-              <tr><th>QOS</th><th>role / affiliation</th><th>Who Gets It</th></tr>
-            </thead>
-            <tbody>
-              <tr><td><code>scavenger</code></td><td><code>default</code></td><td>Default-project accounts &mdash; free, preemptible, and the DefaultQOS whenever it is among the matched rows</td></tr>
-              <tr><td><code>orga</code></td><td><code>paid</code> / OrgA</td><td>Paid accounts of an OrgA PI</td></tr>
-              <tr><td><code>orgb</code></td><td><code>paid</code> / ORGB</td><td>Paid accounts of a OrgB PI (admitted on the paid partitions, billed $0)</td></tr>
-              <tr><td><code>condo</code></td><td><code>condo</code></td><td>Hardware-credit (<code>billing_type=credit_holder</code>) accounts; per-resource variants such as <code>condo_rtx6000</code> are pinned per allocation instead</td></tr>
-              <tr><td><code>class</code></td><td><code>class</code></td><td>Course accounts &mdash; NEVER auto-matched; assigned only through the <code>QoS</code>/<code>DefaultQoS</code> attribute pins</td></tr>
-              <tr><td><code>orga2</code>, <code>orga4</code></td><td><em>elevated tiers</em></td><td>Granted per account by pinning <code>QoS</code>/<code>DefaultQoS</code> &mdash; 32 / 64 GPUs against <code>orga</code>'s 16</td></tr>
-            </tbody>
-          </table>
-          <div class="alert alert-warning">
-            <strong><code>normal</code> and <code>premium</code> are retired on production.</strong> They survive
-            only on legacy clusters whose <code>SlurmQOS</code> rows all carry a blank <code>role</code> (those keep
-            the old free/paid policy). On a role-driven cluster the account class is computed as
-            <code>condo</code> (carve-out first) &rarr; <code>default</code> (default allocation) &rarr;
-            <code>paid</code>, and the resulting list is <strong>strict</strong>: the matched role rows and nothing
-            else &mdash; scavenger is not appended. DefaultQOS = <code>scavenger</code> when it matched, otherwise the
-            first match. No matching row &rArr; the account's QOS is left untouched and a WARNING is logged.
-          </div>
-          <h6>QOS-level GPU caps</h6>
-          <p>
-            <code>MaxTRESPerAccount</code> and <code>MaxTRESPerUser</code> on a <code>SlurmQOS</code> row are
-            ColdFront-owned when non-blank: applied at QOS creation and drift-converged every pass via
-            <code>sacctmgr modify qos</code> (CLI-by-design &mdash; slurmrestd v0.0.42 has no reliable QOS-limit
-            path). Blank = operator-managed, never touched and never cleared. <code>orga</code> carries both at
-            <code>gres/gpu=16</code> &mdash; PerUser aggregates across ALL of a user's accounts <em>within</em> the
-            QOS, which closes the two-allocations = double-quota hole, and it never crosses into a different QOS.
-            <code>orgb</code> carries neither (OrgB uncapped by decision). A <code>condo</code> QOS carries no
-            limits either: the purchase size lives on the ACCOUNT association, set by ops.
-          </p>
-
-          <h6>AllowQos on Partitions</h6>
-          <p>
-            Each <code>SlurmPartition</code> has an <code>allow_qos</code> field (comma-separated).
-            When set, it generates <code>AllowQos=...</code> in <code>slurm.conf</code>,
-            restricting which QOS levels can submit to that partition. Organization access is a
-            <strong>separate</strong> knob &mdash; <code>AllowAccounts</code>, not the QOS. On cluster-x the CPU
-            tiers are <code>low</code>/<code>med</code>/<code>high</code>, the GPU partitions are named after the
-            hardware (<code>a100</code>, <code>l40s</code>, <code>h100</code>, <code>h200</code> for OrgA;
-            <code>b200</code>, <code>b300</code> for OrgB), and <code>scavenger</code> is the free one.
-          </p>
-          <pre class="bg-light p-3 rounded">
-# CPU tier — open to both organizations, QOS decides the account class:
-PartitionName=med Nodes=cn-01,cn-02 Default=NO MaxTime=3-00:00:00 State=UP AllowQos=scavenger,orga,orgb
-
-# GPU partitions are org-split on AllowAccounts (NOT on the QOS):
-PartitionName=h200 Nodes=gpu-01 State=UP AllowQos=orga,orga2,orga4 AllowAccounts=OrgA
-PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=OrgB</pre>
-          <div class="alert alert-info">
-            <strong>cluster-x runs <code>manage_config=False</code>:</strong> the per-cluster mirror
-            <code>{BASE_DATA}/slurm/cluster-x/slurm.conf</code> is the absolute source of truth and ColdFront
-            never regenerates it from the DB. Edit the mirror, then <code>scontrol reconfigure</code> and
-            <code>import_slurm_cluster --update</code> (without <code>--with-qos</code>) to reconcile the DB.
-            The <code>allow_qos</code> field still drives generation on clusters ColdFront owns (dev).
-          </div></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h34">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1162,6 +1070,88 @@ format=Account,User,QOS,DefaultQOS -P</code>.</p>
                 
 
                 <div class="card">
+                  <div class="card-header" id="h7">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c7"
+                              aria-expanded="false">QOS Management</button>
+                    </h5>
+                  </div>
+                  <div id="c7" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>
+            QOS definitions live in the <code>SlurmQOS</code> model (Admin &gt; Slurm QOS Definitions), one set
+            per cluster. <strong><code>ensure_in_slurm=True</code> is the ONLY trigger</strong> for
+            <code>slurm_sync</code> to create a QOS in Slurm &mdash; there is no hardcoded QOS bootstrap, and the queryset is
+            cluster-scoped so one cluster's rows are never planted on another. A row left unflagged (or deleted)
+            stays out of Slurm; <code>import_slurm_cluster</code> also skips QOS unless you pass
+            <code>--with-qos</code>, so a reverse-import can no longer resurrect junk rows.
+          </p>
+          <p>
+            Since the <strong>role taxonomy</strong> (2026-09-08) a QOS marks the <em>account class</em>;
+            organization access lives on the partition's <code>AllowAccounts</code>, never on the QOS. The live
+            set on <code>cluster-x</code> (production):
+          </p>
+          <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+              <tr><th>QOS</th><th>role / affiliation</th><th>Who Gets It</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>scavenger</code></td><td><code>default</code></td><td>Default-project accounts &mdash; free, preemptible, and the DefaultQOS whenever it is among the matched rows</td></tr>
+              <tr><td><code>orga</code></td><td><code>paid</code> / OrgA</td><td>Paid accounts of an OrgA PI</td></tr>
+              <tr><td><code>orgb</code></td><td><code>paid</code> / ORGB</td><td>Paid accounts of a OrgB PI (admitted on the paid partitions, billed $0)</td></tr>
+              <tr><td><code>condo</code></td><td><code>condo</code></td><td>Hardware-credit (<code>billing_type=credit_holder</code>) accounts; per-resource variants such as <code>condo_rtx6000</code> are pinned per allocation instead</td></tr>
+              <tr><td><code>class</code></td><td><code>class</code></td><td>Course accounts &mdash; NEVER auto-matched; assigned only through the <code>QoS</code>/<code>DefaultQoS</code> attribute pins</td></tr>
+              <tr><td><code>orga2</code>, <code>orga4</code></td><td><em>elevated tiers</em></td><td>Granted per account by pinning <code>QoS</code>/<code>DefaultQoS</code> &mdash; 32 / 64 GPUs against <code>orga</code>'s 16</td></tr>
+            </tbody>
+          </table>
+          <div class="alert alert-warning">
+            <strong>Legacy policy:</strong> a cluster whose <code>SlurmQOS</code> rows all carry a blank <code>role</code> keeps the old free/paid policy. On a role-driven cluster the account class is computed as
+            <code>condo</code> (carve-out first) &rarr; <code>default</code> (default allocation) &rarr;
+            <code>paid</code>, and the resulting list is <strong>strict</strong>: the matched role rows and nothing
+            else &mdash; scavenger is not appended. DefaultQOS = <code>scavenger</code> when it matched, otherwise the
+            first match. No matching row &rArr; the account's QOS is left untouched and a WARNING is logged.
+          </div>
+          <h6>QOS-level GPU caps</h6>
+          <p>
+            <code>MaxTRESPerAccount</code> and <code>MaxTRESPerUser</code> on a <code>SlurmQOS</code> row are
+            ColdFront-owned when non-blank: applied at QOS creation and drift-converged every pass via
+            <code>sacctmgr modify qos</code> (CLI-by-design &mdash; slurmrestd v0.0.42 has no reliable QOS-limit
+            path). Blank = operator-managed, never touched and never cleared. <code>orga</code> carries both at
+            <code>gres/gpu=16</code> &mdash; PerUser aggregates across ALL of a user's accounts <em>within</em> the
+            QOS, which closes the two-allocations = double-quota hole, and it never crosses into a different QOS.
+            <code>orgb</code> carries neither (OrgB uncapped by decision). A <code>condo</code> QOS carries no
+            limits either: the purchase size lives on the ACCOUNT association, set by ops.
+          </p>
+
+          <h6>AllowQos on Partitions</h6>
+          <p>
+            Each <code>SlurmPartition</code> has an <code>allow_qos</code> field (comma-separated).
+            When set, it generates <code>AllowQos=...</code> in <code>slurm.conf</code>,
+            restricting which QOS levels can submit to that partition. Organization access is a
+            <strong>separate</strong> knob &mdash; <code>AllowAccounts</code>, not the QOS. On cluster-x the CPU
+            tiers are <code>low</code>/<code>med</code>/<code>high</code>, the GPU partitions are named after the
+            hardware (<code>a100</code>, <code>l40s</code>, <code>h100</code>, <code>h200</code> for OrgA;
+            <code>b200</code>, <code>b300</code> for OrgB), and <code>scavenger</code> is the free one.
+          </p>
+          <pre class="bg-light p-3 rounded">
+# CPU tier — open to both organizations, QOS decides the account class:
+PartitionName=med Nodes=cn-01,cn-02 Default=NO MaxTime=3-00:00:00 State=UP AllowQos=scavenger,orga,orgb
+
+# GPU partitions are org-split on AllowAccounts (NOT on the QOS):
+PartitionName=h200 Nodes=gpu-01 State=UP AllowQos=orga,orga2,orga4 AllowAccounts=OrgA
+PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=OrgB</pre>
+          <div class="alert alert-info">
+            <strong>cluster-x runs <code>manage_config=False</code>:</strong> the per-cluster mirror
+            <code>{BASE_DATA}/slurm/cluster-x/slurm.conf</code> is the absolute source of truth and ColdFront
+            never regenerates it from the DB. Edit the mirror, then <code>scontrol reconfigure</code> and
+            <code>import_slurm_cluster --update</code> (without <code>--with-qos</code>) to reconcile the DB.
+            The <code>allow_qos</code> field still drives generation on clusters ColdFront owns (dev).
+          </div></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h9">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1217,6 +1207,96 @@ format=Account,User,QOS,DefaultQOS -P</code>.</p>
                 by <code>PriorityUsageResetPeriod</code> (monthly on cluster-x) or by a deliberate
                 staff action</li>
           </ul></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h33">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c33"
+                              aria-expanded="false">WekaFS — Cache / Project Storage Capacity Mapping</button>
+                    </h5>
+                  </div>
+                  <div id="c33" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>One WekaFS filesystem per PI.</strong> ColdFront sums the PI's
+projects and provisions the filesystem with <em>replace semantics</em>: the
+FS tracks the summed provisioned values exactly (grows and shrinks; Weka
+itself refuses any shrink below used data, which surfaces as a sync
+error).</p>
+<p><strong>Names and layout (flat, user decision 2026-09-04 — matches mgmt-host
+manual practice):</strong> the filesystem is named after the PI's LDAP uid
+(<code>admin1</code>, <code>orgb-aviralku</code>) and provisioning mkdirs the
+flat <code>${PROJECTS_MOUNT}/&lt;pi&gt;/</code> (default <code>/projects</code>)
+— no <code>orga</code>/<code>orgb</code> tree and no per-<code>&lt;abbrev&gt;</code>
+subdirectory. The dir is chowned <code>&lt;pi&gt;:&lt;pi-group&gt;</code> 770
+<em>only when newly created</em>; an existing dir is never re-chowned, because
+ops sets custom ownership deliberately. Members of a PI whose paid project
+carries provisioned storage get a <code>projects_&lt;pi&gt;</code> symlink in
+their home, reconciled convergently by every <code>sync_ldap</code> pass — an
+approval (and staff <em>Edit Provisioned</em>) dispatches a per-PI sync so the
+links appear on approval day.</p>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr><th>Portal value</th><th>Weka payload</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Cache (&Sigma; <code>storage_tb</code>)</td>
+      <td><code>ssd_capacity</code></td>
+      <td>flash/SSD share of the filesystem</td>
+    </tr>
+    <tr>
+      <td>Project Storage (&Sigma; <code>backup_tb</code>)</td>
+      <td><code>total_capacity</code></td>
+      <td>TOTAL filesystem size — includes the Cache</td>
+    </tr>
+    <tr>
+      <td>Project Storage &minus; Cache</td>
+      <td>backed by <code>obs_name</code></td>
+      <td>object-store share (staff-internal concept — invisible to PIs)</td>
+    </tr>
+  </tbody>
+</table>
+<p>Weka rule: <code>ssd_capacity &le; total_capacity</code> &mdash; the Cache
+is a slice of the total, not an addition to it. That is why the portal
+enforces <em>Cache &le; Project Storage at PI-level sums</em>, plus the Cache
+cap (<code>WEKAFS_PI_HOT_CAP_TB</code>, default 10&nbsp;TB, per-PI override on
+the user profile). A PI with Cache but no Project Storage total gets an
+all-SSD filesystem sized to the Cache sum (legacy shape).</p>
+<p><strong>Units and guards:</strong> capacities are sent in <em>decimal</em> TB
+(<code>tb_to_bytes</code>), so a 3 TB request reads as exactly 3.00 TB in the
+Weka GUI; the at-target check tolerates 4&nbsp;KiB block rounding. A Cache sum
+larger than the Project Storage sum is clamped down to the total with a WARNING
+(Weka requires <code>ssd_capacity &le; total_capacity</code>). An untiered
+filesystem <em>rejects</em> an explicit <code>ssd_capacity</code>
+(<code>UntieredFilesystemCannotSetSSDCapacity</code>), so the payload omits it
+whenever no object store is attached. Reads tolerate the live API shape:
+<code>GET /fileSystems</code> reports <code>total_budget</code> /
+<code>ssd_budget</code> (not <code>total_capacity</code>), and rows with
+<code>is_removing=true</code> are skipped — a PUT against one 400s.</p>
+<p><strong>Naming history (staff awareness):</strong> until 2026-08-21 the
+portal said "Hot Storage" (= today's Cache) and "Cold Storage" (= today's
+Project Storage total). Field names <code>storage_tb</code>/<code>backup_tb</code>
+and the Weka payload are unchanged — labels only. The object store applies at
+filesystem <em>creation</em> only (<code>WEKAFS_OBS_NAME</code>, or the
+per-affiliation fallback <code>WEKAFS_OBS_NAME_OrgA</code> /
+<code>WEKAFS_OBS_NAME_ORGB</code> when the shared name is blank); attaching
+one to an existing filesystem is a manual <code>weka fs tier obs attach</code>
+(or delete + re-sync).</p>
+<p><strong>Debugging:</strong> set <code>WEKAFS_DEBUG=true</code> in
+<code>wekafs.env</code> and run <code>./start.sh wekafs-sync</code>; every
+API call and provisioning decision is appended as JSON lines under
+<code>${BASE_DATA}/coldfront/log/wekafs/</code> (container path
+<code>/opt/coldfront/log/wekafs</code>). Gotcha: <code>wekafs-sync</code> is
+<em>append-only</em> to <code>.env</code> — changing a key that is already there
+needs a manual edit of <code>.env</code> plus a forced recreate of
+coldfront/qcluster, or the container keeps the old value. Reference:
+<a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
+lifecycle overview</a>.</p>
+</div>
                   </div>
                 </div>
                 
@@ -1355,96 +1435,6 @@ request whose project is archived.</p>
                 
 
                 <div class="card">
-                  <div class="card-header" id="h33">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c33"
-                              aria-expanded="false">WekaFS — Cache / Project Storage Capacity Mapping</button>
-                    </h5>
-                  </div>
-                  <div id="c33" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p><strong>One WekaFS filesystem per PI.</strong> ColdFront sums the PI's
-projects and provisions the filesystem with <em>replace semantics</em>: the
-FS tracks the summed provisioned values exactly (grows and shrinks; Weka
-itself refuses any shrink below used data, which surfaces as a sync
-error).</p>
-<p><strong>Names and layout (flat, user decision 2026-09-04 — matches mgmt-host
-manual practice):</strong> the filesystem is named after the PI's LDAP uid
-(<code>admin1</code>, <code>orgb-aviralku</code>) and provisioning mkdirs the
-flat <code>${PROJECTS_MOUNT}/&lt;pi&gt;/</code> (default <code>/projects</code>)
-— no <code>orga</code>/<code>orgb</code> tree and no per-<code>&lt;abbrev&gt;</code>
-subdirectory. The dir is chowned <code>&lt;pi&gt;:&lt;pi-group&gt;</code> 770
-<em>only when newly created</em>; an existing dir is never re-chowned, because
-ops sets custom ownership deliberately. Members of a PI whose paid project
-carries provisioned storage get a <code>projects_&lt;pi&gt;</code> symlink in
-their home, reconciled convergently by every <code>sync_ldap</code> pass — an
-approval (and staff <em>Edit Provisioned</em>) dispatches a per-PI sync so the
-links appear on approval day.</p>
-<table class="table table-sm table-bordered">
-  <thead>
-    <tr><th>Portal value</th><th>Weka payload</th><th>Meaning</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Cache (&Sigma; <code>storage_tb</code>)</td>
-      <td><code>ssd_capacity</code></td>
-      <td>flash/SSD share of the filesystem</td>
-    </tr>
-    <tr>
-      <td>Project Storage (&Sigma; <code>backup_tb</code>)</td>
-      <td><code>total_capacity</code></td>
-      <td>TOTAL filesystem size — includes the Cache</td>
-    </tr>
-    <tr>
-      <td>Project Storage &minus; Cache</td>
-      <td>backed by <code>obs_name</code></td>
-      <td>object-store share (staff-internal concept — invisible to PIs)</td>
-    </tr>
-  </tbody>
-</table>
-<p>Weka rule: <code>ssd_capacity &le; total_capacity</code> &mdash; the Cache
-is a slice of the total, not an addition to it. That is why the portal
-enforces <em>Cache &le; Project Storage at PI-level sums</em>, plus the Cache
-cap (<code>WEKAFS_PI_HOT_CAP_TB</code>, default 10&nbsp;TB, per-PI override on
-the user profile). A PI with Cache but no Project Storage total gets an
-all-SSD filesystem sized to the Cache sum (legacy shape).</p>
-<p><strong>Units and guards:</strong> capacities are sent in <em>decimal</em> TB
-(<code>tb_to_bytes</code>), so a 3 TB request reads as exactly 3.00 TB in the
-Weka GUI; the at-target check tolerates 4&nbsp;KiB block rounding. A Cache sum
-larger than the Project Storage sum is clamped down to the total with a WARNING
-(Weka requires <code>ssd_capacity &le; total_capacity</code>). An untiered
-filesystem <em>rejects</em> an explicit <code>ssd_capacity</code>
-(<code>UntieredFilesystemCannotSetSSDCapacity</code>), so the payload omits it
-whenever no object store is attached. Reads tolerate the live API shape:
-<code>GET /fileSystems</code> reports <code>total_budget</code> /
-<code>ssd_budget</code> (not <code>total_capacity</code>), and rows with
-<code>is_removing=true</code> are skipped — a PUT against one 400s.</p>
-<p><strong>Naming history (staff awareness):</strong> until 2026-08-21 the
-portal said "Hot Storage" (= today's Cache) and "Cold Storage" (= today's
-Project Storage total). Field names <code>storage_tb</code>/<code>backup_tb</code>
-and the Weka payload are unchanged — labels only. The object store applies at
-filesystem <em>creation</em> only (<code>WEKAFS_OBS_NAME</code>, or the
-per-affiliation fallback <code>WEKAFS_OBS_NAME_OrgA</code> /
-<code>WEKAFS_OBS_NAME_ORGB</code> when the shared name is blank); attaching
-one to an existing filesystem is a manual <code>weka fs tier obs attach</code>
-(or delete + re-sync).</p>
-<p><strong>Debugging:</strong> set <code>WEKAFS_DEBUG=true</code> in
-<code>wekafs.env</code> and run <code>./start.sh wekafs-sync</code>; every
-API call and provisioning decision is appended as JSON lines under
-<code>${BASE_DATA}/coldfront/log/wekafs/</code> (container path
-<code>/opt/coldfront/log/wekafs</code>). Gotcha: <code>wekafs-sync</code> is
-<em>append-only</em> to <code>.env</code> — changing a key that is already there
-needs a manual edit of <code>.env</code> plus a forced recreate of
-coldfront/qcluster, or the container keeps the old value. Reference:
-<a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
-lifecycle overview</a>.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h11">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1577,6 +1567,87 @@ lifecycle overview</a>.</p>
                 
 
                 <div class="card">
+                  <div class="card-header" id="h36">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c36"
+                              aria-expanded="false">Helpdesk Tickets — ColdFront request bridge</button>
+                    </h5>
+                  </div>
+                  <div id="c36" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Requests that need a staff decision &mdash; plus the PI billing hold, which is a
+notification rather than a request &mdash; open a <strong>helpdesk ticket
+automatically</strong>, through the helpdesk internal API, with the
+<strong>requester as the ticket submitter</strong> (the PI or manager who
+clicked — never the shared <code>Arch@alt.example.edu</code> mailbox). The ticket title
+is the same text the old admin e-mail carried
+(<code>[OrgA] Coldfront New Allocation Request: Pat Ng (pi9) - cluster-x</code>);
+the description names the PI, project, resource, justification, pay IO(s) and
+carries direct links to the review pages. When staff decides in ColdFront, the
+ticket receives a public follow-up and is <em>resolved</em> (or reopened /
+closed) by itself — nothing to do on the helpdesk side.</p>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr><th>ColdFront event</th><th>Ticket opened</th><th>Resolves when…</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Request Resource Allocation</td><td>New Allocation Request</td>
+        <td>allocation approved or denied (<em>Resolved</em>); PI resubmits a denied request (<em>Reopened</em>); PI withdraws it (<em>Closed</em>)</td></tr>
+    <tr><td>Allocation change request</td><td>New Allocation Change Request</td>
+        <td>change request approved or denied</td></tr>
+    <tr><td>Allocation renewal</td><td>Allocation Renewed</td>
+        <td>renewal activated or denied</td></tr>
+    <tr><td>User asks to become a PI</td><td>Upgrade Account Request</td>
+        <td>user promoted to PI, or request cleared on Promote Users</td></tr>
+    <tr><td>New non-default project</td><td>New Project Request (IO validation folded in)</td>
+        <td>project activated or denied; "Request changes" posts a comment and keeps it open; reopen after denial reopens it</td></tr>
+    <tr><td>Project Storage request</td><td><code>[Storage/&lt;org&gt;]</code></td>
+        <td>approved or denied in Storage Review; cancelled by the PI (<em>Closed</em>)</td></tr>
+    <tr><td>IO Number change on Update Project</td><td><code>[IO/&lt;org&gt;]</code> &mdash; or a single <code>[Storage+IO/&lt;org&gt;]</code> ticket when Project Storage and the IO change in the same save</td>
+        <td>staff clears the billing review on Project Reviews</td></tr>
+    <tr><td>PI (or staff) pauses billing on an IO Number</td><td><code>Billing paused on IO Number</code></td>
+        <td>the same IO is resumed (<em>Resolved</em>). This is the only ticket opened straight from a model receiver &mdash; <code>CostCenter.billing_paused</code> has three writers (quick toggle, Edit form, Django Admin) and they all funnel through it. One open ticket per IO; re-pausing after a resume opens a fresh one.</td></tr>
+    <tr><td>Request deletion of an allocation (Allocation Detail)</td><td>Allocation deletion request</td>
+        <td>a superuser deletes the allocation (<em>Resolved</em>). PIs, managers and staff can only
+        <strong>request</strong> deletion; the hard delete (confirmation page, admin log entry) is
+        superuser-only and never offered on the default project's allocation</td></tr>
+    <tr><td>Class Request or Request more students (My Classes)</td><td>Class resources request</td>
+        <td>staff approves (<em>Resolved</em>, accounts created) or denies (<em>Resolved</em>, with the
+        reason); "request changes" posts a comment and keeps it open; withdrawn by the PI closes it.
+        When the course ends a separate "Class ended (teardown due)" ticket is opened</td></tr>
+  </tbody>
+</table>
+<p><strong>Queue:</strong> <code>CLUSTER-X - OrgA</code> or
+<code>CLUSTER-X - ORGB</code> by the requester's affiliation — the same queues
+the <code>Arch@alt.example.edu</code> / <code>ORGB@alt.example.edu</code> mailboxes feed. The
+submitter gets the helpdesk acknowledgement e-mail and can reply on the ticket;
+the queue's <em>new ticket CC</em> list is notified as for any web-form
+ticket.</p>
+<p><strong>Audit trail:</strong> Django Admin &rarr; CLOACK Stack &rarr;
+<em>Helpdesk ticket links</em> lists every ticket ColdFront opened (event,
+target object, ticket number, submitter, <code>resolved_at</code>, and
+<code>last_error</code> when a decision follow-up could not be posted — the row
+stays open and retries on the next matching transition). On the helpdesk,
+Django Admin &rarr; <em>ColdFront ticket references</em> maps the idempotency
+key of each request to its ticket.</p>
+<p><strong>Fallback and switches:</strong> whenever the bridge is off, the
+helpdesk is unreachable, or the requester has no e-mail, ColdFront sends the
+legacy admin e-mail to <code>EMAIL_TICKET_SYSTEM_ADDRESS</code> exactly as
+before — a ticket whose submitter is the shared mailbox therefore means the API
+path failed (check <code>docker logs coldfront | grep "helpdesk bridge"</code>
+and that <code>HELPDESK_INTERNAL_TOKEN</code> is present in both the
+<code>coldfront</code> and <code>helpdesk</code> containers).
+<code>HELPDESK_TICKET_BRIDGE_ENABLED=False</code> in <code>coldfront.env</code>
+reverts to e-mail without a code change;
+<code>HELPDESK_TICKET_BRIDGE_PUBLIC_FOLLOWUPS=False</code> makes the decision
+follow-ups internal notes.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h13">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1665,87 +1736,6 @@ docker exec coldfront coldfront sync_job_usage              # &rarr; SlurmAccoun
 
 # Diagnostic side-by-side sreport vs slurmrestd:
 docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0</pre></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h36">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c36"
-                              aria-expanded="false">Helpdesk Tickets — ColdFront request bridge</button>
-                    </h5>
-                  </div>
-                  <div id="c36" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p>Requests that need a staff decision &mdash; plus the PI billing hold, which is a
-notification rather than a request &mdash; open a <strong>helpdesk ticket
-automatically</strong>, through the helpdesk internal API, with the
-<strong>requester as the ticket submitter</strong> (the PI or manager who
-clicked — never the shared <code>Arch@alt.example.edu</code> mailbox). The ticket title
-is the same text the old admin e-mail carried
-(<code>[OrgA] Coldfront New Allocation Request: Pat Ng (pi9) - cluster-x</code>);
-the description names the PI, project, resource, justification, pay IO(s) and
-carries direct links to the review pages. When staff decides in ColdFront, the
-ticket receives a public follow-up and is <em>resolved</em> (or reopened /
-closed) by itself — nothing to do on the helpdesk side.</p>
-<table class="table table-sm table-bordered">
-  <thead>
-    <tr><th>ColdFront event</th><th>Ticket opened</th><th>Resolves when…</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Request Resource Allocation</td><td>New Allocation Request</td>
-        <td>allocation approved or denied (<em>Resolved</em>); PI resubmits a denied request (<em>Reopened</em>); PI withdraws it (<em>Closed</em>)</td></tr>
-    <tr><td>Allocation change request</td><td>New Allocation Change Request</td>
-        <td>change request approved or denied</td></tr>
-    <tr><td>Allocation renewal</td><td>Allocation Renewed</td>
-        <td>renewal activated or denied</td></tr>
-    <tr><td>User asks to become a PI</td><td>Upgrade Account Request</td>
-        <td>user promoted to PI, or request cleared on Promote Users</td></tr>
-    <tr><td>New non-default project</td><td>New Project Request (IO validation folded in)</td>
-        <td>project activated or denied; "Request changes" posts a comment and keeps it open; reopen after denial reopens it</td></tr>
-    <tr><td>Project Storage request</td><td><code>[Storage/&lt;org&gt;]</code></td>
-        <td>approved or denied in Storage Review; cancelled by the PI (<em>Closed</em>)</td></tr>
-    <tr><td>IO Number change on Update Project</td><td><code>[IO/&lt;org&gt;]</code> &mdash; or a single <code>[Storage+IO/&lt;org&gt;]</code> ticket when Project Storage and the IO change in the same save</td>
-        <td>staff clears the billing review on Project Reviews</td></tr>
-    <tr><td>PI (or staff) pauses billing on an IO Number</td><td><code>Billing paused on IO Number</code></td>
-        <td>the same IO is resumed (<em>Resolved</em>). This is the only ticket opened straight from a model receiver &mdash; <code>CostCenter.billing_paused</code> has three writers (quick toggle, Edit form, Django Admin) and they all funnel through it. One open ticket per IO; re-pausing after a resume opens a fresh one.</td></tr>
-    <tr><td>Request deletion of an allocation (Allocation Detail)</td><td>Allocation deletion request</td>
-        <td>a superuser deletes the allocation (<em>Resolved</em>). PIs, managers and staff can only
-        <strong>request</strong> deletion; the hard delete (confirmation page, admin log entry) is
-        superuser-only and never offered on the default project's allocation</td></tr>
-    <tr><td>Class Request or Request more students (My Classes)</td><td>Class resources request</td>
-        <td>staff approves (<em>Resolved</em>, accounts created) or denies (<em>Resolved</em>, with the
-        reason); "request changes" posts a comment and keeps it open; withdrawn by the PI closes it.
-        When the course ends a separate "Class ended (teardown due)" ticket is opened</td></tr>
-  </tbody>
-</table>
-<p><strong>Queue:</strong> <code>CLUSTER-X - OrgA</code> or
-<code>CLUSTER-X - ORGB</code> by the requester's affiliation — the same queues
-the <code>Arch@alt.example.edu</code> / <code>ORGB@alt.example.edu</code> mailboxes feed. The
-submitter gets the helpdesk acknowledgement e-mail and can reply on the ticket;
-the queue's <em>new ticket CC</em> list is notified as for any web-form
-ticket.</p>
-<p><strong>Audit trail:</strong> Django Admin &rarr; CLOACK Stack &rarr;
-<em>Helpdesk ticket links</em> lists every ticket ColdFront opened (event,
-target object, ticket number, submitter, <code>resolved_at</code>, and
-<code>last_error</code> when a decision follow-up could not be posted — the row
-stays open and retries on the next matching transition). On the helpdesk,
-Django Admin &rarr; <em>ColdFront ticket references</em> maps the idempotency
-key of each request to its ticket.</p>
-<p><strong>Fallback and switches:</strong> whenever the bridge is off, the
-helpdesk is unreachable, or the requester has no e-mail, ColdFront sends the
-legacy admin e-mail to <code>EMAIL_TICKET_SYSTEM_ADDRESS</code> exactly as
-before — a ticket whose submitter is the shared mailbox therefore means the API
-path failed (check <code>docker logs coldfront | grep "helpdesk bridge"</code>
-and that <code>HELPDESK_INTERNAL_TOKEN</code> is present in both the
-<code>coldfront</code> and <code>helpdesk</code> containers).
-<code>HELPDESK_TICKET_BRIDGE_ENABLED=False</code> in <code>coldfront.env</code>
-reverts to e-mail without a code change;
-<code>HELPDESK_TICKET_BRIDGE_PUBLIC_FOLLOWUPS=False</code> makes the decision
-follow-ups internal notes.</p>
-</div>
                   </div>
                 </div>
                 
@@ -3325,6 +3315,33 @@ so the messages name which one applies.</p>
                 
 
                 <div class="card">
+                  <div class="card-header" id="h42">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c42"
+                              aria-expanded="false">Requesting class resources</button>
+                    </h5>
+                  </div>
+                  <div id="c42" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>PIs can request temporary accounts for a class from <strong>Projects &rarr; My
+Classes &rarr; Class Request</strong>. Fill in the course, its dates, school and
+department, and paste the roster, one student or TA per line:</p>
+<pre>Full Name,campus ID-ID,external e-mail</pre>
+<p>Use each student's <strong>external</strong> e-mail (not @example.edu, @alt.example.edu or
+@med.example.edu): the password-reset link for the course account goes there. If your school or
+department is not listed, choose <em>Other</em> and type it; staff adds it while reviewing
+your request.</p>
+<p>Once staff approves, every student gets an account named
+<code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code> and an e-mail to set its password. Students sign in with that username, the password and a TOTP code from an authenticator app (not with campus ID). From the
+class page you (and the TAs you add as managers) can resend that link to selected students
+and request more students, which staff approves the same way.</p>
+<p><strong>All course accounts and their files are deleted at the end of the course.</strong>
+Ask students to copy anything they need before the end date.</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h41">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -3388,33 +3405,6 @@ course codes <code>ext</code> and <code>orgb</code> are refused, because they ar
 prefixes of permanent accounts; the class Slurm account goes at the next full sync. To
 remove only the accounts, use <strong>Import Users &rarr; Delete Course Accounts</strong>
 with the course code.</p></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h42">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c42"
-                              aria-expanded="false">Requesting class resources</button>
-                    </h5>
-                  </div>
-                  <div id="c42" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>PIs can request temporary accounts for a class from <strong>Projects &rarr; My
-Classes &rarr; Class Request</strong>. Fill in the course, its dates, school and
-department, and paste the roster, one student or TA per line:</p>
-<pre>Full Name,campus ID-ID,external e-mail</pre>
-<p>Use each student's <strong>external</strong> e-mail (not @example.edu, @alt.example.edu or
-@med.example.edu): the password-reset link for the course account goes there. If your school or
-department is not listed, choose <em>Other</em> and type it; staff adds it while reviewing
-your request.</p>
-<p>Once staff approves, every student gets an account named
-<code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code> and an e-mail to set its password. Students sign in with that username, the password and a TOTP code from an authenticator app (not with campus ID). From the
-class page you (and the TAs you add as managers) can resend that link to selected students
-and request more students, which staff approves the same way.</p>
-<p><strong>All course accounts and their files are deleted at the end of the course.</strong>
-Ask students to copy anything they need before the end date.</p></div>
                   </div>
                 </div>
                 
@@ -3601,12 +3591,11 @@ unless <code>--with-qos</code> is passed.</p>
       Organization access is enforced by <code>AllowAccounts</code> on the partition &mdash; never by QoS.</li>
   <li><strong>QoS marks the account class</strong> (role taxonomy, since 2026-09-08): <code>SlurmQOS.role</code>
       (<code>default</code> / <code>paid</code> / <code>condo</code> / <code>class</code>) plus an optional <code>affiliation</code> FK.
-      Production (<code>cluster-x</code>) runs <code>scavenger</code> (role <code>default</code>),
+      The role-taxonomy set is <code>scavenger</code> (role <code>default</code>),
       <code>orga</code> (role <code>paid</code>, OrgA), <code>orgb</code> (role <code>paid</code>, ORGB),
       <code>condo</code> and <code>class</code>; the elevated GPU tiers <code>orga2</code>/<code>orga4</code> are granted per account
       by pinning the <code>QoS</code>/<code>DefaultQoS</code> allocation attributes.
-      <strong><code>normal</code> and <code>premium</code> are retired on production</strong> &mdash; together with <code>interactive</code>
-      they survive only in the dev (<code>my_cluster-dev</code>) seed.
+      
       GPU caps live on the QoS row itself (<code>max_tres_per_account</code> / <code>max_tres_per_user</code>): non-blank means
       ColdFront owns the value and drift-converges it every sync pass; blank means operator-managed via <code>sacctmgr</code>.</li>
   <li><strong>Retiring a partition</strong>: <em>uncheck</em> <code>SlurmPartition.is_available</code> &mdash; never delete the row.

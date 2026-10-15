@@ -273,8 +273,8 @@ unavailable. Names follow one convention everywhere:</p>
 <tbody>
 <tr>
 <td>CPU partitions, by billing tier</td>
-<td><code>low</code>, <code>med</code>, <code>high</code>, <code>premium</code></td>
-<td>Same hardware class, different <code>TRESBillingWeights</code> (SU per core-hour); <code>premium</code> has the longest wall time.</td>
+<td><code>low</code>, <code>med</code>, <code>high</code></td>
+<td>Same hardware class, different <code>TRESBillingWeights</code> (SU per core-hour).</td>
 </tr>
 <tr>
 <td>GPU partitions, by hardware</td>
@@ -310,7 +310,7 @@ already carries the right default, so most jobs never pass <code>--qos</code>.</
 </tr>
 <tr>
 <td><code>interactive</code></td>
-<td>Priority 1000, 4-hour wall cap, for <code>interact</code> / <code>srun --pty</code> sessions. Not offered on <code>premium</code>.</td>
+<td>Priority 1000, 4-hour wall cap, for <code>interact</code> / <code>srun --pty</code> sessions.</td>
 </tr>
 <tr>
 <td><code>condo</code>, <code>class</code></td>
