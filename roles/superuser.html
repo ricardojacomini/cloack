@@ -375,9 +375,9 @@ create projects under them:</p>
 </thead>
 <tbody>
 <tr>
-<td>Manage Users → pencil next to the <strong>Affiliation</strong> badge (also in the username dropdown)</td>
+<td>Manage Users → pencil next to the <strong>Affiliation</strong> badge (PIs only; also in the username dropdown)</td>
 <td>superuser, or staff with <code>elevate_to_superuser</code></td>
-<td>"Additional Affiliations" page: tick the other affiliation(s), Save. Never grants staff access; logged in Admin → Log entries</td>
+<td>"Additional Affiliations" page: tick the other affiliation(s), Save. A non-PI target is refused with a message. Never grants staff access; logged in Admin → Log entries</td>
 </tr>
 <tr>
 <td>Admin → User additional affiliations</td>
@@ -397,7 +397,8 @@ create projects under them:</p>
   no-charge sentinel IO automatically; an OrgA project of a OrgB PI is built under <code>orga</code>, is <code>pay_per_use</code>
   and needs a real IO. The PI's own node (<code>pi-&lt;user&gt;</code>) and default project never move.</li>
 <li>Manage Users shows the extra affiliation as a <code>+ORGB</code>-style badge; the Aff. Scope column is unrelated
-  (it is the staff visibility scope and does not affect project creation).</li>
+  (it is the staff visibility scope and does not affect project creation). The Affiliation, Cluster Scope and
+  Aff. Scope headers sort like the others (scopes by how many are assigned).</li>
 <li>Grant pages warn when an affiliation has no active department yet: import departments first, or the PI's
   department list on Create Project is empty.</li>
 </ul>
