@@ -103,8 +103,11 @@ association is created only for users who accepted the current ToS.</p>
   POST until you set the suffix on the <strong>SubProject Scheme</strong> card. Suffixes
   are never assigned automatically.</li>
 <li><strong>Spend cap not set</strong> (<code>Weekly Cap ($)</code> = 0): the allocation activates,
-  but its account is held (<code>GrpSubmitJobs=0</code>) until the PI or you set a
-  cap or click <strong>No cap</strong> on Allocation Detail.</li>
+  but its Slurm account is not created until the PI or you set a cap or
+  click <strong>No cap</strong> on Allocation Detail. An account that already exists is
+  kept and held (<code>GrpSubmitJobs=0</code>) instead.</li>
+<li><strong>Pending requests</strong> (status New) never get a Slurm account, so nobody
+  can run on a request before you approve it.</li>
 </ul>
 <h3>1b. Review a new project, a storage request, a class request</h3>
 <pre><code>Admin Tools → Project Reviews   (/project/project-review-list)

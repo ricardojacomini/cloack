@@ -187,9 +187,9 @@ scontrol show job &lt;jobid&gt; | grep -E 'Reason|Account|QOS|Partition|TimeLimi
 </tr>
 <tr>
 <td><code>Invalid account or account/partition combination specified</code></td>
-<td>Generic Slurm fallback. Usually the partition's <code>AllowAccounts</code> (org-split GPU partitions), a missing user association, or a <code>job_submit.lua</code> rejection</td>
+<td>Generic Slurm fallback. Usually the partition's <code>AllowAccounts</code> (org-split GPU partitions), a missing user association, an account not created yet (allocation not approved, or a paid allocation whose cap is still 0), or a <code>job_submit.lua</code> rejection</td>
 <td><code>scontrol show partition &lt;p&gt;</code> (the <code>Allow*</code> lines); <code>sacctmgr show assoc where user=&lt;u&gt; account=&lt;acct&gt;</code>; slurmctld log for the lua message</td>
-<td>Use a partition the account may reach; add the user to the allocation; read the lua reason</td>
+<td>Use a partition the account may reach; add the user to the allocation; approve the allocation or have the PI set a cap / <strong>No cap</strong>; read the lua reason</td>
 </tr>
 <tr>
 <td>Pending, reason starting with <code>QOSMax...</code> or <code>QOSGrp...</code></td>

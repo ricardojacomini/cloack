@@ -141,6 +141,10 @@ login shell. Provisioning is immediate once the ToS gate is clear.</p>
 <li>Values: <strong>0 = not set</strong> (job submission held on that account),
   <strong>−1 = no cap</strong>, <strong>N = the cap</strong>. The field is seeded 0 on paid
   allocations and −1 on free ones.</li>
+<li>A new paid allocation gets its Slurm account only after it is approved
+  <strong>and</strong> you set a cap or click <strong>No cap</strong>. Until then your members see
+  <code>Invalid account</code> when they submit; the account appears within seconds
+  of your choice.</li>
 <li>Unit: <code>$</code> or <strong>SU</strong> (1 SU = $0.001). <code>Weekly Cap (SU)</code> is SU, not
   core-hours: a core-hour costs the partition's billing weight in SU, so
   1,000 SU is $1.00 whatever the partition. If both fields are set the
