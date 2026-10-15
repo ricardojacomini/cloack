@@ -1005,78 +1005,6 @@ root
                 
 
                 <div class="card">
-                  <div class="card-header" id="h34">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c34"
-                              aria-expanded="false">Per-allocation QoS / DefaultQoS Override</button>
-                    </h5>
-                  </div>
-                  <div id="c34" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p>Two attributes on every allocation &mdash; <strong>QoS</strong>
-(the allowed QOS list) and <strong>DefaultQoS</strong> (the single default)
-&mdash; let you pin exactly which Slurm QOS an account may use: to keep a
-group off partitions they shouldn't reach, to grant an elevated GPU tier
-(<code>orga2</code>&nbsp;/&nbsp;<code>orga4</code>), to attach a course account to
-<code>class</code>, or to bind a condo account to its <code>condo_*</code> QOS.
-They live in the <em>Allocation Attributes</em> table on the Allocation Detail
-page and are edited inline by staff as a <strong>select of that cluster's QOS
-names</strong> (blank = &ldquo;&mdash; cluster default &mdash;&rdquo;); PIs see
-them read-only.</p>
-<p><strong>Why this exists:</strong> ColdFront is the source of truth and the
-<code>sync_slurm</code> task re-asserts each account's QOS every 15 minutes, so a
-manual <code>sacctmgr modify ... set defaultqos=</code> is reverted on the next
-pass. Filling these attributes makes the sync <em>enforce</em> your restriction
-instead of reverting it.</p>
-<table class="table table-sm table-bordered">
-  <thead><tr><th>QoS</th><th>DefaultQoS</th><th>Result on the account</th></tr></thead>
-  <tbody>
-    <tr><td><code>orga,scavenger</code></td><td><code>scavenger</code></td>
-        <td>QOS list = orga,scavenger; DefaultQOS = scavenger</td></tr>
-    <tr><td><code>orga,scavenger</code></td><td><em>(blank)</em></td>
-        <td>Default = first of the list (orga)</td></tr>
-    <tr><td><code>orga2</code></td><td><code>orga2</code></td>
-        <td>Elevated tier: the account leaves <code>orga</code> entirely (pins never stack limits across QOS)</td></tr>
-    <tr><td><em>(blank)</em></td><td><code>scavenger</code></td>
-        <td>List locked to [scavenger]</td></tr>
-    <tr><td><em>(both blank)</em></td><td><em>(both blank)</em></td>
-        <td>No override &mdash; the computed cluster default. On a role-driven cluster (cluster-x) that is
-        the account class: <code>scavenger</code> for a default allocation, <code>orga</code>/<code>orgb</code>
-        for a paid one, <code>condo</code> for a credit holder. On a cluster whose QOS rows all have a blank
-        role it is the legacy free/paid list.</td></tr>
-  </tbody>
-</table>
-<p><strong>Rules:</strong> a QOS name must exist on the allocation's cluster.
-The editor is a select of that cluster's <code>SlurmQOS</code> names and the server
-re-validates on save, rejecting any name the cluster does not define (free text is
-offered only as a fallback when no rows resolve; multi-QOS lists are entered through
-Django Admin). DefaultQoS should be one of the QoS values; if it isn't, the sync
-appends it automatically (Slurm requires <code>DefaultQOS &isin; QOS</code>). Saving
-either attribute immediately queues a per-allocation sync &mdash; no manual step. To
-lift the restriction, blank both fields and the account returns to the computed
-cluster default.</p>
-<div class="alert alert-warning">
-  <strong>Retiring a QOS? Migrate the pins first.</strong> A pin is absolute: the sync
-  forces exactly that list onto the account and strips everything else, so deleting or
-  renaming a QOS that is still pinned somewhere leaves those accounts with an
-  <code>InvalidQOS</code> association and every submit rejected. Sweep the
-  <code>QoS</code>/<code>DefaultQoS</code> attributes (and any pending jobs) BEFORE you
-  touch the associations.
-</div>
-<p>A <code>credit_holder</code> allocation with NO pin is the one case that hits the
-role branch's failsafe &mdash; no <code>condo</code> row matches its organization, so
-the sync leaves the account's QOS untouched and logs a WARNING instead of guessing.
-Condo accounts are expected to be pinned.</p>
-<p>Verify on the controller (no <code>-M</code> flag):
-<code>sacctmgr show assoc where account=&lt;acct&gt;
-format=Account,User,QOS,DefaultQOS -P</code>.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h7">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1162,6 +1090,78 @@ PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=Or
                 
 
                 <div class="card">
+                  <div class="card-header" id="h34">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c34"
+                              aria-expanded="false">Per-allocation QoS / DefaultQoS Override</button>
+                    </h5>
+                  </div>
+                  <div id="c34" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p>Two attributes on every allocation &mdash; <strong>QoS</strong>
+(the allowed QOS list) and <strong>DefaultQoS</strong> (the single default)
+&mdash; let you pin exactly which Slurm QOS an account may use: to keep a
+group off partitions they shouldn't reach, to grant an elevated GPU tier
+(<code>orga2</code>&nbsp;/&nbsp;<code>orga4</code>), to attach a course account to
+<code>class</code>, or to bind a condo account to its <code>condo_*</code> QOS.
+They live in the <em>Allocation Attributes</em> table on the Allocation Detail
+page and are edited inline by staff as a <strong>select of that cluster's QOS
+names</strong> (blank = &ldquo;&mdash; cluster default &mdash;&rdquo;); PIs see
+them read-only.</p>
+<p><strong>Why this exists:</strong> ColdFront is the source of truth and the
+<code>sync_slurm</code> task re-asserts each account's QOS every 15 minutes, so a
+manual <code>sacctmgr modify ... set defaultqos=</code> is reverted on the next
+pass. Filling these attributes makes the sync <em>enforce</em> your restriction
+instead of reverting it.</p>
+<table class="table table-sm table-bordered">
+  <thead><tr><th>QoS</th><th>DefaultQoS</th><th>Result on the account</th></tr></thead>
+  <tbody>
+    <tr><td><code>orga,scavenger</code></td><td><code>scavenger</code></td>
+        <td>QOS list = orga,scavenger; DefaultQOS = scavenger</td></tr>
+    <tr><td><code>orga,scavenger</code></td><td><em>(blank)</em></td>
+        <td>Default = first of the list (orga)</td></tr>
+    <tr><td><code>orga2</code></td><td><code>orga2</code></td>
+        <td>Elevated tier: the account leaves <code>orga</code> entirely (pins never stack limits across QOS)</td></tr>
+    <tr><td><em>(blank)</em></td><td><code>scavenger</code></td>
+        <td>List locked to [scavenger]</td></tr>
+    <tr><td><em>(both blank)</em></td><td><em>(both blank)</em></td>
+        <td>No override &mdash; the computed cluster default. On a role-driven cluster (cluster-x) that is
+        the account class: <code>scavenger</code> for a default allocation, <code>orga</code>/<code>orgb</code>
+        for a paid one, <code>condo</code> for a credit holder. On a cluster whose QOS rows all have a blank
+        role it is the legacy free/paid list.</td></tr>
+  </tbody>
+</table>
+<p><strong>Rules:</strong> a QOS name must exist on the allocation's cluster.
+The editor is a select of that cluster's <code>SlurmQOS</code> names and the server
+re-validates on save, rejecting any name the cluster does not define (free text is
+offered only as a fallback when no rows resolve; multi-QOS lists are entered through
+Django Admin). DefaultQoS should be one of the QoS values; if it isn't, the sync
+appends it automatically (Slurm requires <code>DefaultQOS &isin; QOS</code>). Saving
+either attribute immediately queues a per-allocation sync &mdash; no manual step. To
+lift the restriction, blank both fields and the account returns to the computed
+cluster default.</p>
+<div class="alert alert-warning">
+  <strong>Retiring a QOS? Migrate the pins first.</strong> A pin is absolute: the sync
+  forces exactly that list onto the account and strips everything else, so deleting or
+  renaming a QOS that is still pinned somewhere leaves those accounts with an
+  <code>InvalidQOS</code> association and every submit rejected. Sweep the
+  <code>QoS</code>/<code>DefaultQoS</code> attributes (and any pending jobs) BEFORE you
+  touch the associations.
+</div>
+<p>A <code>credit_holder</code> allocation with NO pin is the one case that hits the
+role branch's failsafe &mdash; no <code>condo</code> row matches its organization, so
+the sync leaves the account's QOS untouched and logs a WARNING instead of guessing.
+Condo accounts are expected to be pinned.</p>
+<p>Verify on the controller (no <code>-M</code> flag):
+<code>sacctmgr show assoc where account=&lt;acct&gt;
+format=Account,User,QOS,DefaultQOS -P</code>.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h9">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1217,6 +1217,61 @@ PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=Or
                 by <code>PriorityUsageResetPeriod</code> (monthly on cluster-x) or by a deliberate
                 staff action</li>
           </ul></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h10">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c10"
+                              aria-expanded="false">Project Storage — WekaFS integration</button>
+                    </h5>
+                  </div>
+                  <div id="c10" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
+one filesystem per PI, one directory per project. Its value is the
+<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
+(the flash/SSD share). The split is invisible in the filesystem; PIs never see
+the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
+<code>/scratch</code>)
+is a separate thing and is not part of Project Storage.</p>
+<p><strong>How PIs request it:</strong> the Create/Update Project forms no
+longer carry storage fields. PIs use the <em>Project Storage</em> card on the
+Project Detail page (<em>Request Storage Change</em>) to submit a change
+request (Project Storage TB + Cache TB + justification, which is required
+above the Cache cap). The request is <em>pending</em> until staff approves or
+denies it — values only land on the project at approval, and a "Project
+Storage under review" banner plus a <em>Pending review</em> badge sit on the
+project page meanwhile. One pending request per project: cancel it to submit
+different values. The card is not offered on default or archived projects, and
+condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
+team instead of submitting.</p>
+<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
+Cache &le; Project Storage; the PI's total Cache across all projects must fit
+the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
+staff). Requests above the cap require a justification and an explicit staff
+override at approval. The re-check uses live sums, so another of the PI's
+projects growing in the meantime can make a pending request fail review.</p>
+<p><strong>Billing:</strong> the Cache and the Project Storage total are each
+billed per TB-month from the rate catalog. The charge does not depend on jobs
+— a billable allocation with provisioned storage gets a monthly usage period,
+so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
+lines even in a month with zero compute.</p>
+<p><strong>Field mapping (legacy names kept):</strong>
+<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
+<code>backup_tb</code> = Project Storage total &rarr; Weka
+<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
+Cache, <code>backup</code> bills the Project Storage total.</p>
+<p><strong>Where to see it:</strong> <em>Projects &rarr; My Storage</em> lists every
+project you lead or belong to that has Project Storage or a pending request: the
+Project Storage and Cache sizes, the pending change, a monthly estimate at today's
+rates and the project directory path. Its <em>Request Storage</em> button lists the
+projects you can request storage on and opens the request form on that project's
+page.</p>
+</div>
                   </div>
                 </div>
                 
@@ -1384,61 +1439,6 @@ needs a manual edit of <code>.env</code> plus a forced recreate of
 coldfront/qcluster, or the container keeps the old value. Reference:
 <a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
 lifecycle overview</a>.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h10">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c10"
-                              aria-expanded="false">Project Storage — WekaFS integration</button>
-                    </h5>
-                  </div>
-                  <div id="c10" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p><strong>Project Storage</strong> is the Weka filesystem as a single thing —
-one filesystem per PI, one directory per project. Its value is the
-<em>total capacity</em> and it <em>includes</em> the <strong>Cache</strong>
-(the flash/SSD share). The split is invisible in the filesystem; PIs never see
-the words "object", "tier", "hot" or "cold". Scratch storage (per-PI
-<code>/scratch</code>)
-is a separate thing and is not part of Project Storage.</p>
-<p><strong>How PIs request it:</strong> the Create/Update Project forms no
-longer carry storage fields. PIs use the <em>Project Storage</em> card on the
-Project Detail page (<em>Request Storage Change</em>) to submit a change
-request (Project Storage TB + Cache TB + justification, which is required
-above the Cache cap). The request is <em>pending</em> until staff approves or
-denies it — values only land on the project at approval, and a "Project
-Storage under review" banner plus a <em>Pending review</em> badge sit on the
-project page meanwhile. One pending request per project: cancel it to submit
-different values. The card is not offered on default or archived projects, and
-condo (hardware-credit) projects are staff-managed — their PIs ask the Arch
-team instead of submitting.</p>
-<p><strong>Rules</strong> (validated at submit AND re-checked at approval):
-Cache &le; Project Storage; the PI's total Cache across all projects must fit
-the PI's effective Cache cap (10&nbsp;TB by default, or a per-PI cap set by
-staff). Requests above the cap require a justification and an explicit staff
-override at approval. The re-check uses live sums, so another of the PI's
-projects growing in the meantime can make a pending request fail review.</p>
-<p><strong>Billing:</strong> the Cache and the Project Storage total are each
-billed per TB-month from the rate catalog. The charge does not depend on jobs
-— a billable allocation with provisioned storage gets a monthly usage period,
-so the invoice carries the <em>Cache (TB)</em> and <em>Project Storage (TB)</em>
-lines even in a month with zero compute.</p>
-<p><strong>Field mapping (legacy names kept):</strong>
-<code>storage_tb</code> = Cache &rarr; Weka <code>ssd_capacity</code>;
-<code>backup_tb</code> = Project Storage total &rarr; Weka
-<code>total_capacity</code>. Billing: rate type <code>storage</code> bills the
-Cache, <code>backup</code> bills the Project Storage total.</p>
-<p><strong>Where to see it:</strong> <em>Projects &rarr; My Storage</em> lists every
-project you lead or belong to that has Project Storage or a pending request: the
-Project Storage and Cache sizes, the pending change, a monthly estimate at today's
-rates and the project directory path. Its <em>Request Storage</em> button lists the
-projects you can request storage on and opens the request form on that project's
-page.</p>
 </div>
                   </div>
                 </div>
@@ -3323,6 +3323,33 @@ so the messages name which one applies.</p>
                 
 
                 <div class="card">
+                  <div class="card-header" id="h42">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c42"
+                              aria-expanded="false">Requesting class resources</button>
+                    </h5>
+                  </div>
+                  <div id="c42" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>PIs can request temporary accounts for a class from <strong>Projects &rarr; My
+Classes &rarr; Class Request</strong>. Fill in the course, its dates, school and
+department, and paste the roster, one student or TA per line:</p>
+<pre>Full Name,campus ID-ID,external e-mail</pre>
+<p>Use each student's <strong>external</strong> e-mail (not @example.edu, @alt.example.edu or
+@med.example.edu): the password-reset link for the course account goes there. If your school or
+department is not listed, choose <em>Other</em> and type it; staff adds it while reviewing
+your request.</p>
+<p>Once staff approves, every student gets an account named
+<code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code> and an e-mail to set its password. Students sign in with that username, the password and a TOTP code from an authenticator app (not with campus ID). From the
+class page you (and the TAs you add as managers) can resend that link to selected students
+and request more students, which staff approves the same way.</p>
+<p><strong>All course accounts and their files are deleted at the end of the course.</strong>
+Ask students to copy anything they need before the end date.</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h41">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -3386,33 +3413,6 @@ course codes <code>ext</code> and <code>orgb</code> are refused, because they ar
 prefixes of permanent accounts; the class Slurm account goes at the next full sync. To
 remove only the accounts, use <strong>Import Users &rarr; Delete Course Accounts</strong>
 with the course code.</p></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h42">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c42"
-                              aria-expanded="false">Requesting class resources</button>
-                    </h5>
-                  </div>
-                  <div id="c42" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>PIs can request temporary accounts for a class from <strong>Projects &rarr; My
-Classes &rarr; Class Request</strong>. Fill in the course, its dates, school and
-department, and paste the roster, one student or TA per line:</p>
-<pre>Full Name,campus ID-ID,external e-mail</pre>
-<p>Use each student's <strong>external</strong> e-mail (not @example.edu, @alt.example.edu or
-@med.example.edu): the password-reset link for the course account goes there. If your school or
-department is not listed, choose <em>Other</em> and type it; staff adds it while reviewing
-your request.</p>
-<p>Once staff approves, every student gets an account named
-<code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code> and an e-mail to set its password. Students sign in with that username, the password and a TOTP code from an authenticator app (not with campus ID). From the
-class page you (and the TAs you add as managers) can resend that link to selected students
-and request more students, which staff approves the same way.</p>
-<p><strong>All course accounts and their files are deleted at the end of the course.</strong>
-Ask students to copy anything they need before the end date.</p></div>
                   </div>
                 </div>
                 

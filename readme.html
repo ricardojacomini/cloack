@@ -753,12 +753,15 @@ preserve single-FQDN dev behaviour. See
 <code>docs/deploy-pipeline-4-stages.md</code> Phase 2 for the full operator
 env-var glossary, and <code>docs/roles/admin.md</code> for the
 runbook.</p>
-<p><strong>Role-based User Guide:</strong> five role guides ship at
-<a href="docs/roles/"><code>docs/roles/</code></a> — pick the one that matches your role
-(User / PI / Staff / Superuser / Admin) and follow the 5-section
-template (scope, quick start, reference matrices, troubleshooting,
-where to go next). <a href="docs/CLOACK_User_Guide.pdf"><code>docs/CLOACK_User_Guide.pdf</code></a>
-is the printable / offline mirror.</p>
+<p><strong>Role-based User Guide:</strong> six guides ship at
+<a href="docs/roles/"><code>docs/roles/</code></a> — one per role (User / PI / Staff / Superuser /
+Admin) plus <code>su-budgets.md</code>, the SU budget
+reference underneath the PI, user and staff guides (Used vs Available, what
+Slurm enforces, which levers change a budget). Each follows the 5-section
+template (scope, quick start, reference matrices, troubleshooting, where to
+go next) and describes the software as it behaves, never one installation's
+state. <a href="docs/CLOACK_User_Guide.pdf"><code>docs/CLOACK_User_Guide.pdf</code></a> is the
+printable / offline mirror.</p>
 <hr />
 <h2>Bare-metal install — <code>cloack-deploy</code> RPM</h2>
 <p>For the full bare-metal deployment guide (5 playbooks, what each

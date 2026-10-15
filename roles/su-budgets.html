@@ -241,7 +241,7 @@ and immediately on an allocation change). Check the result with
 <td><strong>Budget (SU)</strong></td>
 <td>staff</td>
 <td>Allocation Attributes</td>
-<td>The granted budget. <code>0</code> on a <strong>paid</strong> allocation means unlimited (the cap is then the only ceiling); on a default allocation the cluster seed applies</td>
+<td>The granted budget. An explicit <code>0</code> means <strong>unlimited</strong> on any tier (the cap is then the only ceiling); only an allocation with no <code>Budget (SU)</code> attribute at all falls back to the cluster seed</td>
 </tr>
 <tr>
 <td><strong>Reset the counter</strong></td>
@@ -306,7 +306,7 @@ and how much running jobs still hold.</p>
 <tbody>
 <tr>
 <td><code>Budget (SU)</code></td>
-<td>SU; <code>0</code> = unlimited on paid, cluster seed on default</td>
+<td>SU; explicit <code>0</code> = unlimited (any tier); attribute absent = cluster seed</td>
 <td><code>GrpTRESMins=billing</code> (with Extra and the cap)</td>
 </tr>
 <tr>
