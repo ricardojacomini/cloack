@@ -1212,96 +1212,6 @@ PartitionName=b200 Nodes=gpu-02 State=UP AllowQos=orgb          AllowAccounts=Or
                 
 
                 <div class="card">
-                  <div class="card-header" id="h33">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c33"
-                              aria-expanded="false">WekaFS — Cache / Project Storage Capacity Mapping</button>
-                    </h5>
-                  </div>
-                  <div id="c33" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body">
-<p><strong>One WekaFS filesystem per PI.</strong> ColdFront sums the PI's
-projects and provisions the filesystem with <em>replace semantics</em>: the
-FS tracks the summed provisioned values exactly (grows and shrinks; Weka
-itself refuses any shrink below used data, which surfaces as a sync
-error).</p>
-<p><strong>Names and layout (flat, user decision 2026-09-04 — matches mgmt-host
-manual practice):</strong> the filesystem is named after the PI's LDAP uid
-(<code>admin1</code>, <code>orgb-aviralku</code>) and provisioning mkdirs the
-flat <code>${PROJECTS_MOUNT}/&lt;pi&gt;/</code> (default <code>/projects</code>)
-— no <code>orga</code>/<code>orgb</code> tree and no per-<code>&lt;abbrev&gt;</code>
-subdirectory. The dir is chowned <code>&lt;pi&gt;:&lt;pi-group&gt;</code> 770
-<em>only when newly created</em>; an existing dir is never re-chowned, because
-ops sets custom ownership deliberately. Members of a PI whose paid project
-carries provisioned storage get a <code>projects_&lt;pi&gt;</code> symlink in
-their home, reconciled convergently by every <code>sync_ldap</code> pass — an
-approval (and staff <em>Edit Provisioned</em>) dispatches a per-PI sync so the
-links appear on approval day.</p>
-<table class="table table-sm table-bordered">
-  <thead>
-    <tr><th>Portal value</th><th>Weka payload</th><th>Meaning</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Cache (&Sigma; <code>storage_tb</code>)</td>
-      <td><code>ssd_capacity</code></td>
-      <td>flash/SSD share of the filesystem</td>
-    </tr>
-    <tr>
-      <td>Project Storage (&Sigma; <code>backup_tb</code>)</td>
-      <td><code>total_capacity</code></td>
-      <td>TOTAL filesystem size — includes the Cache</td>
-    </tr>
-    <tr>
-      <td>Project Storage &minus; Cache</td>
-      <td>backed by <code>obs_name</code></td>
-      <td>object-store share (staff-internal concept — invisible to PIs)</td>
-    </tr>
-  </tbody>
-</table>
-<p>Weka rule: <code>ssd_capacity &le; total_capacity</code> &mdash; the Cache
-is a slice of the total, not an addition to it. That is why the portal
-enforces <em>Cache &le; Project Storage at PI-level sums</em>, plus the Cache
-cap (<code>WEKAFS_PI_HOT_CAP_TB</code>, default 10&nbsp;TB, per-PI override on
-the user profile). A PI with Cache but no Project Storage total gets an
-all-SSD filesystem sized to the Cache sum (legacy shape).</p>
-<p><strong>Units and guards:</strong> capacities are sent in <em>decimal</em> TB
-(<code>tb_to_bytes</code>), so a 3 TB request reads as exactly 3.00 TB in the
-Weka GUI; the at-target check tolerates 4&nbsp;KiB block rounding. A Cache sum
-larger than the Project Storage sum is clamped down to the total with a WARNING
-(Weka requires <code>ssd_capacity &le; total_capacity</code>). An untiered
-filesystem <em>rejects</em> an explicit <code>ssd_capacity</code>
-(<code>UntieredFilesystemCannotSetSSDCapacity</code>), so the payload omits it
-whenever no object store is attached. Reads tolerate the live API shape:
-<code>GET /fileSystems</code> reports <code>total_budget</code> /
-<code>ssd_budget</code> (not <code>total_capacity</code>), and rows with
-<code>is_removing=true</code> are skipped — a PUT against one 400s.</p>
-<p><strong>Naming history (staff awareness):</strong> until 2026-08-21 the
-portal said "Hot Storage" (= today's Cache) and "Cold Storage" (= today's
-Project Storage total). Field names <code>storage_tb</code>/<code>backup_tb</code>
-and the Weka payload are unchanged — labels only. The object store applies at
-filesystem <em>creation</em> only (<code>WEKAFS_OBS_NAME</code>, or the
-per-affiliation fallback <code>WEKAFS_OBS_NAME_OrgA</code> /
-<code>WEKAFS_OBS_NAME_ORGB</code> when the shared name is blank); attaching
-one to an existing filesystem is a manual <code>weka fs tier obs attach</code>
-(or delete + re-sync).</p>
-<p><strong>Debugging:</strong> set <code>WEKAFS_DEBUG=true</code> in
-<code>wekafs.env</code> and run <code>./start.sh wekafs-sync</code>; every
-API call and provisioning decision is appended as JSON lines under
-<code>${BASE_DATA}/coldfront/log/wekafs/</code> (container path
-<code>/opt/coldfront/log/wekafs</code>). Gotcha: <code>wekafs-sync</code> is
-<em>append-only</em> to <code>.env</code> — changing a key that is already there
-needs a manual edit of <code>.env</code> plus a forced recreate of
-coldfront/qcluster, or the container keeps the old value. Reference:
-<a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
-lifecycle overview</a>.</p>
-</div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h10">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1429,6 +1339,96 @@ page lists their own projects.</p>
 request (the request history shows <em>Cancelled &middot; Project archived</em>
 and its helpdesk ticket is closed), so it never waits in this queue; Approve refuses a
 request whose project is archived.</p>
+</div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h33">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c33"
+                              aria-expanded="false">WekaFS — Cache / Project Storage Capacity Mapping</button>
+                    </h5>
+                  </div>
+                  <div id="c33" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body">
+<p><strong>One WekaFS filesystem per PI.</strong> ColdFront sums the PI's
+projects and provisions the filesystem with <em>replace semantics</em>: the
+FS tracks the summed provisioned values exactly (grows and shrinks; Weka
+itself refuses any shrink below used data, which surfaces as a sync
+error).</p>
+<p><strong>Names and layout (flat, user decision 2026-09-04 — matches mgmt-host
+manual practice):</strong> the filesystem is named after the PI's LDAP uid
+(<code>admin1</code>, <code>orgb-aviralku</code>) and provisioning mkdirs the
+flat <code>${PROJECTS_MOUNT}/&lt;pi&gt;/</code> (default <code>/projects</code>)
+— no <code>orga</code>/<code>orgb</code> tree and no per-<code>&lt;abbrev&gt;</code>
+subdirectory. The dir is chowned <code>&lt;pi&gt;:&lt;pi-group&gt;</code> 770
+<em>only when newly created</em>; an existing dir is never re-chowned, because
+ops sets custom ownership deliberately. Members of a PI whose paid project
+carries provisioned storage get a <code>projects_&lt;pi&gt;</code> symlink in
+their home, reconciled convergently by every <code>sync_ldap</code> pass — an
+approval (and staff <em>Edit Provisioned</em>) dispatches a per-PI sync so the
+links appear on approval day.</p>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr><th>Portal value</th><th>Weka payload</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Cache (&Sigma; <code>storage_tb</code>)</td>
+      <td><code>ssd_capacity</code></td>
+      <td>flash/SSD share of the filesystem</td>
+    </tr>
+    <tr>
+      <td>Project Storage (&Sigma; <code>backup_tb</code>)</td>
+      <td><code>total_capacity</code></td>
+      <td>TOTAL filesystem size — includes the Cache</td>
+    </tr>
+    <tr>
+      <td>Project Storage &minus; Cache</td>
+      <td>backed by <code>obs_name</code></td>
+      <td>object-store share (staff-internal concept — invisible to PIs)</td>
+    </tr>
+  </tbody>
+</table>
+<p>Weka rule: <code>ssd_capacity &le; total_capacity</code> &mdash; the Cache
+is a slice of the total, not an addition to it. That is why the portal
+enforces <em>Cache &le; Project Storage at PI-level sums</em>, plus the Cache
+cap (<code>WEKAFS_PI_HOT_CAP_TB</code>, default 10&nbsp;TB, per-PI override on
+the user profile). A PI with Cache but no Project Storage total gets an
+all-SSD filesystem sized to the Cache sum (legacy shape).</p>
+<p><strong>Units and guards:</strong> capacities are sent in <em>decimal</em> TB
+(<code>tb_to_bytes</code>), so a 3 TB request reads as exactly 3.00 TB in the
+Weka GUI; the at-target check tolerates 4&nbsp;KiB block rounding. A Cache sum
+larger than the Project Storage sum is clamped down to the total with a WARNING
+(Weka requires <code>ssd_capacity &le; total_capacity</code>). An untiered
+filesystem <em>rejects</em> an explicit <code>ssd_capacity</code>
+(<code>UntieredFilesystemCannotSetSSDCapacity</code>), so the payload omits it
+whenever no object store is attached. Reads tolerate the live API shape:
+<code>GET /fileSystems</code> reports <code>total_budget</code> /
+<code>ssd_budget</code> (not <code>total_capacity</code>), and rows with
+<code>is_removing=true</code> are skipped — a PUT against one 400s.</p>
+<p><strong>Naming history (staff awareness):</strong> until 2026-08-21 the
+portal said "Hot Storage" (= today's Cache) and "Cold Storage" (= today's
+Project Storage total). Field names <code>storage_tb</code>/<code>backup_tb</code>
+and the Weka payload are unchanged — labels only. The object store applies at
+filesystem <em>creation</em> only (<code>WEKAFS_OBS_NAME</code>, or the
+per-affiliation fallback <code>WEKAFS_OBS_NAME_OrgA</code> /
+<code>WEKAFS_OBS_NAME_ORGB</code> when the shared name is blank); attaching
+one to an existing filesystem is a manual <code>weka fs tier obs attach</code>
+(or delete + re-sync).</p>
+<p><strong>Debugging:</strong> set <code>WEKAFS_DEBUG=true</code> in
+<code>wekafs.env</code> and run <code>./start.sh wekafs-sync</code>; every
+API call and provisioning decision is appended as JSON lines under
+<code>${BASE_DATA}/coldfront/log/wekafs/</code> (container path
+<code>/opt/coldfront/log/wekafs</code>). Gotcha: <code>wekafs-sync</code> is
+<em>append-only</em> to <code>.env</code> — changing a key that is already there
+needs a manual edit of <code>.env</code> plus a forced recreate of
+coldfront/qcluster, or the container keeps the old value. Reference:
+<a href="https://docs.weka.io/weka-system-overview/data-storage">Weka data
+lifecycle overview</a>.</p>
 </div>
                   </div>
                 </div>
@@ -1741,6 +1741,51 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
                 
 
                 <div class="card">
+                  <div class="card-header" id="h38">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c38"
+                              aria-expanded="false">Staff CLI — container and sacctmgr commands</button>
+                    </h5>
+                  </div>
+                  <div id="c38" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>Commands that only a cluster administrator can run: they need a shell on the management host (Docker) or on a login node with <code>sacctmgr</code> rights. PI-facing commands live in <strong>Useful CLI Commands</strong>.</p>
+<h6>From inside the ColdFront container</h6>
+          <pre class="bg-dark text-light p-3 rounded" style="font-size: 0.85rem;">
+docker exec coldfront coldfront sync_slurm          # Full Slurm sync
+docker exec coldfront coldfront sync_ldap           # Full LDAP sync
+docker exec coldfront coldfront collect_sacct       # Import job data from sacct
+docker exec slurmctld sinfo -N                      # Node status
+docker exec slurmctld scontrol reconfigure          # Reload slurm.conf
+docker exec login01 su - &lt;user&gt; -c 'sbalance --week'  # Test as user
+docker exec login01 su - &lt;user&gt; -c 'sassoc --clusters' # List clusters</pre>
+<h6>Slurm Command</h6>
+          <pre class="bg-light p-3 rounded">
+# Set a cap:
+sacctmgr modify account where name=pi001_f01_a set GrpTRESMins=billing=1800000
+
+# Remove a cap (unlimited):
+sacctmgr modify account where name=pi002 set GrpTRESMins=billing=-1</pre>
+The Allocation Attribute admin action &ldquo;Zero accrued Slurm usage&rdquo; runs
+            <code>sacctmgr modify account &hellip; set RawUsage=0</code> &mdash; clearing and re-applying
+            the limit does <em>not</em> reset usage.
+<h5>How it propagates</h5>
+<pre class="small">PI toggles Pause on the IO
+  &rarr; CostCenter.post_save (signals.on_cost_center_saved; pre_save snapshots the flag)
+      &rarr; recalculate_billing_for_queryset() on every allocation linked role='pay'
+            (in-transaction; also re-exports qos_config.lua no_charge_accounts)
+      &rarr; signals._dispatch_pi() &rarr; tasks.sync_for_pi &rarr; per-PI Slurm sync
+            collect_coldfront_acc_info: accounts[id]['billing_paused'] = ALL pay IOs paused?
+            coldfront2slurm: sacctmgr modify account where name=X set GrpSubmitJobs=0 | -1</pre>
+<p>The 15-minute full sync recomputes the same map for every account.
+<code>sync_slurm --dry-run</code> prints <code>[DRY-RUN] GrpSubmitJobs=0 for &lt;account&gt;</code>
+before anything is written.</p>
+<div class="alert alert-warning mt-3"><strong>Caps are per reset period, not per week.</strong> The <code>billing</code> TRES above is consumed against the counter Slurm clears on <code>PriorityUsageResetPeriod</code> — <strong>MONTHLY</strong> on cluster-x since 2026-09-21. Clearing and re-applying a limit does <em>not</em> reset accrued usage; only <code>sacctmgr modify account &hellip; set RawUsage=0</code> (or the scheduled reset) does.</div></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
                   <div class="card-header" id="h14">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -1885,51 +1930,6 @@ docker exec coldfront coldfront shadow_compare_weekly_cap_usage --threshold 2.0<
           <div class="alert alert-info mt-3">
             <strong>Note:</strong> Old tool names (<code>slurmtree</code>, <code>slurmqos</code>, <code>slurmassoc</code>) still work as symlinks to the new short names.
           </div></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
-                  <div class="card-header" id="h38">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c38"
-                              aria-expanded="false">Staff CLI — container and sacctmgr commands</button>
-                    </h5>
-                  </div>
-                  <div id="c38" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>Commands that only a cluster administrator can run: they need a shell on the management host (Docker) or on a login node with <code>sacctmgr</code> rights. PI-facing commands live in <strong>Useful CLI Commands</strong>.</p>
-<h6>From inside the ColdFront container</h6>
-          <pre class="bg-dark text-light p-3 rounded" style="font-size: 0.85rem;">
-docker exec coldfront coldfront sync_slurm          # Full Slurm sync
-docker exec coldfront coldfront sync_ldap           # Full LDAP sync
-docker exec coldfront coldfront collect_sacct       # Import job data from sacct
-docker exec slurmctld sinfo -N                      # Node status
-docker exec slurmctld scontrol reconfigure          # Reload slurm.conf
-docker exec login01 su - &lt;user&gt; -c 'sbalance --week'  # Test as user
-docker exec login01 su - &lt;user&gt; -c 'sassoc --clusters' # List clusters</pre>
-<h6>Slurm Command</h6>
-          <pre class="bg-light p-3 rounded">
-# Set a cap:
-sacctmgr modify account where name=pi001_f01_a set GrpTRESMins=billing=1800000
-
-# Remove a cap (unlimited):
-sacctmgr modify account where name=pi002 set GrpTRESMins=billing=-1</pre>
-The Allocation Attribute admin action &ldquo;Zero accrued Slurm usage&rdquo; runs
-            <code>sacctmgr modify account &hellip; set RawUsage=0</code> &mdash; clearing and re-applying
-            the limit does <em>not</em> reset usage.
-<h5>How it propagates</h5>
-<pre class="small">PI toggles Pause on the IO
-  &rarr; CostCenter.post_save (signals.on_cost_center_saved; pre_save snapshots the flag)
-      &rarr; recalculate_billing_for_queryset() on every allocation linked role='pay'
-            (in-transaction; also re-exports qos_config.lua no_charge_accounts)
-      &rarr; signals._dispatch_pi() &rarr; tasks.sync_for_pi &rarr; per-PI Slurm sync
-            collect_coldfront_acc_info: accounts[id]['billing_paused'] = ALL pay IOs paused?
-            coldfront2slurm: sacctmgr modify account where name=X set GrpSubmitJobs=0 | -1</pre>
-<p>The 15-minute full sync recomputes the same map for every account.
-<code>sync_slurm --dry-run</code> prints <code>[DRY-RUN] GrpSubmitJobs=0 for &lt;account&gt;</code>
-before anything is written.</p>
-<div class="alert alert-warning mt-3"><strong>Caps are per reset period, not per week.</strong> The <code>billing</code> TRES above is consumed against the counter Slurm clears on <code>PriorityUsageResetPeriod</code> — <strong>MONTHLY</strong> on cluster-x since 2026-09-21. Clearing and re-applying a limit does <em>not</em> reset accrued usage; only <code>sacctmgr modify account &hellip; set RawUsage=0</code> (or the scheduled reset) does.</div></div>
                   </div>
                 </div>
                 
@@ -3194,8 +3194,8 @@ label or Active flag never opens a ticket &mdash; only the pause flag flipping d
 <!-- no-charge-mode -->
 <h6>"No charge" box (Billing Report)</h6>
 <p>
-  While billing is dormant, staff open <strong>Billing settings</strong> (the gear at the top
-  right of the <em>Compute Billing</em> card) and tick <strong>No charge (billing dormant)</strong>
+  While billing is dormant, a superuser opens <strong>Billing settings</strong> (the gear at the top
+  right of the <em>Compute Billing</em> card) and ticks <strong>No charge (billing dormant)</strong>
   (Site Configuration &rarr; "No charge (billing dormant)" in the admin is the same flag). The
   same window shows <strong>Overdue invoice: pause after</strong>, which only a superuser can
   change; a change is applied by the daily overdue pass, not on save. Ticking it sets every open period (Pending / Overdue) to
@@ -3315,33 +3315,6 @@ so the messages name which one applies.</p>
                 
 
                 <div class="card">
-                  <div class="card-header" id="h42">
-                    <h5 class="mb-0">
-                      <button class="btn btn-link collapsed" type="button"
-                              data-toggle="collapse" data-target="#c42"
-                              aria-expanded="false">Requesting class resources</button>
-                    </h5>
-                  </div>
-                  <div id="c42" class="collapse " data-parent="#helpAccordion">
-                    <div class="card-body"><p>PIs can request temporary accounts for a class from <strong>Projects &rarr; My
-Classes &rarr; Class Request</strong>. Fill in the course, its dates, school and
-department, and paste the roster, one student or TA per line:</p>
-<pre>Full Name,campus ID-ID,external e-mail</pre>
-<p>Use each student's <strong>external</strong> e-mail (not @example.edu, @alt.example.edu or
-@med.example.edu): the password-reset link for the course account goes there. If your school or
-department is not listed, choose <em>Other</em> and type it; staff adds it while reviewing
-your request.</p>
-<p>Once staff approves, every student gets an account named
-<code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code> and an e-mail to set its password. Students sign in with that username, the password and a TOTP code from an authenticator app (not with campus ID). From the
-class page you (and the TAs you add as managers) can resend that link to selected students
-and request more students, which staff approves the same way.</p>
-<p><strong>All course accounts and their files are deleted at the end of the course.</strong>
-Ask students to copy anything they need before the end date.</p></div>
-                  </div>
-                </div>
-                
-
-                <div class="card">
                   <div class="card-header" id="h41">
                     <h5 class="mb-0">
                       <button class="btn btn-link collapsed" type="button"
@@ -3405,6 +3378,33 @@ course codes <code>ext</code> and <code>orgb</code> are refused, because they ar
 prefixes of permanent accounts; the class Slurm account goes at the next full sync. To
 remove only the accounts, use <strong>Import Users &rarr; Delete Course Accounts</strong>
 with the course code.</p></div>
+                  </div>
+                </div>
+                
+
+                <div class="card">
+                  <div class="card-header" id="h42">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link collapsed" type="button"
+                              data-toggle="collapse" data-target="#c42"
+                              aria-expanded="false">Requesting class resources</button>
+                    </h5>
+                  </div>
+                  <div id="c42" class="collapse " data-parent="#helpAccordion">
+                    <div class="card-body"><p>PIs can request temporary accounts for a class from <strong>Projects &rarr; My
+Classes &rarr; Class Request</strong>. Fill in the course, its dates, school and
+department, and paste the roster, one student or TA per line:</p>
+<pre>Full Name,campus ID-ID,external e-mail</pre>
+<p>Use each student's <strong>external</strong> e-mail (not @example.edu, @alt.example.edu or
+@med.example.edu): the password-reset link for the course account goes there. If your school or
+department is not listed, choose <em>Other</em> and type it; staff adds it while reviewing
+your request.</p>
+<p>Once staff approves, every student gets an account named
+<code>&lt;course code&gt;-ext-&lt;campus-id&gt;</code> and an e-mail to set its password. Students sign in with that username, the password and a TOTP code from an authenticator app (not with campus ID). From the
+class page you (and the TAs you add as managers) can resend that link to selected students
+and request more students, which staff approves the same way.</p>
+<p><strong>All course accounts and their files are deleted at the end of the course.</strong>
+Ask students to copy anything they need before the end date.</p></div>
                   </div>
                 </div>
                 

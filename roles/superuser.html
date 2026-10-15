@@ -60,7 +60,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
         <aside class="site-sidebar">
           <div class="sidebar-brand">CLOACK Stack</div>
           <div class="sidebar-links">
-            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html" class="active">Superuser</a><a href="admin.html">Admin</a><a href="su-budgets.html">SU budgets</a>
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html" class="active">Superuser</a><a href="admin.html">Admin</a><a href="financial.html">Financial</a><a href="su-budgets.html">SU budgets</a>
           </div>
         </aside>
         
@@ -172,6 +172,25 @@ Admin Tools → Import Users   (/billing/import-users/)
   on the profile forces <code>/bin/false</code> through every sync.</li>
 <li><strong>Delete All</strong> on Manage Users exists only on hosts running with
   <code>CLOACK_ENV=dev</code>.</li>
+</ul>
+<h3>3b. Grant the Financial role</h3>
+<pre><code>Django Admin → Groups → Financial → add the user
+Django Admin → Financial affiliations → Add → user + affiliation (one row per affiliation)
+</code></pre>
+<ul>
+<li>The person signs in once first, so the account exists.</li>
+<li>A Financial user reaches the <strong>Billing Report</strong>, the <strong>Billing Report by
+  PI</strong> and <strong>IO Numbers</strong>, limited to the granted affiliations by <strong>project</strong>
+  affiliation; they can export, change payment status, apply adjustments and
+  edit / pause / resume IOs. Compute Billing, deleting periods or IOs and
+  <strong>Billing settings</strong> stay with staff and superusers. The role never sets
+  <code>is_staff</code>. Guide: <a href="financial.html"><code>financial.md</code></a>.</li>
+<li>In the group with no affiliation row, the pages open empty with a warning:
+  the role fails closed.</li>
+<li>Manage Users shows a <strong>Financial</strong> badge naming the granted affiliations
+  (amber "none" when nothing is granted).</li>
+<li><strong>Billing settings</strong> (the gear on the Billing Report: No charge mode and
+  the overdue grace window) is superuser-only.</li>
 </ul>
 <h3>4. Reset a stale OTP credential</h3>
 <pre><code>docker exec keycloak bash -c '/opt/keycloak/bin/kcadm.sh ...'
@@ -473,7 +492,7 @@ create projects under them:</p>
 </tr>
 <tr>
 <td><code>/admin/cloack_sync/siteconfiguration/</code></td>
-<td>Theme, footer links, maintenance mode, overdue pause window, "No charge" mode</td>
+<td>Theme, footer links, maintenance mode, overdue pause window, "No charge" mode (the last two also from the gear on the Billing Report, superusers only)</td>
 </tr>
 <tr>
 <td><code>/admin/cloack_sync/costcenter/</code></td>
@@ -486,6 +505,10 @@ create projects under them:</p>
 <tr>
 <td><code>/admin/auth/group/</code> → "Cluster (LDAP admin)"</td>
 <td><code>cn=admin</code> membership</td>
+</tr>
+<tr>
+<td><code>/admin/auth/group/</code> → "Financial" + <code>/admin/cloack_sync/financialaffiliation/</code></td>
+<td>Financial role membership and the affiliations each member sees (§3b)</td>
 </tr>
 <tr>
 <td><code>/admin/django_q/task/</code>, Log entries</td>

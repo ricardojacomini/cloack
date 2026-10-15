@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLOACK — Financial guide</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-shell { display: flex; min-height: 100vh; }
+.site-sidebar { width: 260px; background: linear-gradient(180deg, #0c111b 0%, #141a25 100%);
+               border-right: 1px solid #1f2b42; padding: 24px 0; display: flex; flex-direction: column; }
+.sidebar-brand { font-weight: 700; font-size: 1.1rem; color: #e0efff; text-align: center;
+                 margin-bottom: 24px; letter-spacing: 2px; }
+.sidebar-links { display: flex; flex-direction: column; gap: 4px; padding: 0 16px; }
+.sidebar-links a { color: #b3c7dd; text-decoration: none; padding: 10px 14px;
+                  border-radius: 6px; font-size: 0.95rem; display: block; transition: all 0.15s; }
+.sidebar-links a:hover { background: rgba(74, 158, 255, 0.14); color: #fff; }
+.sidebar-links a.active { background: rgba(74, 158, 255, 0.22); color: #fff; border-left: 4px solid #4a9eff; padding-left: 10px; }
+.page-content { flex: 1; max-width: 1200px; margin: 0 auto; padding: 36px 32px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+/* index landing */
+.index-page { text-align: center; padding: 34px 12px 44px; }
+.index-hero { max-width: 768px; margin: 0 auto; }
+.index-hero svg { width: 100%; height: auto; border-radius: 14px; display: block;
+                  box-shadow: 0 10px 40px rgba(0,0,0,0.45); }
+.index-tagline { color: #8fb8ff; font-size: 1.15rem; margin: 28px auto 0; letter-spacing: 0.5px; }
+.index-blurb { color: #8a9bb0; font-size: 1rem; max-width: 800px; margin: 14px auto 0;
+               text-align: center; line-height: 1.7; }
+.index-cards { margin: 34px auto 0; display: flex; gap: 14px; justify-content: center;
+               flex-wrap: wrap; max-width: 1080px; }
+.index-card { flex: 0 1 192px; background: #111c30; border: 1px solid #2d4a6f; border-radius: 10px;
+              padding: 18px 20px; text-decoration: none; font-size: 1rem; display: block;
+              transition: all 0.15s; }
+.index-card:hover { transform: translateY(-2px); border-color: #4a9eff; background: #152441;
+                    text-decoration: none; }
+.index-card small { color: #5a6d7f; display: block; margin-top: 4px; }
+</style>
+</head>
+  <body>
+    <div class="site-shell">
+      
+        <aside class="site-sidebar">
+          <div class="sidebar-brand">CLOACK Stack</div>
+          <div class="sidebar-links">
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a><a href="financial.html" class="active">Financial</a><a href="su-budgets.html">SU budgets</a>
+          </div>
+        </aside>
+        
+      <main class="page-content">
+        <div class="md-content"><h1>Financial: billing review for finance staff</h1>
+<h2>Who you are + scope</h2>
+<p>You review and settle what CLOACK bills. You are a member of the
+<strong>Financial</strong> group: you see the <strong>Billing Report</strong>, the <strong>Billing Report by
+PI</strong> and <strong>IO Numbers</strong>, but only for the <strong>affiliations</strong> a superuser granted
+you. You are not portal staff: no other staff page opens for you, and you
+have no cluster account unless you also run jobs.</p>
+<p>What decides "your" rows is the <strong>project's affiliation</strong>, not the PI's. A PI
+may own projects under two affiliations; each project's charges belong to
+the affiliation the project was created under.</p>
+<table>
+<thead>
+<tr>
+<th>You can</th>
+<th>You cannot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>View and filter the Billing Report, the Billing Report by PI and IO Numbers</td>
+<td>Run <strong>Compute Billing</strong> (staff run it; it rewrites the month for every account)</td>
+</tr>
+<tr>
+<td>Download the Billing File, IO, Detail and Chargebacks CSVs, the report PDF and per-period invoices</td>
+<td>Delete a billing period</td>
+</tr>
+<tr>
+<td>Mark a period <strong>Paid</strong>, <strong>Overdue</strong>, <strong>Pending</strong> or <strong>No Charge</strong></td>
+<td>Open <strong>Billing settings</strong> (No charge mode, overdue grace window: superusers only)</td>
+</tr>
+<tr>
+<td>Apply a <strong>credit</strong> or <strong>debit</strong> adjustment to a period</td>
+<td>Delete an IO Number, or change which IO pays an allocation</td>
+</tr>
+<tr>
+<td>Edit an IO Number (label, type, direction, active) and <strong>pause or resume</strong> it</td>
+<td>See anything outside the affiliations granted to you</td>
+</tr>
+</tbody>
+</table>
+<h2>Quick start</h2>
+<h3>1. Get access</h3>
+<ol>
+<li>Sign in to the portal once, so your account exists.</li>
+<li>Ask a superuser to add you to the <strong>Financial</strong> group and to grant the
+   affiliation(s) you cover (see <a href="superuser.html"><code>superuser.md</code></a>, "Grant the
+   Financial role").</li>
+<li>Reload: a <strong>Billing</strong> entry appears in the sidebar (or in the top bar,
+   depending on the portal theme), with the three pages. Each page shows a
+   blue note naming the affiliations you are looking at.</li>
+</ol>
+<h3>2. Close a month</h3>
+<ol>
+<li>Staff run <strong>Compute Billing</strong> for the month. Until they do, the month has
+   no periods and the CSVs do not exist.</li>
+<li>Open <strong>Billing Report</strong>, pick the month, keep <strong>Billable only</strong> on, and
+   review the rows (one per allocation).</li>
+<li>Download the files you send on: <strong>Billing File</strong> (PI / IO / Total),
+   <strong>IO</strong> (totals per IO), <strong>Detail</strong> (per allocation), <strong>Chargebacks</strong>
+   (credits and debits) and <strong>PDF</strong>. Per-period invoices are the PDF / TXT /
+   Detail buttons on each row.</li>
+<li>Record what happened: set each period's <strong>Payment Status</strong>, and use
+   <strong>Credit</strong> for a refund or correction (the reason is kept for the audit
+   trail).</li>
+</ol>
+<h3>3. Look after IO Numbers</h3>
+<p><strong>IO Numbers</strong> lists every IO in your scope with the projects and
+allocations it funds and whether it is paused. <strong>Edit</strong> changes the label,
+type, direction and availability; the pause button stops billing on that IO.</p>
+<h2>Reference matrices</h2>
+<h3>Payment status</h3>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+<th>Side effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending</td>
+<td>Invoiced, not yet paid</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Paid</td>
+<td>Settled</td>
+<td>Lifts an automatic pause once no other Overdue period remains on that IO</td>
+</tr>
+<tr>
+<td>Overdue</td>
+<td>Unpaid past due</td>
+<td>After the grace window set in Billing settings, every IO paying that allocation is <strong>paused</strong>: billing stops, job submission is held, a helpdesk ticket opens</td>
+</tr>
+<tr>
+<td>No Charge</td>
+<td>Not billed</td>
+<td>No charge for that period; lifts an automatic pause like Paid</td>
+</tr>
+</tbody>
+</table>
+<p>Marking a period Overdue can stop a lab's jobs once the grace window
+passes, so set it on purpose.</p>
+<h3>Pausing an IO</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pause</td>
+<td>The IO is not charged, cannot fund new work, and job submission is held on every paid allocation it alone funds. A helpdesk ticket opens with the PI as requester.</td>
+</tr>
+<tr>
+<td>Resume</td>
+<td>Billing and job submission come back on the next sync; the ticket is resolved.</td>
+</tr>
+<tr>
+<td>Refused</td>
+<td>No-charge IOs, IOs funding a hardware-credit (condo) allocation, and IOs sharing an allocation with another live IO cannot be paused. The page says why.</td>
+</tr>
+</tbody>
+</table>
+<h3>Which file you get</h3>
+<table>
+<thead>
+<tr>
+<th>Your scope</th>
+<th>Billing File / IO / Detail / Chargebacks / PDF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One affiliation</td>
+<td>That affiliation's version, written in the same Compute Billing run with the same numbers</td>
+</tr>
+<tr>
+<td>Every affiliation</td>
+<td>The full file</td>
+</tr>
+<tr>
+<td>Several, but not all</td>
+<td>Refused (no single file matches); ask a superuser</td>
+</tr>
+</tbody>
+</table>
+<h2>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>What you see</th>
+<th>Cause</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"No affiliation is assigned to your Financial role"</td>
+<td>You are in the group but no affiliation was granted</td>
+<td>Ask a superuser to grant one</td>
+</tr>
+<tr>
+<td>No <strong>Billing</strong> entry in the menu</td>
+<td>You are not in the Financial group, or the page was open before the change</td>
+<td>Reload; otherwise ask a superuser</td>
+</tr>
+<tr>
+<td>"Report file not found"</td>
+<td>Compute Billing has not run for that month, or ran before per-affiliation files existed</td>
+<td>Ask staff to run Compute Billing for that month again</td>
+</tr>
+<tr>
+<td>"Outside your affiliation scope" on a status change or credit</td>
+<td>The project belongs to an affiliation you were not granted</td>
+<td>Ask a colleague who covers it, or a superuser</td>
+</tr>
+<tr>
+<td>IO Edit returns "not found"</td>
+<td>That IO funds no project in your scope</td>
+<td>Same as above</td>
+</tr>
+<tr>
+<td>The portal shows a maintenance page</td>
+<td>During a maintenance lockout only staff can sign in</td>
+<td>Wait for the window to end</td>
+</tr>
+</tbody>
+</table>
+<h2>Where to go next</h2>
+<ul>
+<li><a href="su-budgets.html"><code>su-budgets.md</code></a>: where each SU figure on the report comes
+  from and how a budget is enforced.</li>
+<li><a href="pi.html"><code>pi.md</code></a>: what the PI sees and does (IO Numbers, spend cap,
+  Usage &amp; Billing).</li>
+<li><a href="superuser.html"><code>superuser.md</code></a>: granting the role and the settings only a
+  superuser changes (No charge mode, overdue grace window).</li>
+</ul></div>
+      </main>
+    </div>
+  </body>
+</html>
