@@ -186,7 +186,14 @@ Django Admin → Financial affiliations → Add → user + affiliation (one row 
   <strong>Billing settings</strong> stay with staff and superusers. The role never sets
   <code>is_staff</code>. Guide: <a href="financial.html"><code>financial.md</code></a>.</li>
 <li>In the group with no affiliation row, the pages open empty with a warning:
-  the role fails closed.</li>
+  the role fails closed. The PI and IO dropdowns of the Billing Report by PI
+  are empty for the same reason.</li>
+<li>The role is billing only: no project or allocation page opens for it, and
+  an account whose only role is Financial (not a PI, member of no New /
+  Active project; an archived project does not count) does not get the
+  Projects, Jobs and Guide menus, since they would be empty. If such an
+  account was once promoted to PI, finish the demote (<code>admin-guide-cli.md</code>
+  §1) so its default project is archived and the menus go away.</li>
 <li>Manage Users shows a <strong>Financial</strong> badge naming the granted affiliations
   (amber "none" when nothing is granted).</li>
 <li><strong>Billing settings</strong> (the gear on the Billing Report: No charge mode and
@@ -509,6 +516,10 @@ create projects under them:</p>
 <tr>
 <td><code>/admin/auth/group/</code> → "Financial" + <code>/admin/cloack_sync/financialaffiliation/</code></td>
 <td>Financial role membership and the affiliations each member sees (§3b)</td>
+</tr>
+<tr>
+<td><code>/admin/cloack_sync/costcenter/</code></td>
+<td>The only place an IO <strong>number</strong> can be changed, and only by a superuser (read-only for other admin users; nobody edits it in the portal). Invoices and CSVs were issued against that number, so prefer a new IO + relink + deactivate the old one</td>
 </tr>
 <tr>
 <td><code>/admin/django_q/task/</code>, Log entries</td>

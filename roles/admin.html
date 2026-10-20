@@ -104,7 +104,16 @@ bash scripts/verify-deploy.sh     # mandatory pre-flight
 ./start.sh promote                # :dev -&gt; :prod + :rc-&lt;UTC&gt;
 </code></pre>
 <p><code>promote</code> runs <code>verify-deploy.sh</code> as a pre-flight gate by default; use
-<code>--skip-verify</code> only as an emergency override. <strong>Never</strong> run <code>./start.sh
+<code>--skip-verify</code> only as an emergency override.</p>
+<p>For a release that rebuilds only some images, pass the same <code>--only
+&lt;svc,...&gt;</code> list (GHCR image names) to both commands, for example
+<code>./start.sh publish --only slurmctld,slurmdbd,slurmrestd,cn-rockylinux</code> and
+<code>./start.sh promote --only slurmctld,slurmdbd,slurmrestd</code>. Without <code>--only</code>,
+<code>publish</code> pushes every local <code>cloack/*</code> image and <code>promote</code> moves <code>:prod</code> of every
+image the production host can pull, including ones this release did not rebuild.
+To refresh the containerized Slurm core of a running cluster, follow the proven
+sequence in <code>docs/deploy-pipeline-quickview.md</code> (inventory, equivalence gate,
+targeted promote, <code>up -d --no-deps</code> one daemon at a time). <strong>Never</strong> run <code>./start.sh
 deploy --from-ghcr</code>: it is hard-refused, because the validation and
 production hosts must never be populated with test data.</p>
 <h3>3. Deploy on the production host</h3>

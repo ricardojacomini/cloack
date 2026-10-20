@@ -71,7 +71,12 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <strong>Financial</strong> group: you see the <strong>Billing Report</strong>, the <strong>Billing Report by
 PI</strong> and <strong>IO Numbers</strong>, but only for the <strong>affiliations</strong> a superuser granted
 you. You are not portal staff: no other staff page opens for you, and you
-have no cluster account unless you also run jobs.</p>
+have no cluster account unless you also run jobs. The role is billing only:
+when your account leads or belongs to no project, the menu shows <strong>Home</strong>,
+<strong>Center Summary</strong> and <strong>Billing</strong>, and the Projects, Jobs and Guide entries
+other users see are not shown (they would be empty). Someone who also leads
+or belongs to a live (New or Active) project keeps them; an archived project
+does not count.</p>
 <p>What decides "your" rows is the <strong>project's affiliation</strong>, not the PI's. A PI
 may own projects under two affiliations; each project's charges belong to
 the affiliation the project was created under.</p>
@@ -234,6 +239,16 @@ passes, so set it on purpose.</p>
 <td>No <strong>Billing</strong> entry in the menu</td>
 <td>You are not in the Financial group, or the page was open before the change</td>
 <td>Reload; otherwise ask a superuser</td>
+</tr>
+<tr>
+<td>No <strong>Projects</strong>, <strong>Jobs</strong> or <strong>Guide</strong> entry in the menu</td>
+<td>Your account leads or belongs to no project, so those pages would be empty</td>
+<td>Nothing to do; they appear once you lead or join a project</td>
+</tr>
+<tr>
+<td>A project or allocation page says you have no permission</td>
+<td>The Financial role opens no project or allocation page; it is billing only</td>
+<td>Use the Billing Report (one row per allocation) and IO Numbers</td>
 </tr>
 <tr>
 <td>"Report file not found"</td>
