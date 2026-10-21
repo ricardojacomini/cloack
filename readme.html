@@ -1085,9 +1085,16 @@ srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
 - Define rates for compute (CPU/GPU), Cache, and Project Storage services
 - Set different rates per cluster and partition
 - Create rate history with effective date ranges
-- Rates are stored separately for:
-  - <strong>cpu_full</strong> / <strong>gpu_full</strong> — full rates for pay-per-use allocations
-  - <strong>cpu_om</strong> / <strong>gpu_om</strong> — O&amp;M only rates for credit holders</p>
+- Rates are stored per <code>pricing_model</code>:
+  - <strong>pay_per_use</strong> <code>cpu_full</code> / <code>gpu_full</code> rows, by CPU tier (<code>tier_code</code>) or GPU model (<code>gpu_model</code>)
+  - <strong>condo</strong> <code>cpu_full</code> / <code>gpu_full</code> rows: the O&amp;M table credit holders pay by hours
+- Which row a lookup takes: the most specific scope (the partition's tier or GPU model, then its
+  <code>billing_rate_key</code>, then <code>partition_name</code>, then a row with no scope); inside one scope a row of
+  the job's cluster beats an All row, then the newest <code>effective_from</code>, then the newest row.
+  <code>pricing_model</code> must match. One rule for every surface (<code>models.resolve_billing_rate</code>,
+  <code>BillingRateQuerySet.in_precedence_order</code>, <code>export_rates_lua</code>)
+- Estimates and the compute billed by hours (condo O&amp;M, periods without SU) are priced per job
+  by <code>sync_job_usage</code> (Compute Billing) at each job's partition, and stored on the period</p>
 <h4><strong>Hardware Credit Pools</strong></h4>
 <p>Superusers track hardware purchases:
 - Record hardware value in dollars
@@ -1112,7 +1119,7 @@ srun  --partition=a100 --qos=interactive --pty bash  # 4h interactive on A100
 <p><strong>Create billing rates</strong> (Django Admin or CLI):
    <code>bash
    # Via Admin: /admin/cloack_sync/billingrate/add/
-   # Create rates for cpu_full, gpu_full, cpu_om, gpu_om, storage, backup</code></p>
+   # Create cpu_full / gpu_full rows per tier and GPU model (pay_per_use and condo), plus storage, backup</code></p>
 </li>
 <li>
 <p><strong>Import departments</strong> (optional, for organizational grouping):
@@ -1633,7 +1640,7 @@ SLURM_NOOP=0
 </tr>
 </tbody>
 </table>
-<p>Two-track pricing: <code>*_full</code> for pay-per-use PIs, <code>*_om</code> (O&amp;M only, lower) for hardware-credit holders.</p>
+<p>Two-track pricing by <code>pricing_model</code>: <code>pay_per_use</code> rows for pay-per-use PIs, <code>condo</code> rows (the O&amp;M table, lower) for hardware-credit holders. <code>tier_code</code> (CPU) and <code>gpu_model</code> (GPU) scope a row to the partitions carrying that tier or GPU. When several rows are in effect, a row of the job's cluster beats an All row, then the newest <code>effective_from</code>, then the newest row; the Billing Rates page marks rows of one scope whose dates overlap.</p>
 <h4>2. <code>AllocationBilling</code> — <code>/admin/cloack_sync/allocationbilling/</code> (one per Allocation)</h4>
 <p>Per-allocation billing config. Created/updated only when staff runs <strong>Compute Billing</strong> on <code>/billing/report/</code> or the <code>coldfront recalculate_billing</code> management command — no signal auto-creates these rows.</p>
 <table>
@@ -1823,11 +1830,10 @@ pi001,1410100777,10,3532.70,0.00,19782.12,0.00,$19.78,$176.63,$0.00,0.00,$0.00,0
 <pre><code class="language-bash"># Generate all three CSVs + PDF for a specific month
 python manage.py generate_billing_report --month 2026-03 --exclude-admin-pi
 
-# With custom rates (--cpu-rate/--gpu-rate only feed the &quot;(est.)&quot; columns;
-# compute is priced by calculate_allocation_charges)
+# With custom Cache / Project Storage rates. Compute is priced by
+# calculate_allocation_charges; the &quot;(est.)&quot; columns sum the per-job prices
+# sync_job_usage stored on each period (each partition's tier / GPU model)
 python manage.py generate_billing_report --month 2026-03 \
-  --cpu-rate 0.05 \
-  --gpu-rate 0.50 \
   --storage-rate 10.0 \
   --backup-rate 5.0
 

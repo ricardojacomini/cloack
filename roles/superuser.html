@@ -311,6 +311,11 @@ failure, duration, and result snippet.</p>
 <td>Slide the created date of the service API tokens so the helpdesk's key never expires.</td>
 </tr>
 <tr>
+<td><code>refresh-rates-lua</code></td>
+<td>hourly</td>
+<td>Re-render <code>&lt;cluster&gt;/rates.lua</code> for every active cluster ColdFront manages, so an effective-date rollover (Jan 1) reaches the file without a rate save. Writes and runs <code>scontrol reconfigure</code> only when the bytes change; never writes a <code>manage_config=False</code> cluster, which instead gets a proposed <code>${BASE_ETC}/slurm/&lt;cluster&gt;/rates.lua.next</code> and <code>qos_config.lua.next</code> (WARNING + admin log entry when they change; the operator applies them at go-live). Off with <code>BILLING_RATE_LUA_AUTO_EXPORT=False</code>.</td>
+</tr>
+<tr>
 <td><code>sync-bare-metal-topology</code></td>
 <td>every 10 min</td>
 <td><code>import_slurm_cluster --update</code> per bare-metal cluster (nodes, partitions, usage reset period).</td>
