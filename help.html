@@ -1105,6 +1105,19 @@ format=Account,User,QOS,DefaultQOS -P</code>.</p>
             else &mdash; scavenger is not appended. DefaultQOS = <code>scavenger</code> when it matched, otherwise the
             first match. No matching row &rArr; the account's QOS is left untouched and a WARNING is logged.
           </div>
+          <h6>QOS Priority</h6>
+          <p>
+            <code>Priority</code> on a <code>SlurmQOS</code> row is ColdFront-owned on every row with
+            <code>ensure_in_slurm</code>: the sync passes it at QOS creation and drift-converges it every pass
+            via <code>sacctmgr modify qos</code>, writing the Admin value <strong>as-is, 0 included</strong>
+            (the field has no blank state). A <code>sacctmgr modify qos &hellip; set priority=</code> on such a row
+            is reverted within one pass &mdash; change the number in Admin &gt; Slurm QOS instead. Unflagged rows
+            (mirrors created by <code>import_slurm_cluster --with-qos</code>) are never touched, and the import
+            no longer copies <code>priority</code> back onto flagged rows. The value only weighs when
+            <code>slurm.conf</code> runs <code>PriorityType=priority/multifactor</code> with
+            <code>PriorityWeightQOS &gt; 0</code>; without that weight a QOS priority of 1000 has no effect.
+            <code>sync_slurm --dry-run</code> prints the Priority diffs against the live values.
+          </p>
           <h6>QOS-level GPU caps</h6>
           <p>
             <code>MaxTRESPerAccount</code> and <code>MaxTRESPerUser</code> on a <code>SlurmQOS</code> row are
