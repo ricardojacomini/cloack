@@ -447,7 +447,7 @@ body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Yes</td>
-<td>Billing Management → <strong>IO Numbers</strong> (<code>/billing/cost-centers/all/</code>): every PI's IOs with links, Project Storage and pause state; filters (search, affiliation, state, linked-only). Read-only — pause on a PI's behalf via Django Admin (same guards, audited)</td>
+<td>Billing Management → <strong>IO Numbers</strong> (<code>/billing/cost-centers/all/</code>): every PI's IOs with links, Project Storage and pause state; filters (search, affiliation, state incl. IO SAP, linked-only); Edit / Pause / Resume on the PI's behalf (same guards, audited). <strong>IO SAP</strong> column: staff open the ServiceNow lookup of the SAP Cost Centers table for the number (own session) and record <code>true</code> / <code>false</code> (<code>—</code> = not checked); informational, billing never reads it</td>
 </tr>
 <tr>
 <td>Active vs Paused</td>

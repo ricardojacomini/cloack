@@ -2318,7 +2318,7 @@ OK
 </tr>
 <tr>
 <td>IO Numbers</td>
-<td>Billing Management &gt; IO Numbers (<code>/billing/cost-centers/all/</code>) — every PI's Cost Centers with the projects, allocations and Project Storage they fund, plus the <strong>Paused</strong> state (who/when). Filters: search, affiliation, state (paused / inactive / live), linked-only. Read-only — pausing on a PI's behalf goes through Django Admin &gt; Cost Centers (same guards, audited)</td>
+<td>Billing Management &gt; IO Numbers (<code>/billing/cost-centers/all/</code>) — every PI's Cost Centers with the projects, allocations and Project Storage they fund, plus the <strong>Paused</strong> state (who/when). Filters: search, affiliation, state (paused / inactive / live / IO SAP true, false, not checked), linked-only. Row actions Edit and Pause/Resume act on the PI's behalf with the same guards and audit stamps. <strong>IO SAP</strong> column = whether the number is active in the institution's SAP Cost Centers, as checked by staff: the external-link button opens the ServiceNow lookup for that number (viewer's own session, URL from <code>SAP_COST_OBJECT_LOOKUP_URL</code>; blank hides the button), the select records <code>true</code> / <code>false</code> (<code>—</code> = not checked; <code>sap_checked_by</code> / <code>sap_checked_at</code>). Informational — billing never reads it</td>
 </tr>
 <tr>
 <td>Staff Help</td>

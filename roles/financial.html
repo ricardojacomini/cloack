@@ -139,6 +139,15 @@ the affiliation the project was created under.</p>
 <p><strong>IO Numbers</strong> lists every IO in your scope with the projects and
 allocations it funds and whether it is paused. <strong>Edit</strong> changes the label,
 type, direction and availability; the pause button stops billing on that IO.</p>
+<p><strong>IO SAP</strong> records whether the number is active in the institution's SAP
+Cost Centers. The external-link button on the row opens the ServiceNow
+lookup for that number in a new tab (it uses your own ServiceNow session;
+the portal never calls it). Read the <strong>Active</strong> value there and set the
+row's select to <code>true</code> (active on SAP) or <code>false</code> (inactive or not found);
+<code>—</code> means nobody has checked yet. The row remembers who recorded it and
+when, the <strong>SAP not checked</strong> card counts what is left, and the State filter
+lists each value. The flag is informational: a <code>false</code> IO keeps billing
+until you deactivate or pause it.</p>
 <h2>Reference matrices</h2>
 <h3>Payment status</h3>
 <table>
