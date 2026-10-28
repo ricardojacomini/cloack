@@ -104,7 +104,7 @@ you mean.</p>
 </tr>
 <tr>
 <td><strong>Accounting total</strong></td>
-<td>TRES-minutes the slurmdbd rollup credited to the account in the period. No decay, clipped to the window, includes every run of a requeued job. The figure a bill is based on.</td>
+<td>TRES-minutes the slurmdbd rollup credited to the account in the period, sub-accounts included. No decay, clipped to the window, includes every run of a requeued job. slurmdbd adds each hour at the top of the next one, so it trails real time by up to an hour. The figure a bill is based on.</td>
 <td><code>sreport -T billing cluster AccountUtilizationByUser account=&lt;acct&gt; start=&lt;period start&gt; end=now -P</code> (row with an empty Login = the account)</td>
 <td><code>sbalance</code> "Used", Portal "N SU used this period", <code>Budget (SU)</code> usage on Project Detail and Submit Job (via the 15-min sync)</td>
 </tr>
@@ -290,9 +290,13 @@ and how much running jobs still hold.</p>
   requeued, only its last run is in that row while <code>sreport</code> counts every
   run. Compare <code>sacct -X -D</code> with <code>sreport -T billing</code> for the month before
   trusting a per-job sum in a dispute.</li>
-<li>The spend cap card reads the accounting total live from Slurm each time
-  the page opens; nothing is stored on the allocation, so it is not a
-  ledger.</li>
+<li>The spend cap card reads the accounting total from slurmdbd's usage
+  rollup (through slurmrestd, the same tables <code>sreport</code> reads) and reuses it
+  for 15 minutes per web worker. It never reads job records, and nothing is
+  stored on the allocation, so it is not a ledger.</li>
+<li>On a project account that also has subproject accounts, Used and
+  Available include the subprojects: the cap on that account applies to
+  them too. Invoices stay per account.</li>
 </ul>
 <h2>Reference matrices</h2>
 <h3>Allocation attributes that reach Slurm</h3>
@@ -332,6 +336,16 @@ and how much running jobs still hold.</p>
 </tr>
 </tbody>
 </table>
+<h3>Weekly cap with a period ceiling</h3>
+<p>Slurm checks the spend cap against the one counter that clears on the cluster's
+<code>PriorityUsageResetPeriod</code>, so without proration the cap covers that whole period.
+With Admin &gt; Slurm Clusters &gt; <em>Weekly cap prorated</em> on, the attribute is a weekly
+amount and the sync writes <code>cap x days in the period / 7</code> as the limit (Slurm
+enforces that; the weekly figure is advisory). Turn it on by ticking the box
+(superuser; the field help says how many caps change) or with
+<code>coldfront prorate_weekly_caps --cluster &lt;name&gt;</code> (dry run) then <code>--yes</code>. Either
+way every positive stored cap becomes <code>cap x 7 / days</code> in the same transaction,
+so the limit in force does not move; unticking or <code>--undo --yes</code> reverses it.</p>
 <h3>Where each tool reads</h3>
 <table>
 <thead>
@@ -351,9 +365,9 @@ and how much running jobs still hold.</p>
 </tr>
 <tr>
 <td><code>sbalance --week</code></td>
-<td>same, one line per account</td>
+<td>same, one line per account; plus, when the cluster prorates weekly caps, the current Sunday week against the weekly cap (advisory)</td>
 <td>same</td>
-<td>same</td>
+<td>same (the weekly section: Sunday to Saturday)</td>
 </tr>
 <tr>
 <td><code>sbalance --held</code> (admins)</td>
@@ -363,14 +377,20 @@ and how much running jobs still hold.</p>
 </tr>
 <tr>
 <td>Allocation Detail (Portal)</td>
-<td>accounting total (live)</td>
+<td>accounting total (hourly rollup, reused up to 15 min)</td>
 <td>limit − Slurm counter − held (live)</td>
 <td>the cluster's reset period</td>
 </tr>
 <tr>
-<td>Project Detail, Submit Job</td>
+<td>Project Detail</td>
 <td><code>Budget (SU)</code> usage (sync, ≤15 min old)</td>
 <td>limit − that figure</td>
+<td>same</td>
+</tr>
+<tr>
+<td>Submit Job</td>
+<td>accounting total (as Allocation Detail; <code>Budget (SU)</code> usage when Slurm cannot be read)</td>
+<td>limit − Slurm counter − held</td>
 <td>same</td>
 </tr>
 <tr>

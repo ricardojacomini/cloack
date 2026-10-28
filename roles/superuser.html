@@ -199,6 +199,29 @@ Django Admin → Financial affiliations → Add → user + affiliation (one row 
 <li><strong>Billing settings</strong> (the gear on the Billing Report: No charge mode and
   the overdue grace window) is superuser-only.</li>
 </ul>
+<h3>3c. Let some PIs see their billing while it is hidden (PI billing pilot)</h3>
+<pre><code>Django Admin → Groups → &quot;PI billing pilot&quot; → add the PI
+</code></pre>
+<ul>
+<li>Applies while <strong>Site Configuration → PI billing visibility</strong> hides the PI
+  billing pages (<code>hide_pi_my_usage</code>, <code>hide_pi_billing_report</code>). A member
+  keeps <strong>My Usage &amp; Billing</strong>, the <strong>Billing Report</strong>, the invoices (PDF,
+  text, detail, e-mail) and <strong>Jobs → Rates</strong>, for their <strong>own</strong> projects
+  only, like any PI when nothing is hidden. Other PIs are sent home from
+  those URLs and get no links.</li>
+<li>The group carries no Django permissions on purpose: a permission such as
+  <code>can_manage_invoice</code> would open other PIs' invoices. Membership is the
+  whole grant; it never sets <code>is_staff</code>.</li>
+<li>Staff, superusers and the Financial role are exempt from the toggles
+  without the group.</li>
+<li><strong>Billing Rates</strong> moved from the PI block of the sidebar to <strong>Jobs →
+  Rates</strong> (staff keep <strong>Rate Management</strong>). It follows the My Usage &amp;
+  Billing toggle.</li>
+<li>The per-allocation billing form (<code>/billing/allocation/&lt;id&gt;/set-billing/</code>)
+  is superuser and elevated-staff only; the PI of the allocation can no
+  longer open it (it writes the billing type, <code>is_billable</code> and the IO with
+  no validation).</li>
+</ul>
 <h3>4. Reset a stale OTP credential</h3>
 <pre><code>docker exec keycloak bash -c '/opt/keycloak/bin/kcadm.sh ...'
 </code></pre>
@@ -521,6 +544,10 @@ create projects under them:</p>
 <tr>
 <td><code>/admin/auth/group/</code> → "Financial" + <code>/admin/cloack_sync/financialaffiliation/</code></td>
 <td>Financial role membership and the affiliations each member sees (§3b)</td>
+</tr>
+<tr>
+<td><code>/admin/auth/group/</code> → "PI billing pilot"</td>
+<td>PIs who keep their billing pages while they are hidden from PIs (§3c)</td>
 </tr>
 <tr>
 <td><code>/admin/cloack_sync/costcenter/</code></td>

@@ -186,12 +186,22 @@ login shell. Provisioning is immediate once the ToS gate is clear.</p>
 /storage/                               → My Storage (provisioned + pending)
 </code></pre>
 <ul>
-<li><strong>Compute is billed in SU</strong>: the SU Slurm counted for the period,
+<li>The portal can hide these billing pages from PIs while billing is not
+  live. When <strong>My Usage &amp; Billing</strong> and <strong>Billing Report</strong> are missing from
+  your menu, that is why; staff can add you to the billing pilot, which
+  shows them again for your own projects.</li>
+<li>
+<p>Rates: <strong>Jobs → Rates</strong> (<code>/billing/rates/</code>), shown together with My
+  Usage &amp; Billing.</p>
+</li>
+<li>
+<p><strong>Compute is billed in SU</strong>: the SU Slurm counted for the period,
   times $0.001. The CPU (est.) and GPU (est.) columns price the hours at
   the catalogue rate for comparison and are never summed. Periods
   recorded without SU (older data) fall back to the legacy rule: a period
   that used GPU is charged on GPU hours only, with CPU hours shown for
-  transparency.</li>
+  transparency.</p>
+</li>
 <li>Cache and Project Storage are billed monthly regardless of compute
   activity; the "Project Storage" card shows the monthly estimate at
   current rates (cache × Cache rate + total × Project Storage rate) for

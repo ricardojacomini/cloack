@@ -190,6 +190,7 @@ sacct -u $USER --starttime=now-7days   # last week's accounting
 sbrief                   # count of your jobs by state
 sbalance                 # SU used vs limit for every account you sit under
 sbalance --week          # spend cap and usage for the current usage period
+                         # (+ this week against the weekly cap, where caps are weekly)
 sbalance --by-partition  # the same, split by partition
 </code></pre>
 <p><code>sbalance</code> reads Slurm itself (<code>sacctmgr</code>, <code>sreport</code>, <code>scontrol</code>) and
