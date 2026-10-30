@@ -211,6 +211,17 @@ scontrol show job &lt;jobid&gt; | grep -E 'Reason|Account|QOS|Partition|TimeLimi
 </tr>
 </tbody>
 </table>
+<p><strong>At submit.</strong> On the login node (<code>sbatch</code>, <code>srun</code>, <code>salloc</code>, <code>interact</code>),
+<code>cli_filter</code> prints a <code>[BUDGET]</code> note, in SU only, when the job needs more
+SU than the account has left: limit minus Slurm counter minus held. The
+estimate is the partition's <code>TRESBillingWeights</code> (largest of CPU, memory
+and GPU, the MAX_TRES rule; allocated CPUs when the partition has no
+weights) times the time limit, times the task count of an <code>--array</code>. It
+appears for free and paid jobs alike, never refuses and never prompts; under
+<code>safe</code> the job then waits on <code>AssocGrpBillingMinutes</code>. <code>CLI_FILTER_SHOW_BALANCE=0</code>
+turns it off, and so does the filter's <code>enforce_billing</code> switch, with
+everything else. Portal Submit Job, OnDemand and REST submits do not run
+the filter.</p>
 <h3>4. Give a lab more room this period</h3>
 <p>Everything the Portal writes reaches Slurm through the sync (every 15 min,
 and immediately on an allocation change). Check the result with
@@ -396,7 +407,7 @@ so the limit in force does not move; unticking or <code>--undo --yes</code> reve
 <tr>
 <td><code>interact</code>, <code>cli_filter</code></td>
 <td>n/a</td>
-<td>limit − Slurm counter − held</td>
+<td>limit − Slurm counter − held (<code>cli_filter</code> speaks only when the job does not fit: <code>[BUDGET]</code>)</td>
 <td>now</td>
 </tr>
 <tr>
@@ -446,6 +457,11 @@ so the limit in force does not move; unticking or <code>--undo --yes</code> reve
 <td>PI reports a job killed at the limit</td>
 <td>No <code>safe</code> in <code>AccountingStorageEnforce</code></td>
 <td>Cluster admin adds it; it does not need a restart</td>
+</tr>
+<tr>
+<td><code>interact</code> prints <code>Weekly Cap: $… \| Used: $0.00 \| Remaining: $…</code></td>
+<td>An old copy of the script on the shared helpers path, from before SU budgets</td>
+<td>Reinstall it from the repo (<code>slurm/base/interact</code>); the current one prints <code>SU limit … Available …</code> and needs <code>-a &lt;account&gt;</code></td>
 </tr>
 </tbody>
 </table>

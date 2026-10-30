@@ -154,7 +154,11 @@ directory sync, and accepting the ToS flips it immediately.</p>
 <li><strong><code>sbatch</code> / <code>srun</code> / <code>salloc</code> on a login node</strong> (below). On paid
   partitions the CLI filter prints a <code>[BILLING]</code> estimate and asks
   <code>Proceed? [y/N]</code>; a $0 estimate (free partition, free account, or
-  rates not set) is admitted without the prompt.</li>
+  rates not set) is admitted without the prompt. On any account with an
+  SU budget, free or paid, a <code>[BUDGET]</code> note appears when the job needs
+  more SU than the account has left this period: the job is still
+  submitted and waits in the queue (reason <code>AssocGrpBillingMinutes</code>)
+  until the account has enough SU.</li>
 <li><strong>Portal Submit Job</strong> (<code>/jobs/submit/</code>): paste a batch script, choose
   partition and account, see the live cost estimate before you submit.
   <code>?as_of_date=YYYY-MM-DD</code> previews the rates of another day for budget
@@ -437,7 +441,7 @@ cap stops a runaway long before the bill does.</p>
 </tr>
 <tr>
 <td>Job pending with reason <code>AssocGrpBillingMinutes</code></td>
-<td>The account's spend cap or budget for the current usage period is used up</td>
+<td>The account's spend cap or budget for the current usage period is used up (the <code>[BUDGET]</code> note at submit says so on the login node)</td>
 <td><code>sbalance --week</code> to confirm; switch to <code>scavenger</code> (free); or ask your PI to raise the cap. The counter clears at the period boundary</td>
 </tr>
 <tr>
