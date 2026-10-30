@@ -82,8 +82,11 @@ TOTP via the Keycloak account console (same as every other regular
 <a href="user.html"><code>user.md</code></a>).</p>
 <p>Staff who are not superusers get a subset of this through
 <code>StaffResourceAssignment</code>: <code>elevate_to_superuser</code> unlocks the review
-queues below (allocations, projects, storage, classes); cluster and
-affiliation scopes limit what they see.</p>
+queues below (allocations, change requests, projects, storage, classes),
+All Projects / All Allocations and Manage Users; cluster and
+affiliation scopes limit what they see. It never opens the Django Admin,
+the import tools, Sync Accounts or the Audit Trail: keep superuser for
+those, never as a workaround for the review work.</p>
 <h2>Quick start</h2>
 <h3>1. Approve / deny an allocation request</h3>
 <pre><code>Admin Tools → Allocation Requests   (/allocation/request-list/)
@@ -414,7 +417,7 @@ them never changes LDAP.</p>
 <tr>
 <td><code>elevate_to_superuser</code></td>
 <td>bool</td>
-<td>Lets a non-superuser staff approve / deny allocations, projects, storage and class requests within their scope</td>
+<td>Lets a non-superuser staff approve / deny allocations, allocation change requests, projects, storage and class requests, list All Projects / All Allocations, and open Manage Users (every affiliation without an Affiliation Scope, the scoped ones with it); no Django Admin</td>
 </tr>
 </tbody>
 </table>
