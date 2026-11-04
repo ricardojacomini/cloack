@@ -1973,10 +1973,11 @@ sqos all
 # Show a specific QOS
 sqos name=normal
 
-# Show QOS for a specific account or user
+# Show QOS and association GrpTRES for a specific account or user
 sqos account=admin1
 sqos admin1
 </code></pre>
+<p><code>name=</code> takes a QOS name, never an account. The <code>GrpTRES</code> column of <code>account=</code>/<code>user=</code> is where the condo caps land (see slurm/README.md § QOS model).</p>
 <blockquote>
 <p>Old name <code>slurmqos</code> still works as a symlink.</p>
 </blockquote>
