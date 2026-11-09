@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLOACK — QoS and GPU limits (staff and admins)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+body { background: #05070f; color: #c8d6e5; margin: 0; padding: 0;
+       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.site-shell { display: flex; min-height: 100vh; }
+.site-sidebar { width: 260px; background: linear-gradient(180deg, #0c111b 0%, #141a25 100%);
+               border-right: 1px solid #1f2b42; padding: 24px 0; display: flex; flex-direction: column; }
+.sidebar-brand { font-weight: 700; font-size: 1.1rem; color: #e0efff; text-align: center;
+                 margin-bottom: 24px; letter-spacing: 2px; }
+.sidebar-links { display: flex; flex-direction: column; gap: 4px; padding: 0 16px; }
+.sidebar-links a { color: #b3c7dd; text-decoration: none; padding: 10px 14px;
+                  border-radius: 6px; font-size: 0.95rem; display: block; transition: all 0.15s; }
+.sidebar-links a:hover { background: rgba(74, 158, 255, 0.14); color: #fff; }
+.sidebar-links a.active { background: rgba(74, 158, 255, 0.22); color: #fff; border-left: 4px solid #4a9eff; padding-left: 10px; }
+.page-content { flex: 1; max-width: 1200px; margin: 0 auto; padding: 36px 32px; }
+/* Markdown styling */
+.md-content h1 { color: #4a9eff; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+.md-content h2 { color: #4a9eff; margin-top: 28px; border-bottom: 1px solid #1a2d4a; padding-bottom: 6px; }
+.md-content h3 { color: #00cec9; margin-top: 22px; }
+.md-content h4 { color: #8a9bb0; }
+.md-content a { color: #4a9eff; }
+.md-content code { color: #00cec9; background: #1a2d4a; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.md-content pre { background: #0f1a2e; border: 1px solid #2d4a6f; border-radius: 6px;
+                  padding: 14px; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; }
+.md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.md-content th { background: #1a2d4a; color: #c8d6e5; border: 1px solid #2d4a6f; padding: 8px 12px; text-align: left; }
+.md-content td { border: 1px solid #1a2d4a; padding: 8px 12px; }
+.md-content blockquote { border-left: 3px solid #4a9eff; padding-left: 14px; color: #8a9bb0; margin: 12px 0; }
+.md-content ul, .md-content ol { padding-left: 22px; }
+.md-content li { margin-bottom: 4px; }
+.md-content hr { border: none; border-top: 1px solid #2d4a6f; margin: 20px 0; }
+/* index landing */
+.index-page { text-align: center; padding: 34px 12px 44px; }
+.index-hero { max-width: 768px; margin: 0 auto; }
+.index-hero svg { width: 100%; height: auto; border-radius: 14px; display: block;
+                  box-shadow: 0 10px 40px rgba(0,0,0,0.45); }
+.index-tagline { color: #8fb8ff; font-size: 1.15rem; margin: 28px auto 0; letter-spacing: 0.5px; }
+.index-blurb { color: #8a9bb0; font-size: 1rem; max-width: 800px; margin: 14px auto 0;
+               text-align: center; line-height: 1.7; }
+.index-cards { margin: 34px auto 0; display: flex; gap: 14px; justify-content: center;
+               flex-wrap: wrap; max-width: 1080px; }
+.index-card { flex: 0 1 192px; background: #111c30; border: 1px solid #2d4a6f; border-radius: 10px;
+              padding: 18px 20px; text-decoration: none; font-size: 1rem; display: block;
+              transition: all 0.15s; }
+.index-card:hover { transform: translateY(-2px); border-color: #4a9eff; background: #152441;
+                    text-decoration: none; }
+.index-card small { color: #5a6d7f; display: block; margin-top: 4px; }
+</style>
+</head>
+  <body>
+    <div class="site-shell">
+      
+        <aside class="site-sidebar">
+          <div class="sidebar-brand">CLOACK Stack</div>
+          <div class="sidebar-links">
+            <a href="../index.html">Home</a><a href="../readme.html">README</a><a href="../cloack.html">CLOACK</a><a href="../architecture.html">Architecture</a><a href="../cluster-models.html">Cluster Models</a><a href="../help.html">Help</a><a href="../help.html#helpdesk-extensions">Helpdesk Extensions</a><a href="index.html">User Guide (by role)</a><div style="margin-top:14px; color:#5a6d7f; font-size:0.78rem; padding:0 14px; letter-spacing:1px; text-transform:uppercase;">Roles</div><a href="user.html">User</a><a href="pi.html">PI</a><a href="staff.html">Staff</a><a href="superuser.html">Superuser</a><a href="admin.html">Admin</a><a href="financial.html">Financial</a><a href="su-budgets.html">SU budgets</a><a href="qos-gpu-limits.html" class="active">QoS and GPU limits</a>
+          </div>
+        </aside>
+        
+      <main class="page-content">
+        <div class="md-content"><h1>QoS and GPU limits: for helpdesk staff and ColdFront admins</h1>
+<h2>Who you are + scope</h2>
+<p>You answer "why is my GPU job pending when the cluster has free GPUs", grant
+a lab more GPUs, or change a tier limit. You are a <strong>ColdFront staff member
+or superuser</strong>: QoS pins are edited on Allocation Detail, tier limits in
+Django Admin. The user's view of QoS is in <a href="user.html"><code>user.md</code></a> (QoS
+section); the PI's view of a pin is in <a href="pi.html"><code>pi.md</code></a> ("QoS pins"). SU
+budgets (how much a lab may spend, not how many GPUs it may hold at once)
+are in <a href="su-budgets.html"><code>su-budgets.md</code></a>.</p>
+<p>Two different kinds of limit apply to a GPU job, and they answer different
+questions:</p>
+<ul>
+<li><strong>Budget</strong> (<code>GrpTRESMins</code>, in SU): how much the account may consume in the
+  usage period. See <a href="su-budgets.html"><code>su-budgets.md</code></a>.</li>
+<li><strong>Concurrency</strong> (<code>MaxTRESPerAccount</code>, <code>MaxTRESPerUser</code>, <code>GrpTRES</code>): how
+  many GPUs may be in use <strong>at the same time</strong>. This guide.</li>
+</ul>
+<p>The values in the examples (<code>orga</code> at 16 GPUs, <code>orga2</code> at 32) are examples;
+the real ones are on Admin &gt; Slurm QOS Definitions and in <code>sqos all</code>.</p>
+<h2>Quick start</h2>
+<h3>1. Read what applies to an account or a job</h3>
+<pre><code class="language-bash">sqos all                                   # every QOS and its limits
+sqos account=&lt;acct&gt;                        # QOS list, DefaultQOS and GrpTRES of one account
+sassoc &lt;user&gt;                              # account x partition x QoS combinations
+squeue -j &lt;jobid&gt; -O jobid,account,qos,partition,reason,tres-alloc:60
+</code></pre>
+<h3>2. Find out why a GPU job is pending</h3>
+<table>
+<thead>
+<tr>
+<th><code>squeue</code> reason</th>
+<th>Limit that holds it</th>
+<th>Where it lives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>QOSMaxGRESPerUser</code></td>
+<td><code>MaxTRESPerUser</code> of the job's QOS</td>
+<td>QOS row (Admin &gt; Slurm QOS Definitions)</td>
+</tr>
+<tr>
+<td><code>QOSMaxGRESPerAccount</code></td>
+<td><code>MaxTRESPerAccount</code> of the job's QOS</td>
+<td>QOS row</td>
+</tr>
+<tr>
+<td><code>AssocGrpGRES</code></td>
+<td><code>GrpTRES</code> on the account <strong>or any ancestor</strong> (condo purchase size; the PI GPU cap on <code>pi-&lt;user&gt;</code>)</td>
+<td>account association (<code>sqos account=&lt;acct&gt;</code>)</td>
+</tr>
+<tr>
+<td><code>AssocGrpBillingMinutes</code></td>
+<td>SU budget, not a GPU limit</td>
+<td><a href="su-budgets.html"><code>su-budgets.md</code></a></td>
+</tr>
+<tr>
+<td><code>Resources</code> / <code>Priority</code></td>
+<td>No limit: the GPUs are busy or other jobs are ahead</td>
+<td>nothing to change</td>
+</tr>
+</tbody>
+</table>
+<p>Slurm never starts part of a job: a 12-GPU job with 8 GPUs of room left
+waits whole. A job held by a limit does not reserve GPUs, so a smaller job
+that fits can start ahead of it.</p>
+<h3>3. Give one allocation an elevated GPU tier</h3>
+<p>On <strong>Allocation Detail</strong>, set <code>QoS</code> and <code>DefaultQoS</code> to the tier (<code>orga2</code>,
+<code>orga4</code>). The selects list the cluster's QOS names; saving dispatches a sync
+for that PI. Revoke by setting both back to "cluster default". The pin moves
+every member of that account off the standard tier, so limits of two tiers
+never stack on one account.</p>
+<h3>4. Change a tier limit</h3>
+<p>Admin &gt; Slurm QOS Definitions &gt; the row &gt; <strong>Slurm Configuration</strong>:
+<code>MaxTRESPerAccount</code>, <code>MaxTRESPerUser</code>, <code>Priority</code>. Do not change them with
+<code>sacctmgr</code> on a row that has <strong>Ensure in slurm</strong> ticked: the sync converges
+them back within 15 minutes. Run <code>coldfront sync_slurm --dry-run</code> first; it
+prints <code>would set ... on QOS X (live ...)</code> for every difference.</p>
+<h3>5. Condo (purchased hardware)</h3>
+<p>The condo QOS carries no limits (every owner shares it). The purchase size
+lives on the condo <strong>account</strong>, from two condo-only allocation attributes
+shown on Allocation Detail:</p>
+<table>
+<thead>
+<tr>
+<th>Allocation Detail row</th>
+<th>Written to Slurm as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GrpTRES (account)</strong></td>
+<td><code>GrpTRES</code> on the account association: all members together</td>
+</tr>
+<tr>
+<td><strong>GrpTRES (per user)</strong></td>
+<td><code>GrpTRES</code> on every member's association in that account</td>
+</tr>
+</tbody>
+</table>
+<p>Blank = never touched by the sync. Check with <code>sqos account=&lt;acct&gt;</code>.</p>
+<h2>Reference matrices</h2>
+<h3>QoS classes</h3>
+<p>An account's QoS marks its class; it is not a priority knob. On a cluster
+where any QOS row carries a <strong>Role</strong>, the sync gives each account the rows of
+its class:</p>
+<table>
+<thead>
+<tr>
+<th>Account class</th>
+<th>Decided by</th>
+<th>Matching QOS rows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>condo</code></td>
+<td><code>AllocationBilling.billing_type = credit_holder</code> (checked first)</td>
+<td>pinned per allocation (<code>QoS</code>/<code>DefaultQoS</code>)</td>
+</tr>
+<tr>
+<td><code>default</code></td>
+<td>default (free) allocation</td>
+<td>role <code>default</code> (e.g. <code>scavenger</code>)</td>
+</tr>
+<tr>
+<td><code>paid</code></td>
+<td>any other allocation</td>
+<td>role <code>paid</code> whose affiliation matches the account's root (e.g. <code>orga</code>, <code>orgb</code>)</td>
+</tr>
+<tr>
+<td><code>class</code></td>
+<td>course accounts</td>
+<td>pinned; never matched automatically</td>
+</tr>
+</tbody>
+</table>
+<p>Lists are strict (no <code>scavenger</code> appended to a paid account). DefaultQOS is
+<code>scavenger</code> when it matched, else the first match. An account whose class
+matches no row is left untouched and logged as a WARNING. A cluster whose
+QOS rows all have a blank Role keeps the older free/paid policy.</p>
+<h3>GPU concurrency limits: where each lives and what it counts</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Set in</th>
+<th>Counts</th>
+<th>Adds up across accounts?</th>
+<th>Adds up across QOS?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MaxTRESPerAccount</code></td>
+<td>QOS row</td>
+<td>GPUs of one account, under that QOS</td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>MaxTRESPerUser</code></td>
+<td>QOS row</td>
+<td>GPUs of one user, under that QOS</td>
+<td><strong>yes</strong> (every account of the user)</td>
+<td>no</td>
+</tr>
+<tr>
+<td>GrpTRES (account), condo</td>
+<td>Allocation Detail (condo)</td>
+<td>GPUs of one account, any QOS</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>GrpTRES (per user), condo</td>
+<td>Allocation Detail (condo)</td>
+<td>GPUs of one user <strong>in one account</strong></td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>PI GPU cap (MaxTRESPerPI)</td>
+<td>Allocation Detail (staff row)</td>
+<td>GPUs of every account and user under the PI</td>
+<td><strong>yes</strong> (every account of the PI)</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p>A job must fit <strong>every</strong> limit that applies; the tightest one decides.
+<code>Grp*</code> limits are hierarchical: a limit on an account also caps every
+account below it in the tree.</p>
+<h3>Ownership rules</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Blank</th>
+<th>Filled</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>QOS <code>MaxTRESPerAccount</code> / <code>MaxTRESPerUser</code></td>
+<td>operator-managed: the sync never sets or clears it</td>
+<td>ColdFront sets it at creation and converges drift every pass</td>
+</tr>
+<tr>
+<td>QOS <code>Priority</code></td>
+<td>n/a (always a number)</td>
+<td>written as-is, 0 included, on rows with Ensure in slurm</td>
+</tr>
+<tr>
+<td>Condo GrpTRES (account / per user)</td>
+<td>never touched</td>
+<td>converged every pass</td>
+</tr>
+<tr>
+<td><code>QoS</code> / <code>DefaultQoS</code> pin</td>
+<td>cluster default for the account's class</td>
+<td>overrides the class; partial fills are completed</td>
+</tr>
+</tbody>
+</table>
+<p>Clearing a filled limit: blank the field in Admin <strong>and</strong> clear it in Slurm
+(<code>sacctmgr modify qos &lt;q&gt; set MaxTRESPerAccount=gres/gpu=-1</code>), because a
+blank field is no longer managed and is left as it is.</p>
+<h3>Worked example: one PI, three accounts, QOS <code>orga</code> (PA 16, PU 16)</h3>
+<p>Three different users submit, in this order, 12 GPUs on account A, 8 on B
+and 12 on C:</p>
+<table>
+<thead>
+<tr>
+<th>Limits in force</th>
+<th>A (12)</th>
+<th>B (8)</th>
+<th>C (12)</th>
+<th>GPUs in use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MaxTRESPerAccount=16</code> only</td>
+<td>runs</td>
+<td>runs</td>
+<td>runs</td>
+<td>32</td>
+</tr>
+<tr>
+<td>PI GPU cap 16</td>
+<td>runs</td>
+<td>pending <code>AssocGrpGRES</code></td>
+<td>pending</td>
+<td>12</td>
+</tr>
+</tbody>
+</table>
+<p>With the same user on all three accounts, <code>MaxTRESPerUser=16</code> already holds
+the total at 16 (B and C pend with <code>QOSMaxGRESPerUser</code>), because all three
+accounts use the same QOS. When A ends, only one of B and C fits; which one
+starts first follows job priority (each account has its own fairshare), not
+submission order.</p>
+<h2>PI GPU cap (MaxTRESPerPI)</h2>
+<p><strong>Goal:</strong> one GPU ceiling per PI, whatever the number of accounts, users or
+QOS under that PI. <code>MaxTRESPerAccount</code> alone cannot do it: a PI with three
+accounts can hold three times its value.</p>
+<p><strong>Mechanism:</strong> Slurm has no MaxTRESPerPI. The sync writes
+<code>GrpTRES=gres/gpu=N</code> on the PI's structural node <code>pi-&lt;user&gt;</code>. Every
+allocation account of the PI (default and projects) is a leaf under that
+node, so the hierarchical limit counts all of them together:</p>
+<pre><code>orga / whiting / ap /
+  pi-jdoe   GrpTRES=gres/gpu=16   &lt;- the value of the MaxTRESPerPI row goes here
+    ├── jdoe          (default allocation: shows/edits the same value)
+    ├── jdoe_proj1    (proj1 allocation:   shows/edits the same value)
+    └── jdoe_proj2    (proj2 allocation:   shows/edits the same value)
+</code></pre>
+<p><strong>Switch:</strong> Admin &gt; Slurm Clusters &gt; Slurm Account Defaults &gt; <strong>PI GPU cap
+(MaxTRESPerPI)</strong>, off by default. Off: <code>pi-*</code> nodes are never touched. On:
+ColdFront owns <code>gres/gpu</code> in the <code>GrpTRES</code> of every <code>pi-*</code> node of that
+cluster; a value set there by hand is cleared when no cap applies. Other
+TRES on the node are never written.</p>
+<p><strong>Value of one node, in order:</strong></p>
+<ol>
+<li>The PI has a condo account under the node: <strong>no PI cap</strong>. The cap would
+   also count the purchased GPUs; the condo account keeps its own GrpTRES
+   (account). Such a PI keeps the per-account and per-user limits.</li>
+<li>A staff override: <code>-1</code> = no PI cap, <code>N</code> = N.</li>
+<li>Otherwise the highest <code>MaxTRESPerAccount</code> GPU count among the QOS of the
+   PI's accounts (<code>orga</code> gives 16; an account pinned to <code>orga2</code> raises it to
+   32).</li>
+<li>Nothing of the above: no PI cap.</li>
+</ol>
+<p><strong>Where staff set it:</strong> the <strong>MaxTRESPerPI (PI-wide)</strong> row at the end of the
+Allocation Attributes table on Allocation Detail, visible to staff only and
+only while the switch is on. Every allocation of the PI shows the same row
+and writes the same value (Admin &gt; PI GPU caps lists the overrides), so it
+does not matter which allocation it is edited from. Blank = the QOS value,
+a number = override (with an optional reason), <code>-1</code> = no PI cap. The line
+under the box names the node, the value and where it came from; for a condo
+PI the box is disabled and says why. Saving writes an admin log entry and
+syncs that PI at once.</p>
+<p><strong>What stays:</strong></p>
+<ul>
+<li><code>MaxTRESPerUser</code> on the tier QOS stays. The PI cap does not see that a user
+  also runs under another PI; without PU, a member of two PIs could hold
+  both caps.</li>
+<li><code>MaxTRESPerAccount</code> stays: redundant under the PI cap, and it is the
+  source of the default value.</li>
+</ul>
+<p><strong>Cases with more than one <code>pi-*</code> node:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>Node</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Allocations on two clusters</td>
+<td>one <code>pi-jdoe</code> per cluster</td>
+<td>one value per cluster</td>
+</tr>
+<tr>
+<td>Project under an additional affiliation</td>
+<td><code>pi-jdoe-orgb</code> under the <code>orgb</code> root</td>
+<td>its own value; QOS without limits (e.g. <code>orgb</code>) give no default, so no cap</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Turning it on for a cluster:</strong></p>
+<ol>
+<li>With the switch still off, list who holds more GPUs today:
+   <code>squeue -h -t R -O account,tres-alloc:80</code>.</li>
+<li>Still with the switch off, run <code>coldfront sync_slurm --dry-run</code> and read
+   every <code>would set GrpTRES=gres/gpu=N on pi-&lt;user&gt; (live M, &lt;source&gt;, switch
+   off)</code> line, then the summary <code>PI GPU cap: X of Y pi-* node(s) would change</code>.
+   A dry-run computes the cap even with the switch off; a real sync does not
+   touch any pi-* node until it is ticked. A <code>gres/gpu=-1</code> line means a value
+   left on the node by hand, which ColdFront will clear.</li>
+<li>Tick the switch. The next sync (within 15 minutes) applies it, or run
+   <code>coldfront sync_slurm</code>.</li>
+</ol>
+<p>Running jobs are never stopped by a new <code>GrpTRES</code>; it only holds new
+starts, with reason <code>AssocGrpGRES</code>. Check a node with
+<code>sacctmgr show assoc where account=pi-&lt;user&gt; user= format=Account,GrpTRES</code>.</p>
+<h2>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPU job pending, cluster shows idle GPUs</td>
+<td>A concurrency limit: read the reason (table in Quick start §2)</td>
+<td>Wait, pin an elevated tier, or raise the limit</td>
+</tr>
+<tr>
+<td>A user holds 32 GPUs although PU is 16</td>
+<td>The user's accounts use different QOS (<code>orga</code> and <code>orga2</code>): PU never adds up across QOS</td>
+<td>Expected with tier pins; see the limits matrix</td>
+</tr>
+<tr>
+<td>A PI holds 48 GPUs with <code>MaxTRESPerAccount=16</code></td>
+<td>Three accounts, 16 each: PA counts one account</td>
+<td>Turn on the PI GPU cap for the cluster (section above)</td>
+</tr>
+<tr>
+<td>A tier limit edited with <code>sacctmgr</code> came back</td>
+<td>The row has Ensure in slurm and a filled field</td>
+<td>Edit it in Admin</td>
+</tr>
+<tr>
+<td><code>sacctmgr modify account ... set MaxTRESPerUser=</code> says <code>Unknown option</code></td>
+<td>Associations have no MaxTRESPA/PU; on an account use <code>GrpTRES</code></td>
+<td>Use the condo GrpTRES rows, or a QOS field</td>
+</tr>
+<tr>
+<td>Pending <code>InvalidQOS</code> after a pin or a QOS retirement</td>
+<td>Queued jobs keep the QOS they were submitted with</td>
+<td><code>scontrol update job &lt;id&gt; qos=&lt;new&gt;</code> (see <a href="admin.html"><code>admin.md</code></a>)</td>
+</tr>
+</tbody>
+</table>
+<h2>Where to go next</h2>
+<ul>
+<li><a href="su-budgets.html"><code>su-budgets.md</code></a> (SU budgets and <code>AssocGrpBillingMinutes</code>),
+  <a href="user.html"><code>user.md</code></a> (QoS from the user's side), <a href="pi.html"><code>pi.md</code></a> (QoS
+  pins as a PI sees them), <a href="superuser.html"><code>superuser.md</code></a> (approving
+  allocations).</li>
+<li>In-app <strong>Staff Help</strong> (<code>/staff/help/</code>): QOS policy, partition and QOS
+  conventions, Slurm account hierarchy.</li>
+<li><code>slurm/README.md</code> (troubleshooting, <code>job_submit.lua</code>).</li>
+<li><code>coldfront/README.md</code>: the ColdFront portal
+  (build, startup, configuration, admin features).</li>
+<li>Slurm manuals: <code>sacctmgr(1)</code> (QOS and association limits),
+  <code>resource_limits.html</code> (limit hierarchy and precedence).</li>
+</ul></div>
+      </main>
+    </div>
+  </body>
+</html>
