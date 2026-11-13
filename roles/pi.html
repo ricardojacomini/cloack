@@ -144,6 +144,14 @@ first login; others register via <code>/user/orga/register/</code> or
 Add them to the <strong>allocation</strong>, not only the project: membership of an
 allocation is what creates the Slurm association and grants the cluster
 login shell. Provisioning is immediate once the ToS gate is clear.</p>
+<p>To split GPUs among the members of a paid or condo allocation, use the
+<strong>GPUs at once</strong> column of the Users in Allocation table on Allocation
+Detail: type how many GPUs that member may have running at the same time on
+this account and press save (0 = no GPU jobs; blank = the allocation
+default). The page tells you the maximum you can give (the GPUs purchased
+for a condo account, or your GPU cap). Project Managers can set it too. The
+cluster picks the change up within 15 minutes; jobs already running are not
+stopped.</p>
 <h3>4. Set or update the spend cap</h3>
 <pre><code>/allocation/&lt;id&gt;/ → &quot;Set Cap&quot; (or &quot;Update Cap&quot;) → amount in $ or SU → save
                    → or click &quot;No cap&quot;

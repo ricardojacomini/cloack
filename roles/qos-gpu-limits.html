@@ -247,6 +247,13 @@ QOS rows all have a blank Role keeps the older free/paid policy.</p>
 <td>yes</td>
 </tr>
 <tr>
+<td>GPUs at once (one member)</td>
+<td>Allocation Detail, Users in Allocation (PI, Manager, staff)</td>
+<td>GPUs of that one user <strong>in one account</strong></td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr>
 <td>PI GPU cap (MaxTRESPerPI)</td>
 <td>Allocation Detail (staff row)</td>
 <td>GPUs of every account and user under the PI</td>
@@ -413,6 +420,54 @@ syncs that PI at once.</p>
 <p>Running jobs are never stopped by a new <code>GrpTRES</code>; it only holds new
 starts, with reason <code>AssocGrpGRES</code>. Check a node with
 <code>sacctmgr show assoc where account=pi-&lt;user&gt; user= format=Account,GrpTRES</code>.</p>
+<h2>Per-member GPU limit (GPUs at once)</h2>
+<p>A PI or a project Manager can give each member of an allocation their own
+number of GPUs: the <strong>GPUs at once</strong> column of the Users in Allocation table
+on Allocation Detail (paid and condo allocations; not the default
+allocation). Staff can set it too. The sync writes it as <code>GrpTRES</code> on that
+member's own Slurm association, so it counts the member's running jobs on
+that one account.</p>
+<table>
+<thead>
+<tr>
+<th>Box</th>
+<th>What the member gets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>blank, never set</td>
+<td>the allocation default: "GrpTRES (per user)" on a condo allocation, otherwise no limit of the member's own</td>
+</tr>
+<tr>
+<td>a number N</td>
+<td>N GPUs at once on this account (0 = no GPU jobs)</td>
+</tr>
+<tr>
+<td>cleared after a number</td>
+<td>back to the allocation default; the value ColdFront wrote is removed</td>
+</tr>
+</tbody>
+</table>
+<p>The number cannot be higher than the parent limit, and the page refuses it
+with the maximum: on a condo account the GPUs purchased ("GrpTRES
+(account)"), otherwise the PI GPU cap when the cluster has it on. If one of
+those is lowered later, the sync writes the lower value for the member. The
+QOS limits (<code>MaxTRESPerUser</code>, <code>MaxTRESPerAccount</code>) still apply on top.</p>
+<p>A change reaches Slurm at the next sync of that PI (within 15 minutes at
+most). ColdFront only writes the associations of members who have, or had,
+a value in this column; a <code>GrpTRES</code> set by hand on any other member is left
+alone. Read the result with <code>stree -r pi-&lt;user&gt; --limits --full</code> or
+<code>sacctmgr show assoc where account=&lt;acct&gt; format=Account,User,GrpTRES</code>.
+A job held by this limit shows <code>AssocGrpGRES</code>. At submission
+(<code>sbatch</code>, <code>srun</code>, <code>salloc</code>, <code>interact</code>) the user is told so: a <code>[GPU LIMIT]</code>
+notice names the limit that binds (their own, the account's, or the PI's),
+how many GPUs it allows and how many are in use, and whether the job can
+never start at that limit or only has to wait. The notice never blocks the
+submission; <code>CLI_FILTER_SHOW_BALANCE=0</code> silences it with the SU notice.
+Preview with
+<code>coldfront sync_slurm --pi &lt;user&gt; --dry-run</code>: one
+<code>would set GrpTRES=... on &lt;users&gt; under &lt;acct&gt;</code> line per pending change.</p>
 <h2>Troubleshooting</h2>
 <table>
 <thead>

@@ -256,6 +256,38 @@ Use `start.sh` to manage the full CLOACK stack. It wraps `docker compose` with i
 
 ### Quick start
 
+Work from a `git clone`. Git records the executable bit and gives every file
+read permission for group and others, which the image builds rely on: several
+scripts are copied into an image by `COPY` and then read by a non-root user
+inside the container.
+
+**If the tree is not a clone** (tar, zip, scp or rsync of someone's working
+directory), check these before the first deploy:
+
+- **File modes.** A copy keeps the modes of its source. A tree taken from a
+  host with a restrictive umask arrives without read permission for others,
+  and the first symptom is `Permission denied` on
+  `/docker-entrypoint-initdb.d/01-init-databases.sh` in the postgres log:
+  the init script stops, the Keycloak and ColdFront databases are never
+  created, and both services fail with authentication errors. List the
+  affected files and repair them from the root of the tree:
+
+  ```bash
+  find . -type f ! -perm -004 | head     # any output = modes were lost
+  chmod -R go+rX .                       # restore read (and traverse) for all
+  ```
+
+  After the repair, start again from an empty database
+  (`./start.sh deploy dev -y`): the init scripts only run on an empty data
+  directory, so a first attempt that failed halfway is not retried.
+- **Secrets.** A copy of a working directory carries the gitignored files
+  (`.env`, `*.env`, `coldfront/custom/etc/coldfront/coldfront.env`). Delete
+  them when the copy came from another host and let `./start.sh init`
+  generate new ones. Never reuse the secrets of a stage or production host.
+- **Age.** A copy has no history and cannot be updated with `git pull`, so
+  it may hold files that were removed from the repository since it was made.
+  Replace it with a clone as soon as possible.
+
 ```bash
 # First-time bootstrap: prepare host dirs and generate .env
 ./start.sh init dev          # dev
@@ -1887,6 +1919,15 @@ stree -r orga
 
 # Full hierarchy from root (admin only)
 stree -r root --full
+
+# Add QOS and GrpTRES (concurrent limits such as GPUs) to each account
+stree --limits
+stree -r pi-jsmith --limits --full
+</code></pre>
+<p>With <code>--limits</code>, <code>[GrpTRES gres/gpu=N]</code> on a <code>pi-&lt;user&gt;</code> node is the GPU ceiling for all of the PI's accounts together, and on a condo account it is the purchase size:</p>
+<pre><code>pi-jsmith  [share parent]  [GrpTRES gres/gpu=16]
+├── 📁 jsmith  [share 180000]  [SU limit 180,000]  [QOS scavenger]
+└── 📁 jsmith_proj1  [share 100000000]  [SU no limit]  [QOS orga]
 </code></pre>
 <blockquote>
 <p><strong>Note:</strong> Regular users can only view accounts they belong to. <code>stree -r root</code> requires admin privileges (root/slurm/admin group). Old name <code>slurmtree</code> still works as a symlink.</p>

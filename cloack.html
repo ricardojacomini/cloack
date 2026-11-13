@@ -775,6 +775,34 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td>Generates <code>qos_config.lua</code> for cli_filter.lua from DB</td>
 </tr>
 <tr>
+<td>PI GPU cap (MaxTRESPerPI)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Per-cluster switch: <code>GrpTRES=gres/gpu=N</code> on each <code>pi-&lt;user&gt;</code> node counts every account of the PI; default = highest MaxTRESPerAccount of the PI's QOS, staff override per PI, condo PIs never capped</td>
+</tr>
+<tr>
+<td>Per-member GPU limit</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>PI or project Manager sets <em>GPUs at once</em> per member in Users in Allocation; written as <code>GrpTRES</code> on the member's own association, bounded by the condo purchase or the PI GPU cap; <em>Show on cluster</em> reads what Slurm holds</td>
+</tr>
+<tr>
+<td>GPU limit notice at submit</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td><code>cli_filter.lua</code> <code>[GPU LIMIT]</code>: names the limit that binds and whether the job waits or cannot start (<code>AssocGrpGRES</code>)</td>
+</tr>
+<tr>
+<td><code>stree --limits</code></td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Account tree with each account's QOS and <code>GrpTRES</code>, per-user <code>GrpTRES</code> with <code>--full</code></td>
+</tr>
+<tr>
 <td>Slurm account hierarchy</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">Flat</td>

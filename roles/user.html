@@ -158,7 +158,10 @@ directory sync, and accepting the ToS flips it immediately.</p>
   SU budget, free or paid, a <code>[BUDGET]</code> note appears when the job needs
   more SU than the account has left this period: the job is still
   submitted and waits in the queue (reason <code>AssocGrpBillingMinutes</code>)
-  until the account has enough SU.</li>
+  until the account has enough SU. A <code>[GPU LIMIT]</code> note appears when the
+  job asks for more GPUs than you, the account or your PI may have in use
+  at once: it names the limit and says whether the job has to wait for
+  running GPU jobs to finish or cannot start until the limit is raised.</li>
 <li><strong>Portal Submit Job</strong> (<code>/jobs/submit/</code>): paste a batch script, choose
   partition and account, see the live cost estimate before you submit.
   <code>?as_of_date=YYYY-MM-DD</code> previews the rates of another day for budget
@@ -443,6 +446,11 @@ cap stops a runaway long before the bill does.</p>
 <td>Job pending with reason <code>AssocGrpBillingMinutes</code></td>
 <td>The account's spend cap or budget for the current usage period is used up (the <code>[BUDGET]</code> note at submit says so on the login node)</td>
 <td><code>sbalance --week</code> to confirm; switch to <code>scavenger</code> (free); or ask your PI to raise the cap. The counter clears at the period boundary</td>
+</tr>
+<tr>
+<td>Job pending with reason <code>AssocGrpGRES</code></td>
+<td>A limit on GPUs in use at once is reached: your own on that account (set by your PI), the account's, or your PI's across all their accounts (the <code>[GPU LIMIT]</code> note at submit names it)</td>
+<td><code>stree --limits --full</code> shows the limits; wait for running GPU jobs to finish, ask for fewer GPUs, or ask your PI to raise your limit on Allocation Detail (Users in Allocation, <strong>GPUs at once</strong>)</td>
 </tr>
 <tr>
 <td>Job pending with reason <code>AssocGrpSubmitJobs</code> (submission held)</td>

@@ -443,7 +443,7 @@ e-mail from the shared mailbox. Decide in ColdFront; the ticket follows.</p>
 <tr>
 <td><code>... Upgrade Account Request: ...</code></td>
 <td>a user asks to become a PI (the ticket and the Promote Users row show the primary department they chose; promotion creates the default project there)</td>
-<td>you promote them or clear the request on Promote Users</td>
+<td>you promote them or clear the request on Promote Users (its Requested badge reads the ticket: "Waiting on user" when staff wrote last, "User replied" when the user answered and nobody replied yet, each with the time elapsed and a link to the ticket)</td>
 </tr>
 <tr>
 <td><code>... New Project Request: ...</code></td>
@@ -487,11 +487,27 @@ back to e-mail.</p>
   with an <code>IgnoreEmail</code> rule, since the digest is the only evidence.</li>
 <li>An <code>IgnoreEmail</code> entry works on a full address, a bare domain
   (<code>*@domain</code>) or a bare word (literal match on the sender string).</li>
-<li>A delivery failure report (a bounce) is filed as a follow-up on the
-  ticket whose e-mail bounced; when that ticket cannot be found, it opens a
-  ticket from the mail system. The helpdesk never sends an automatic e-mail
-  back to such senders. Close those tickets with the Status combo or the
-  list's <strong>Close (Don't Send E-Mail)</strong>, never with an e-mail reply.</li>
+<li>A delivery report from the mail system (a bounce, a "delivery delayed"
+  warning, a delivery confirmation) or an out-of-office auto-reply is filed
+  on the ticket it concerns as a <strong>private System note</strong>, never as a user
+  reply: the ticket keeps its status (a Closed ticket is not reopened), shows
+  no "User replied" chip and does not enter "Unanswered user replies". The
+  note's title says what happened: <strong>Delivery delayed to <address> (4.x.x)</strong>
+  means the relay is still retrying and nothing needs to be resent (the
+  Microsoft outage of 2026-11-12 produced 22 of these in one night);
+  <strong>Delivery FAILED to <address> (5.x.x)</strong> means the person never got that
+  e-mail and it has to be resent (or they have to be reached another way);
+  <strong>Delivered to</strong> confirms delivery when the receiving server reports it. A
+  successful delivery normally produces no report at all, so "no FAILED note
+  within a day or two" is the usual confirmation. To find failures across
+  tickets: <code>manage.py delivery_reports --since 7 --failed</code> (staff with
+  container access). A report about an e-mail of ANY ticket, the approval
+  queues included, is filed on that ticket. Only when the returned message
+  names no ticket does the report open a ticket from the mail system; the
+  helpdesk never e-mails such senders. Close those tickets with the Status
+  combo or the list's <strong>Close (Don't Send E-Mail)</strong>, never with an e-mail
+  reply; <code>manage.py delivery_reports --rethread --yes</code> does the same for
+  every robot ticket whose returned message does name a ticket.</li>
 <li>An attachment of a type the helpdesk does not accept is replaced by a
   short <code>not-stored</code> note; the rest of the e-mail still arrives. A plain-text
   file (for example a <code>.log</code>) attached next to a plain-text message is not
