@@ -152,6 +152,12 @@ default). The page tells you the maximum you can give (the GPUs purchased
 for a condo account, or your GPU cap). Project Managers can set it too. The
 cluster picks the change up within 15 minutes; jobs already running are not
 stopped.</p>
+<p>Removing a member (Remove Users on Project Detail) stops their jobs from
+starting on your account within 15 minutes; jobs already running finish.
+Their past usage stays on the account and on your invoice. The member's
+profile then lists your project as "Removed by <you> on <date and time>",
+and <code>sbalance</code> stops showing them (<code>sbalance --full</code> lists removed members
+with the same date and who removed them). Adding them back restores access.</p>
 <h3>4. Set or update the spend cap</h3>
 <pre><code>/allocation/&lt;id&gt;/ → &quot;Set Cap&quot; (or &quot;Update Cap&quot;) → amount in $ or SU → save
                    → or click &quot;No cap&quot;

@@ -265,6 +265,44 @@ Admin Tools → Audit Trail          (/staff/audit-trail/)
 <p>Every <code>async_task()</code> call uses the <code>task_completion_hook</code> so the
 admin LogEntry table records when each scheduled task ran, success or
 failure, duration, and result snippet.</p>
+<p><strong>Finding who changed something</strong> (Audit Trail filters combine):</p>
+<table>
+<thead>
+<tr>
+<th>Filter</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>From / To</td>
+<td>Dates, inclusive</td>
+</tr>
+<tr>
+<td>Actor</td>
+<td>Text inside the username; comma-separated, <code>!name</code> excludes (<code>!coldfront</code> hides system writes)</td>
+</tr>
+<tr>
+<td>Model</td>
+<td>One object type, e.g. <code>allocation.allocation</code></td>
+</tr>
+<tr>
+<td>Action</td>
+<td><code>add</code>, <code>change</code>, <code>delete</code>, <code>sync</code> (someone pressed Sync)</td>
+</tr>
+<tr>
+<td>Search</td>
+<td>Text in the object label or in the change; also a status, role, attribute type or affiliation by its exact name (<code>Denied</code> finds <code>status: New → Denied</code>, older rows included)</td>
+</tr>
+</tbody>
+</table>
+<p>An allocation is labelled <code>RESOURCE (pi)</code>, e.g. <code>CLUSTER-X (jdoe1)</code>, not
+by its Slurm account: search the PI's username. Clicking the label opens
+that object's whole history (members, attributes, billing and Slurm
+writes included). A status change shows the new status as a second badge
+under <code>change</code>. Example: who denied an allocation = Model
+<code>allocation.allocation</code>, Search <code>Denied</code>; the Actor column names them and
+the deny reason is the <code>description</code> change on the same row.</p>
 <h2>Reference matrices</h2>
 <h3>Scheduled tasks (django-q)</h3>
 <table>

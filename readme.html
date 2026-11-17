@@ -2003,10 +2003,15 @@ sbalance -u admin1
 
 # Hide accounts with zero usage
 sbalance --hide-zero
+
+# Also list members removed from an account in the Portal (hidden by default),
+# each row ending with &quot;removed &lt;date&gt; by &lt;who&gt;&quot;
+sbalance --full
 </code></pre>
 <p><strong>Troubleshooting:</strong>
 - <strong>All zeros?</strong> → No jobs have run yet, or <code>collect_sacct</code> hasn't imported them
-- <strong>Missing accounts?</strong> → Run <code>sync_slurm</code> to ensure ColdFront allocations are synced to Slurm</p>
+- <strong>Missing accounts?</strong> → Run <code>sync_slurm</code> to ensure ColdFront allocations are synced to Slurm
+- <strong>"No current account membership" / "N removed members not shown"?</strong> → The member was removed from the allocation in the Portal; the sync keeps the association blocked (<code>MaxJobs=0</code>) and stamps its comment. <code>sbalance --full</code> shows them</p>
 <h3>sqos — QOS Definitions</h3>
 <pre><code class="language-bash"># Show all QOS definitions
 sqos all

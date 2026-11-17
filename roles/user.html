@@ -199,6 +199,7 @@ sbalance                 # SU used vs limit for every account you sit under
 sbalance --week          # spend cap and usage for the current usage period
                          # (+ this week against the weekly cap, where caps are weekly)
 sbalance --by-partition  # the same, split by partition
+sbalance --full          # also list members removed from an account (date, who removed them)
 </code></pre>
 <p><code>sbalance</code> reads Slurm itself (<code>sacctmgr</code>, <code>sreport</code>, <code>scontrol</code>) and
 prints two numbers. <strong>Used</strong> is the accounting total for the period (what
@@ -406,7 +407,7 @@ cap stops a runaway long before the bill does.</p>
 </tr>
 <tr>
 <td><code>sbalance</code>, <code>sbalance --week</code>, <code>sbalance --by-partition</code></td>
-<td>SU used vs limit, spend cap for the current period, per-partition split. <code>--held</code> and <code>-M</code> are for administrators.</td>
+<td>SU used vs limit, spend cap for the current period, per-partition split. Members removed from an account are hidden; <code>--full</code> lists them with the date and who removed them. <code>--held</code> and <code>-M</code> are for administrators.</td>
 </tr>
 <tr>
 <td><code>sassoc</code></td>
