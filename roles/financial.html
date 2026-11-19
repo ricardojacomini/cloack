@@ -152,6 +152,39 @@ row's select to <code>true</code> (active on SAP) or <code>false</code> (inactiv
 when, the <strong>SAP not checked</strong> card counts what is left, and the State filter
 lists each value. The flag is informational: a <code>false</code> IO keeps billing
 until you deactivate or pause it.</p>
+<p>You do not have to read and type the value yourself. Drag the <strong>Double-check
+IO</strong> button at the top of the page to your bookmarks bar once. Then open
+the lookup of a row and, on the ServiceNow page, click that bookmark: it
+reads the record with your own session and brings you back to a <strong>Record
+from SAP</strong> page showing what it found. <strong>Record</strong> then fills three columns:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IO SAP</strong></td>
+<td><code>true</code> when SAP says the number is active, <code>false</code> otherwise (also when SAP does not know the number).</td>
+</tr>
+<tr>
+<td><strong>Name SAP</strong></td>
+<td>The name SAP carries for the number. You can also type it on the row.</td>
+</tr>
+<tr>
+<td><strong>PI match</strong></td>
+<td><code>true</code> when that name contains the PI's last name, first name or username, <code>false</code> when it does not, <code>—</code> while there is no name.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>PI match</strong> is a suggestion made from the text of the name. A number named
+after a department or a grant shows <code>false</code> although it is the PI's, and two
+PIs with the same last name both show <code>true</code>: change the select on the row
+when you know better. Your choice is kept until SAP shows a different name.
+The <strong>PI match false</strong> card counts the rows to look at. Every check is kept
+in the Audit Trail with the person who made it; the row shows the latest.</p>
 <h2>Reference matrices</h2>
 <h3>Payment status</h3>
 <table>
