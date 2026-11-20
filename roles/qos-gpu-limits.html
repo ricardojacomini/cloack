@@ -360,17 +360,25 @@ TRES on the node are never written.</p>
    also count the purchased GPUs; the condo account keeps its own GrpTRES
    (account). Such a PI keeps the per-account and per-user limits.</li>
 <li>A staff override: <code>-1</code> = no PI cap, <code>N</code> = N.</li>
-<li>Otherwise the highest <code>MaxTRESPerAccount</code> GPU count among the QOS of the
-   PI's accounts (<code>orga</code> gives 16; an account pinned to <code>orga2</code> raises it to
-   32).</li>
-<li>Nothing of the above: no PI cap.</li>
+<li>Otherwise the <strong>default of the PI's affiliation</strong>: the <code>MaxTRESPerAccount</code>
+   GPU count of that affiliation's paid QOS (Admin &gt; Slurm QOS, role Paid,
+   Ensure in Slurm), <code>orga</code> = 16. It applies whatever QOS the PI's accounts
+   use, so a PI with only the free default account, or only a billing
+   account (<code>billing_pilot</code>), gets 16 too. An account pinned to a higher tier
+   raises it (<code>orga2</code> = 32), so an elevated grant is never cut by the PI node.
+   A paid QOS with <code>gres/gpu=0</code> (CPU only) is never the default.</li>
+<li>The affiliation's paid QOS sets no GPU count (<code>orgb</code>: OrgB is uncapped
+   by decision): the highest <code>MaxTRESPerAccount</code> GPU count among the QOS of
+   the PI's accounts, else no PI cap.</li>
 </ol>
 <p><strong>Where staff set it:</strong> the <strong>MaxTRESPerPI (PI-wide)</strong> row at the end of the
 Allocation Attributes table on Allocation Detail, visible to staff only and
 only while the switch is on. Every allocation of the PI shows the same row
 and writes the same value (Admin &gt; PI GPU caps lists the overrides), so it
-does not matter which allocation it is edited from. Blank = the QOS value,
-a number = override (with an optional reason), <code>-1</code> = no PI cap. The line
+does not matter which allocation it is edited from. Blank = the default
+(<code>blank = 16 (default)</code>; <code>blank = 32 (QOS orga2)</code> for a PI with a higher tier;
+<code>blank = no cap</code> where the affiliation has no default), a number = override
+(with an optional reason), <code>-1</code> = no PI cap. The line
 under the box names the node, the value and where it came from; for a condo
 PI the box is disabled and says why. Saving writes an admin log entry and
 syncs that PI at once.</p>
@@ -379,8 +387,8 @@ syncs that PI at once.</p>
 <li><code>MaxTRESPerUser</code> on the tier QOS stays. The PI cap does not see that a user
   also runs under another PI; without PU, a member of two PIs could hold
   both caps.</li>
-<li><code>MaxTRESPerAccount</code> stays: redundant under the PI cap, and it is the
-  source of the default value.</li>
+<li><code>MaxTRESPerAccount</code> stays: redundant under the PI cap, and the paid QOS's
+  value is the source of the default.</li>
 </ul>
 <p><strong>Cases with more than one <code>pi-*</code> node:</strong></p>
 <table>

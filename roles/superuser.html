@@ -538,7 +538,12 @@ create projects under them:</p>
 <tr>
 <td>IO Numbers of a condo project</td>
 <td>staff</td>
-<td>Only staff link / unlink project IOs and reassign an allocation's pay IO on a condo project; the PI and Managers see them read-only (Project Detail lock note; the three POSTs are refused)</td>
+<td>Only staff link / unlink project IOs and reassign an allocation's pay IO on a condo project (the three POSTs are refused to the PI and Managers). Project Detail shows no IO cards on a condo to anyone, staff included: change condo IO links in Django Admin (Project cost centers / Allocation cost centers)</td>
+</tr>
+<tr>
+<td>Project Storage of a condo project</td>
+<td>nobody in the UI</td>
+<td>Project Detail shows no Project Storage card on a condo (no Request Storage Change, no Edit Provisioned, no review banner) and My Storage never offers a condo in Request Storage (<code>storage_views.user_can_request_storage</code> refuses condo)</td>
 </tr>
 <tr>
 <td>Partition (condo Request New Allocation)</td>
