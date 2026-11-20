@@ -1006,6 +1006,20 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td>Numeric or alpha sequence per PI — staff-assigned on the Allocation Detail card only (never automatic)</td>
 </tr>
 <tr>
+<td>Job priority per allocation</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Allocation Detail shows what the pinned QoS is worth (<code>PriorityWeightQOS</code> × Priority ÷ highest QOS Priority, weights read from <code>scontrol show config</code> by the topology import); staff field <em>Priority (account)</em> = association priority written by the sync with sacctmgr, counts only while <code>PriorityWeightAssoc</code> &gt; 0</td>
+</tr>
+<tr>
+<td>Condo: one allocation per partition</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>Staff pick the partition on Request New Allocation; account <code>&lt;pi&gt;_&lt;abbr&gt;_&lt;partition&gt;</code>, every member association created with <code>partition=&lt;p&gt;</code> by sacctmgr (a REST user write would add an unrestricted row); Submit Job offers only that partition</td>
+</tr>
+<tr>
 <td>Activate project (staff)</td>
 <td style="text-align: center;">--</td>
 <td style="text-align: center;">--</td>
@@ -1746,6 +1760,11 @@ names are kept: <code>storage_tb</code> = Cache, <code>backup_tb</code> = Projec
 <td>SubProject</td>
 <td><code>&lt;pi_username&gt;_&lt;abbreviation&gt;_&lt;seq&gt;</code> (staff-assigned, explicit-only)</td>
 <td><code>admin1_proj1_A</code></td>
+</tr>
+<tr>
+<td>Condo partition allocation</td>
+<td><code>&lt;pi_username&gt;_&lt;abbreviation&gt;_&lt;partition&gt;</code> (picked on Request New Allocation; members restricted to that partition)</td>
+<td><code>admin1_condo_a100</code></td>
 </tr>
 <tr>
 <td>Structural PI node</td>

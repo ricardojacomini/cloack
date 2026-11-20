@@ -516,6 +516,11 @@ restart.</p>
 <td>OnDemand node proxy for Interactive Apps (no quotes), Grafana job-stats target, Files allowlist.</td>
 </tr>
 <tr>
+<td><code>OOD_SHELL_INACTIVE_TIMEOUT_MS</code>, <code>OOD_SHELL_MAX_DURATION_MS</code>, <code>OOD_SHELL_PING_PONG</code></td>
+<td><code>.env</code></td>
+<td>OnDemand Shell idle limit, total limit (ms) and keep-alive; blank = 30 min / 8 h / on, <code>default</code> = upstream 5 min / 1 h.</td>
+</tr>
+<tr>
 <td><code>OOD_MEM_LIMIT</code>, <code>AI_MEM_LIMIT</code>, <code>SLURMRESTD_MEM_LIMIT</code></td>
 <td><code>.env</code></td>
 <td>Container memory caps (applied on recreate / <code>slurm start</code>).</td>

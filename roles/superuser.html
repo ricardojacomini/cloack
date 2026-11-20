@@ -528,7 +528,22 @@ create projects under them:</p>
 <tr>
 <td>SubProject Scheme card</td>
 <td>staff, not on Active</td>
-<td>Set the account suffix (<code>&lt;pi&gt;_&lt;proj&gt;_A</code>); the only way to resolve an account-name conflict</td>
+<td>Set the account suffix (<code>&lt;pi&gt;_&lt;proj&gt;_A</code>); the only way to resolve an account-name conflict. On a condo allocation it only shows the partition (locked)</td>
+</tr>
+<tr>
+<td>Priority (account)</td>
+<td>staff</td>
+<td>Association priority of the account (<code>sacctmgr ... set priority=N</code>, kept by the sync; blank = not managed). Adds <code>PriorityWeightAssoc</code> × (value ÷ highest association priority) on top of the QoS part; only counts while <code>PriorityWeightAssoc</code> &gt; 0 (tooltip shows the cluster value). The QoS rows show what the pinned QOS is worth (<code>Priority 25000 → +35000</code>)</td>
+</tr>
+<tr>
+<td>IO Numbers of a condo project</td>
+<td>staff</td>
+<td>Only staff link / unlink project IOs and reassign an allocation's pay IO on a condo project; the PI and Managers see them read-only (Project Detail lock note; the three POSTs are refused)</td>
+</tr>
+<tr>
+<td>Partition (condo Request New Allocation)</td>
+<td>staff</td>
+<td>One allocation per partition on a condo project: account <code>&lt;pi&gt;_&lt;abbr&gt;_&lt;partition&gt;</code>, members can submit only to that partition; the same partition twice on one project is refused</td>
 </tr>
 <tr>
 <td>IO Assignment card</td>
